@@ -85,7 +85,7 @@ class InterfaceCollection:
 
     def get_or_restore_intf(self, identifier):
         """
-        Search for an interface prvided by an identifier in an interface collection and deleted interfaces collection
+        Search for an interface provided by an identifier in an interface collection and deleted interfaces collection
         to provide an object. If it is found as a deleted interface then it would be restored back to the main
         collection.
 

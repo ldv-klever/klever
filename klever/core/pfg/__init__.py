@@ -83,7 +83,7 @@ class PFG(klever.core.components.Component):
         Submit common attributes to Bridge.
 
         :param attrs: Prepared list of attributes.
-        :param dfiles: Fiels to attach as data attribute values.
+        :param dfiles: Files to attach as data attribute values.
         """
         klever.core.utils.report(self.logger,
                                  'patch',

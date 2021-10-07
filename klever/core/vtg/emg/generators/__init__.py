@@ -36,16 +36,16 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :param source: Source collection object.
     :return: Reports dict.
     """
-    # In a specific order start proess generators
+    # In a specific order start process generators
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
                        [list(e.keys())[0] for e in get_or_die(conf, "generators options")])
     configurations = [list(e.values())[0] for e in get_or_die(conf, "generators options")]
     specifications_set = conf.get('specifications set')
 
-    # Find genererators
+    # Find generators
     modules = [(shortname, importlib.import_module(name, 'klever.core')) for shortname, name in generator_names]
 
-    # Get specifications for each kind of a agenerator
+    # Get specifications for each kind of a generator
     possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['specifications dir']))] + \
                          list(get_search_dirs(conf['main working directory']))
 

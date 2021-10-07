@@ -31,7 +31,7 @@ class Basic:
         """
         This is a simple strategy to generate verification tasks and corresponding benchmark descriptions. This
         particular strategy generates single verification task with maximum time limits set. It is assumed that
-        the generatl algorythms is left unchanged while methods for creating different sections of the description
+        the generated algorithm is left unchanged while methods for creating different sections of the description
         can be changed.
 
         :param logger: Logger.

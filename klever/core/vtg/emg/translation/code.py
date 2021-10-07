@@ -177,7 +177,7 @@ class CModel:
 
     def add_global_variable(self, variable, file, extern=False, initialize=True):
         """
-        Add a global variable declararation or/and initalization to the target file.
+        Add a global variable declaration or/and initialization to the target file.
 
         :param variable: Variable object.
         :param file: File name.
@@ -190,13 +190,13 @@ class CModel:
         elif not file:
             file = self.entry_file
 
-        declarattions = self._variables_declarations.setdefault(file, sortedcontainers.SortedDict())
+        declarations = self._variables_declarations.setdefault(file, sortedcontainers.SortedDict())
         initializations = self._variables_initializations.setdefault(file, sortedcontainers.SortedDict())
 
         if extern:
-            declarattions.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
+            declarations.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
         else:
-            declarattions[variable.name] = variable.declare(extern=extern) + ";\n"
+            declarations[variable.name] = variable.declare(extern=extern) + ";\n"
             if initialize:
                 if variable.value and (
                         (isinstance(variable.declaration, Pointer) and
@@ -246,7 +246,7 @@ class CModel:
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf-8'), exist_ok=True)
 
-        if self._conf["translation options"].get("propogate headers to instrumented files", True):
+        if self._conf["translation options"].get("propagate headers to instrumented files", True):
             for file in (f for f in self.files if f in additional_lines):
                 self.add_headers(file, get_or_die(self._conf["translation options"], "additional headers"))
 
@@ -388,7 +388,7 @@ class CModel:
 
     def create_wrapper(self, wrapped_name: str, new_name: str, declaration: str) -> Function:
         """
-        Create a wrapper of a static function and return an object of newly crreated function.
+        Create a wrapper of a static function and return an object of newly created function.
 
         :param wrapped_name: function name to wrap.
         :param new_name: a name of the wrapper.
@@ -428,7 +428,7 @@ class CModel:
 
 
 class FunctionModels:
-    """Class represent common C extensions for simplifying environmen model C code generators."""
+    """Class represent common C extensions for simplifying environment model C code generators."""
 
     mem_function_template = r'\$({})\(%({})%([->.[\]\w\s]*)(?:,\s?(\w+))?\)'
     simple_function_template = r'\$({})\('

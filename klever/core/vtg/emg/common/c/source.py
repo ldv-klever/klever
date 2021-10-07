@@ -35,7 +35,7 @@ def create_source_representation(logger, conf, abstract_task):
     :param abstract_task: Abstract task dict.
     :return: Source object.
     """
-    # Initialize Clade cient to make requests
+    # Initialize Clade client to make requests
     clade = Clade(conf['build base'])
     if not clade.work_dir_ok():
         raise RuntimeError('Build base is not OK')
@@ -92,7 +92,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
                 if 'value' in variable:
                     var.value = variable['value']
 
-    # Variables which are used in variables initalizations
+    # Variables which are used in variables initializations
     logger.info("Import source functions")
     vfunctions = clade.get_used_in_vars_functions()
 
@@ -380,7 +380,7 @@ class Source:
 
     def get_source_variable(self, name, path=None):
         """
-        Provides a gloabal variable by a given name and scope file from the collection.
+        Provides a global variable by a given name and scope file from the collection.
 
         :param name: Variable name.
         :param path: File with the variable declaration or initialization.
@@ -478,7 +478,7 @@ class Source:
             return None
 
     def search_function(self, func_name, some_scope, fs):
-        # Be aware of  this funciton - it is costly
+        # Be aware of  this function - it is costly
         if some_scope in fs and func_name in fs[some_scope]:
             return some_scope
         elif 'unknown' in fs and func_name in fs['unknown']:

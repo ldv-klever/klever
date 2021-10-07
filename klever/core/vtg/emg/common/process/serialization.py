@@ -298,7 +298,7 @@ class CollectionDecoder:
                 "You must specify manually 'comment' attribute within the description of {!r} kernel "
                 "function model process".format(name))
 
-        # Import actiones
+        # Import actions
         for some_name, description in dic.get('actions', {}).items():
             names = some_name.split(", ")
             for act_name in names:

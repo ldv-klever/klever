@@ -35,7 +35,7 @@ from klever.core.vtg.scheduling import Governer
 def __launch_sub_job_components(context):
     context.mqs['VTG common attrs'] = multiprocessing.Queue()
 
-    # Queues used excusively in VTG
+    # Queues used exclusively in VTG
     context.mqs['program fragment desc files'] = multiprocessing.Queue()
     context.mqs['prepare'] = multiprocessing.Queue()
 
@@ -148,7 +148,7 @@ class VTG(klever.core.components.Component):
 
     # TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
     def __extract_req_spec_descs(self):
-        self.logger.info('Extract requirement specificaction decriptions')
+        self.logger.info('Extract requirement specification descriptions')
 
         if 'specifications base' not in self.conf:
             raise KeyError('Nothing will be verified since specifications base is not specified')
@@ -312,7 +312,7 @@ class VTG(klever.core.components.Component):
             else:
                 self.req_spec_classes[req_desc['identifier']] = [req_desc]
 
-        # Replace haches by rule names and convert lists to dictionary
+        # Replace hashes by rule names and convert lists to dictionary
         self.req_spec_classes = {rules[0]['identifier']: {r['identifier']: r for r in rules}
                                  for rules in self.req_spec_classes.values()}
 
@@ -371,7 +371,7 @@ class VTG(klever.core.components.Component):
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         keep_dirs = self.conf['keep intermediate files']
 
-        self.logger.info('Generate all abstract verification task decriptions')
+        self.logger.info('Generate all abstract verification task descriptions')
         governer = Governer(self.conf, self.logger, {})
 
         # Get abstract tasks from program fragment descriptions
@@ -456,7 +456,7 @@ class VTG(klever.core.components.Component):
 
                         accepted = governer.add_solution(task, solution_status)
                         if not accepted:
-                            self.logger.info(f'Repeate solution for {task} later')
+                            self.logger.info(f'Repeat solution for {task} later')
                     else:
                         self.logger.info(f'No solution received for {task}')
                         governer.add_solution(task)
@@ -483,7 +483,7 @@ class VTG(klever.core.components.Component):
 
                     # If there are tasks to schedule do this
                     if governer.rescheduling:
-                        self.logger.info('We can repeate solution of timeouts now')
+                        self.logger.info('We can repeat solution of timeouts now')
                         for _, task in governer.limitation_tasks:
                             if not governer.is_running(task):
                                 attempt = governer.do_rescheduling(task)
@@ -502,7 +502,7 @@ class VTG(klever.core.components.Component):
         self.logger.info("Stop generating verification tasks")
 
     def __get_common_attrs(self):
-        self.logger.info('Get common atributes')
+        self.logger.info('Get common attributes')
         common_attrs = self.mqs['VTG common attrs'].get()
         self.mqs['VTG common attrs'].close()
         return common_attrs
@@ -582,7 +582,7 @@ class VTGW(klever.core.components.Component):
 
     def tasks_generator_worker(self):
         self._submit_attrs()
-        self._generate_abstact_verification_task_desc()
+        self._generate_abstract_verification_task_desc()
         if not self.vals['task solving flag'].value:
             with self.vals['task solving flag'].get_lock():
                 self.vals['task solving flag'].value = 1
@@ -605,7 +605,7 @@ class VTGW(klever.core.components.Component):
                 self.send_data = False
         return ret
 
-    def _generate_abstact_verification_task_desc(self):
+    def _generate_abstract_verification_task_desc(self):
         # Implement the method to do the workload
         pass
 
@@ -640,9 +640,9 @@ class VTGW(klever.core.components.Component):
         plugin = getattr(importlib.import_module(f'.{plugin_name.lower()}', 'klever.core.vtg'), plugin_name)
         p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
                    plugin_name, plugin_work_dir, separate_from_parent=True,
-                   # Weaver can execute workers in parallel but it does not launch any heaveweight subprocesses for
+                   # Weaver can execute workers in parallel but it does not launch any heavyweight subprocesses for
                    # which it is necessary to include child resources. These workers can execute time consuming CIF and
-                   # appropriate resoureces are dumped to directory "child resources" and after all they are taken into
+                   # appropriate resources are dumped to directory "child resources" and after all they are taken into
                    # account when calculating Weaver resources since we wouldn't like to separately show resources
                    # consumed by workers. Moreover, we even wouldn't like to execute them in separate working
                    # directories like sub-jobs to simplify the workflow and debugging.
@@ -764,10 +764,10 @@ class EMGW(VTGW):
         # Submit new tasks to the VTG
         return type(self.task).__name__, tuple(self.task), self.work_dir, triples
 
-    def _generate_abstact_verification_task_desc(self):
+    def _generate_abstract_verification_task_desc(self):
         fragment = self.task.fragment
         rule_class = self.task.rule_class
-        options = self.__get_pligin_conf(rule_class)
+        options = self.__get_plugin_conf(rule_class)
 
         self.logger.info(f"Start generating tasks for {fragment} and requirements specification {rule_class}")
         self.__prepare_initial_abstract_task(fragment, rule_class)
@@ -779,7 +779,7 @@ class EMGW(VTGW):
             self.logger.warning('EMG has failed')
             self.plugin_fail_processing()
 
-    def __get_pligin_conf(self, rule_class):
+    def __get_plugin_conf(self, rule_class):
         return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
 
     def __prepare_initial_abstract_task(self, fragment, rule_class):
@@ -841,7 +841,7 @@ class PLUGINS(VTGW):
     def _get_plugins(self):
         return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][1:]
 
-    def _generate_abstact_verification_task_desc(self):
+    def _generate_abstract_verification_task_desc(self):
         cur_abstract_task_desc_file = self.initial_abstract_task_desc_file
         out_abstract_task_desc_file = self.out_abstract_task_desc_file
         plugins = self._get_plugins()

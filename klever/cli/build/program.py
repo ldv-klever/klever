@@ -40,7 +40,7 @@ class Program:
         self.configuration = None
         self.version = self.target_program_desc.get('version')
 
-        # Working source trees are directories to be trimed from file names.
+        # Working source trees are directories to be trimmed from file names.
         self.work_src_trees = []
         # Temporary directories that should be removed at the end of work.
         self.tmp_dirs = []

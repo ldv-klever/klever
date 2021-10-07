@@ -34,7 +34,7 @@ class Governer:
         # Total number of tasks
         self._total_tasks = None
         self._unique_tasks = 0
-        # Number of successfully(!) solved tasks for which resource caclulation statistics is available
+        # Number of successfully(!) solved tasks for which resource calculation statistics is available
         self._solved = 0
         # Indicator that rescheduling is possible
         self._rescheduling = False
@@ -46,7 +46,7 @@ class Governer:
         if self.conf.get('wall time limit'):
             self.logger.debug("We will have probably extra time to solve timeout tasks")
             self._walllimit = time.time() + time_units_converter(self.conf['wall time limit'])[0]
-            self._minstep = self.conf.get('min increaded limit', 1.5)
+            self._minstep = self.conf.get('min increased limit', 1.5)
             self.logger.debug("Minimal time limit increasing step is {}%".format(int(round(self._minstep * 100))))
         else:
             self.logger.debug("We will not have extra time to solve timeout tasks")
@@ -81,13 +81,13 @@ class Governer:
         return self._problematic[task]['running']
 
     def do_rescheduling(self, task):
-        """Check that we rihgt now can reschedule this task if it is a timeout or memory limit."""
+        """Check that we right now can reschedule this task if it is a timeout or memory limit."""
         if self.is_there(task) and not self._problematic[task]['running']:
             element = self._is_there_or_init(task)
             assert not element['running']
 
             limitation = self._issued_limits[task]
-            self.logger.debug(f"Going to increass CPU time limitations for {task}")
+            self.logger.debug(f"Going to increase CPU time limitations for {task}")
             if self.rescheduling and self._qos_limit.get('CPU time', 0) > 0:
                 have_time = self._have_time(limitation)
                 if have_time > 0:

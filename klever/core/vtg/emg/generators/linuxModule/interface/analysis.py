@@ -41,7 +41,7 @@ def import_specification(logger, conf, collection, sa, specification):
     logger.info("Import results of source code analysis")
     __extract_implementations(logger, collection, sa)
 
-    logger.info("Metch interfaces with existing categories and introduce new categories")
+    logger.info("Match interfaces with existing categories and introduce new categories")
     yield_categories(logger, conf, collection, sa)
 
     logger.info("Interface specifications are imported and categories are merged")
@@ -65,7 +65,7 @@ def __extract_implementations(logger, collection, sa):
             intfs = collection.resolve_interface_weakly(var.declaration)
 
             if len(intfs) > 1:
-                logger.info("There are several containers with declation {!r}".format(var.declaration.to_string('a')))
+                logger.info("There are several containers with declaration {!r}".format(var.declaration.to_string('a')))
             for i in intfs:
                 i.add_implementation(
                     varname,

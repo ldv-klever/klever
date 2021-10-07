@@ -52,9 +52,9 @@ class ASE(klever.core.vtg.plugins.Plugin):
 
             # Convert each argument signature (that is represented as C identifier) into:
             # * the same identifier but with leading "_" for concatenation with other identifiers ("_" allows to
-            #   separate these idetifiers visually more better in rendered templates, while in original templates they
+            #   separate these identifiers visually more better in rendered templates, while in original templates they
             #   are already separated quite well by template syntax, besides, we can generate models and aspects without
-            #   agrument signatures at all on the basis of the same templates)
+            #   argument signatures at all on the basis of the same templates)
             # * more nice text representation for notes to be shown to users.
             self.abstract_task_desc['template context'][arg_signs_file] = {
                 arg_signs_file + '_arg_signs':

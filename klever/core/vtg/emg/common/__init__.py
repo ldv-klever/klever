@@ -45,7 +45,7 @@ def model_comment(comment_type, text=None, other=None):
     :param comment_type: Comment type string.
     :param text: Sentence string with a comment itself.
     :param other: An existing dictionary to which the comment and type should be added
-    :return: Final coment string (look at the example above).
+    :return: Final comment string (look at the example above).
     """
     if other and isinstance(other, dict):
         comment = other
@@ -65,7 +65,7 @@ def id_generator(start_from=0, cast=str):
     """
     Function-generator to generate numerical identifiers from 1 or zero.
 
-    :return: Inifinite sequence of identifiers.
+    :return: Infinite sequence of identifiers.
     """
     while True:
         yield cast(start_from)

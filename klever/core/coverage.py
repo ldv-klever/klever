@@ -307,7 +307,7 @@ class JCR(klever.core.components.Component):
         cache[sub_job_id].setdefault(requirement, dict())
 
         for file_name in large_cache:
-            # todo: Thic code is close to function add_to_coverage
+            # todo: This code is close to function add_to_coverage
             cache[sub_job_id][requirement].setdefault(file_name, {
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
@@ -505,21 +505,21 @@ class LCOV:
                 # Like in klever.core.vrp.RP#__trim_file_names.
                 storage_file = klever.core.utils.make_relative_path([self.clade.storage_dir],
                                                                     os.path.normpath(orig_file))
-                shrinked_src_file_name = storage_file
+                shrank_src_file_name = storage_file
                 tmp = klever.core.utils.make_relative_path(self.source_dirs, storage_file, absolutize=True)
 
                 if tmp != os.path.join(os.path.sep, storage_file):
-                    shrinked_src_file_name = os.path.join('source files', tmp)
+                    shrank_src_file_name = os.path.join('source files', tmp)
                 else:
                     tmp = klever.core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
                     if tmp != os.path.join(os.path.sep, storage_file):
                         if tmp.startswith('specifications'):
-                            shrinked_src_file_name = tmp
+                            shrank_src_file_name = tmp
                         else:
-                            shrinked_src_file_name = os.path.join('generated models', tmp)
+                            shrank_src_file_name = os.path.join('generated models', tmp)
 
                 file_coverage_info.update({'original source file name': orig_file})
-                new_coverage_info[shrinked_src_file_name] = file_coverage_info
+                new_coverage_info[shrank_src_file_name] = file_coverage_info
 
             # Filter out unnecessary source files.
             src_files_to_remove = []

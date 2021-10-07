@@ -234,8 +234,8 @@ Each JSON object that describes a :ref:`Klever addon <klever_addons>` should alw
   For Git repositories versions can be anything suitable for a `Git checkout <https://git-scm.com/docs/git-checkout>`__,
   e.g. appropriate Git branches, tags or commits.
   In this case deployment scripts checkout specified versions first.
-  Also, they clone or clean up Git repositories before checkouting, so, all uncommited changes will be ignored.
-  To bypass Git checkouting and clean up you can specify version *CURRENT*.
+  Also, they clone or clean up Git repositories before checkout, so, all uncommitted changes will be ignored.
+  To bypass Git checkout and clean up you can specify version *CURRENT*.
   In this case Git repositories are treated like directories.
 * *Path* sets either a path relative to :term:`$KLEVER_SRC` or an absolute path to entity (binaries, source files,
   configurations, etc.) or an entity URL.
@@ -248,10 +248,10 @@ Keep this pair for all specified :ref:`verification_backends`.
 Besides, you can set *copy .git directory* and *allow use local Git repository* to *True*.
 In the former case deployment scripts will copy directory :file:`.git` if one provides :ref:`klever_addons` as Git
 repositories.
-In the latter case deployment scripts will use specified Git repositories for cleaning up and checkouting required
+In the latter case deployment scripts will use specified Git repositories for cleaning up and checkout required
 versions straightforwardly without cloning them to temporary directories.
 
-.. warning:: Setting *allow use local Git repository* to *True* will result in removing all your uncommited changes!
+.. warning:: Setting *allow use local Git repository* to *True* will result in removing all your uncommitted changes!
              Besides, ignore rules from, say, :file:`.gitignore` will be ignored and corresponding files and directories
              will be removed!
 

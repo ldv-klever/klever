@@ -18,7 +18,7 @@
 
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
-    data, main_data, main = _collect_action_diaposons(logger, error_trace)
+    data, main_data, main = _collect_action_diapasons(logger, error_trace)
     _set_thread(data, error_trace)
 
     # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
@@ -32,7 +32,7 @@ def envmodel_simplifications(logger, error_trace):
     _wrap_actions(data, error_trace)
 
 
-def _collect_action_diaposons(logger, error_trace):
+def _collect_action_diapasons(logger, error_trace):
     main = None
     main_data = None
 
@@ -64,7 +64,7 @@ def _collect_action_diaposons(logger, error_trace):
                      if error_trace.emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_END'):
             data[file][error_trace.emg_comments[file][line]['function']]['end'] = line
 
-        # Deterine actions and allowed intervals
+        # Determine actions and allowed intervals
         for func in data[file]:
             inside_action = False
             for line in range(data[file][func]['begin'], data[file][func]['end']):
@@ -99,7 +99,7 @@ def _inside_this_control_function(cf, file, line):
 
 def _inside_control_function(stack, file, line, thread=None):
     """Determine action to which string belong."""
-    # Keep in mind that threads may interlieve
+    # Keep in mind that threads may interleave
     suits = []
     for index in reversed(range(0, len(stack))):
         if _inside_this_control_function(stack[index]['cf'], file, line):
@@ -215,7 +215,7 @@ def _remove_control_func_aux_code(data, error_trace):
             return
 
         if len(stack) != 0:
-            # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
+            # todo: here we need actually should be sure that we are still within an action but it is hard to check
             cf = _inside_control_function(stack, e['file'], e['line'], e['thread'])
             if cf:
                 act = _inside_action(cf['cf'], e['line'])

@@ -76,7 +76,7 @@ class FragmentationAlgorythm:
         # Extract dependencies
         self.logger.info("Start program fragmentation")
         if self.tactic.get('ignore dependencies'):
-            self.logger.info("Use memory efficient mode with limitied dependencies extraction")
+            self.logger.info("Use memory efficient mode with limited dependencies extraction")
             memory_efficient_mode = True
         else:
             self.logger.info("Extract full dependencies between files and functions")
@@ -306,7 +306,7 @@ class FragmentationAlgorythm:
                 "size": str(sum(int(f.size) for f in frags))
             }
 
-        with open('agregations description.json', 'w', encoding='utf-8') as fp:
+        with open('aggregations description.json', 'w', encoding='utf-8') as fp:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
@@ -322,7 +322,7 @@ class FragmentationAlgorythm:
                     'value': fragmentation_set
                 }
             ]
-        }], 'agregations description.json'
+        }], 'aggregations description.json'
 
     def __get_project_attrs(self):
         """
@@ -340,7 +340,7 @@ class FragmentationAlgorythm:
         Generate json files with descriptions of each program fragment that should be verified.
 
         :param program: Program object.
-        :param grps: Dictionary with program fragments with dependecnies.
+        :param grps: Dictionary with program fragments with dependencies.
         :return: A list of pairs of fragment and related file names.
         """
         pairs = list()

@@ -79,7 +79,7 @@
     "template": "drivers",
     "children": [
       {
-        "identifer": "empty",
+        "identifier": "empty",
         "description": "..."
       },
       {
