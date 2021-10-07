@@ -317,7 +317,13 @@ def double_init_model():
         "process": "(!register_p1).<probe>.(deregister_p1)",
         "labels": {"container": {"declaration": "struct validation *var"}},
         "actions": {
-            "register_p1": {"parameters": ["%container%"]},
+            "register_p1": {
+                "parameters": ["%container%"],
+                "require": {
+                    "c1/p1": {"include": ["ok"]},
+                    "c1/p2": {"include": ["ok"]}
+                }
+            },
             "deregister_p1": {"parameters": ["%container%"]},
             "probe": {"comment": ""},
         }
@@ -326,7 +332,9 @@ def double_init_model():
         "comment": "Category 2, process 2.",
         "process": "(!register_c2p2).(<v1> | <v2>).(deregister_c2p2)",
         "actions": {
-            "register_c2p2": {"parameters": [], "require": {"c2/p1": {"include": ["probe"]}}},
+            "register_c2p2": {
+                "parameters": [], "require": {"c2/p1": {"include": ["probe"]}}
+            },
             "deregister_c2p2": {"parameters": []},
             "v1": {"comment": ""},
             "v2": {"comment": ""}
@@ -915,6 +923,19 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
         assert scenario.name in names
 
 
+# # todo: Good test, all works fine
+def test_double_sender_model_single_init(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    attributes = {str(m.attributes): m for m in models}
+    pass
+#
+#
 # todo: ?
 def test_double_sender_model(logger, double_init_model):
     spec = {
@@ -929,7 +950,7 @@ def test_double_sender_model(logger, double_init_model):
     pass
 
 
-# todo: ?
+# # todo: Now it is working fine
 def test_double_sender_model_full_list(logger, double_init_model):
     spec = {
         "cover scenarios": {
@@ -944,7 +965,23 @@ def test_double_sender_model_full_list(logger, double_init_model):
     pass
 
 
-# todo: p2c2 should be for each c1p1
+def test_double_sender_model_must_contain(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p1": {},
+            "c2/p2": {}
+        },
+        "must contain": {"c2/p1": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    attributes = {str(m.attributes): m for m in models}
+    pass
+
+#
+#
+# # todo: p2c2 should be for each c1p1 and without option
 def test_double_sender_model_with_all_sends(logger, double_init_model):
     spec = {
         "cover scenarios": {

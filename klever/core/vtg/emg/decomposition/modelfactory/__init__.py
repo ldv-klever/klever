@@ -180,7 +180,7 @@ def process_transitive_dependencies(processes: set, process: Process):
         p = processes_map[p_name]
         deps = process_dependencies(p)
         for required_name in deps:
-            if required_name in processed:
+            if required_name == str(process):
                 raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(process)}')
             elif required_name not in todo and required_name in processes_map:
                 todo.append(required_name)

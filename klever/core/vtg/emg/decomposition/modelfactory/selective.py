@@ -20,7 +20,8 @@ from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
-    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps
+    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps, \
+    process_dependencies
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -506,7 +507,8 @@ class SelectiveSelector(Selector):
                 model.environment[process_name] = scenario
                 deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
                 model.environment[process_name] = None
-                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment):
+                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment and
+                                 r in process_dependencies(self.model.environment[process_name])):
                     if required in model.environment and model.environment[required]:
                         possible_actions = set(model.environment[required].actions.keys())
                     elif required in model.environment:
@@ -519,6 +521,8 @@ class SelectiveSelector(Selector):
                         self.logger.debug(f"Model {model.attributed_name} do not have actions ({acts}) of {required}"
                                           f" required by {process_name}")
                         break
+                    else:
+                        selected_items.add(scenario)
                 else:
                     selected_items.add(scenario)
             else:
@@ -548,9 +552,11 @@ class SelectiveSelector(Selector):
                                                       dep_order, processed)
                     if deps:
                         for asker, required in ((a, r) for a, r in deps.items() if a != savepoint):
-                            if scenario in required or \
-                                    (process_name in required and
-                                     not set(scenario.actions.keys()).issubset(required[process_name])):
+                            if savepoint in required and \
+                                    process_name not in process_dependencies(self.model.environment[asker]):
+                                broken.add(asker)
+                            elif process_name in required and \
+                                    not required[process_name].issubset(set(scenario.actions.keys())):
                                 broken.add(asker)
                         return broken
                     else:
