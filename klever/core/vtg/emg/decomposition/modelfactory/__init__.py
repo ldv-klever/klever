@@ -426,13 +426,16 @@ class ModelFactory:
 
     def _remove_unused_processes(self, model: ProcessCollection):
         for key, process in model.environment.items():
-            receives = set(map(str, process.actions.filter(include={Receive})))
+            receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
             all_peers = {a for acts in process.peers.values() for a in acts}
 
             if not receives.intersection(all_peers):
                 self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
                 self._copy_declarations_to_init(model.environment[key], model.entry)
                 remove_process(model, key)
+            else:
+                names = ', '.join(sorted(receives.intersection(all_peers)))
+                self.logger.info(f'Process {key} from the model {model.attributed_name} has peers for {names}')
 
         model.establish_peers()
 
