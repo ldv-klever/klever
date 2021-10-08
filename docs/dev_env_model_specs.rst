@@ -1,7 +1,7 @@
-.. _dev_env_specs:
+.. _dev_env_model_specs:
 
-Development of Environment Specifications
-=========================================
+Development of Environment Model Specifications
+===============================================
 
 Libraries, user inputs, other programs, etc. constitute an environment that can influence a program execution. It is necessary to provide a model which represents certain assumptions about the environment to verify any program:
 
