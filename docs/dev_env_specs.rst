@@ -6,9 +6,9 @@ Development of Environment Specifications
 Libraries, user inputs, other programs, etc. constitute an environment that can influence a program execution. It is necessary to provide a model which represents certain assumptions about the environment to verify any program:
 
 * It should contain models of undefined functions which the program   calls during execution and which can influence verification results.
-* It should correctly initialize external global variables. 
+* It should correctly initialize external global variables.
 * It should contain an **entry-point** function for a verification tool to start its analysis from it. User-space programs have the **main** function that can be used as an entry point, but operating systems and other system software require adding an artificial one.
- 
+
 Our experience shows that bug-finding is possible even without accurate environment models. Still, precise environment models help to improve code coverage and avoid false alarms. It is crucial to provide the accurate environment model considering the specifics of checked requirements and programs under verification to achieve high-quality verification results. It becomes even more essential to provide the appropriate environment model to avoid missing faults and false alarms verifying program fragments.
 
 Environment Model Generator
@@ -41,7 +41,7 @@ A JSON file with the requirement specifications base has a section with template
     ]
   }
 
-The member with the **options** name contains the EMG configuration. There are descriptions of supported configuration parameters in the following sections of the document. 
+The member with the **options** name contains the EMG configuration. There are descriptions of supported configuration parameters in the following sections of the document.
 
 EMG generates an environment model as the *main C file* and several aspect files intended for weaving their content to program files. We refer to these output files as aspect files. Each aspect file contains the code to add at the beginning of a program file or its end and a description of function calls and macros to replace with models.
 
@@ -68,7 +68,7 @@ There are three main components in the EMG that a user must appropriately config
 
 The Generator pipeline runs several generators one by one. Generators yield parts of the IEM. Generated parts are independent and form the IEM as a parallel composition.
 
-Decomposer separates the IEM into several simplified parts that can be verified independently. This step is optional. 
+Decomposer separates the IEM into several simplified parts that can be verified independently. This step is optional.
 
 Translator prepares the C code based on the provided IEM. It applies many simplifications to the input model. If there are several input models, several Translator instances are executed and generated FEMs are independent.
 
@@ -81,7 +81,7 @@ There are the following main configuration parameters of the EMG plugin:
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -96,12 +96,12 @@ There are the following main configuration parameters of the EMG plugin:
     - Object
     - None
     - The list defines the sequence of generators in the Generators pipeline. For example:
-      
+
       "generators options": [
-      {"linuxModule": {}},  {"linuxInsmod": {}},       
+      {"linuxModule": {}},  {"linuxInsmod": {}},
       {"genericManual": {}}
       ]
-  * - translation options            
+  * - translation options
     - Object
     - None
     - An object with configuration parameters for Translator.
@@ -159,9 +159,9 @@ The *model* value is an IEM provided to the EMG.
 
 We do not give the precise theoretical semantics of the notation in the document. You can find them in the following papers [Z18]_, [N18]_, [ZN18]_. Instead, we describe the semantics intuitively by making analogies with program execution. We say about execution and running of processes, but even in the C code, IEM cannot be ever executed. It is intended only for analysis by software verification tools, so we say this just to avoid overcomplications.
 
-Each IEM is a parallel composition of transition systems called *processes*. Each transition system can be considered as a thread executed by an operating system. The model contains *environment processes*.  Each transition system has a state and can do actions to change the state. The state is defined by values of labels. Intuitively labels can be considered as local variables on the stack of a process. 
+Each IEM is a parallel composition of transition systems called *processes*. Each transition system can be considered as a thread executed by an operating system. The model contains *environment processes*.  Each transition system has a state and can do actions to change the state. The state is defined by values of labels. Intuitively labels can be considered as local variables on the stack of a process.
 
-A model consists of a main process, environment processes and function models. Both three are described with process descriptions, but semantically they are different. The main process is like a thread that acts from the very beginning of a combination of a program and environment model. It may trigger execution of a program or send signals to activate environment processes. While a program code is executed, it may call functions that are replaced by models. Function models are not processes or threads in any sense, they just act within the same scope, they can send signals to environment processes but cannot receive any. 
+A model consists of a main process, environment processes and function models. Both three are described with process descriptions, but semantically they are different. The main process is like a thread that acts from the very beginning of a combination of a program and environment model. It may trigger execution of a program or send signals to activate environment processes. While a program code is executed, it may call functions that are replaced by models. Function models are not processes or threads in any sense, they just act within the same scope, they can send signals to environment processes but cannot receive any.
 
 Environment processes exist from the very beginning of execution as the main process does. But any such process expects a signal to be sent to it for activation before doing any other activity. Signals are described below in more detail.
 
@@ -181,21 +181,21 @@ The behavior of an environment model is often nondeterministic, Let’s consider
 * The main process starts doing its actions from the very beginning first.
 * It would either call a function from the program fragment or send an activating signal to any of environment model processes.
 * The process transfer follows the rendezvous protocol:
-  
-  * The sender waits until there is a receiver in the state when it can take a receiving action. 
+
+  * The sender waits until there is a receiver in the state when it can take a receiving action.
   * Then the receive happens in no time. Nothing can happen during the receive.
   * If a receiver or a sender may do any other action instead of signal sending, they are allowed to attempt it leaving the other process still waiting. But if a process has the only option (sending or receiving a signal), then it cannot bypass it.
   * If there are several possible receivers or dispatchers, then the two are chosen randomly.
 
 * If there is a signal receiver that belongs to environment processes, it begin doing his actions. So, there are the main process and recently activated environment processes doing their actions in parallel with each other.
 * If a process attempts doing its base block action, then it waits until it is executed before doing next actions. The code may contain calls of functions defined in a program fragment. Such code can call undefined functions for which there are function models in turn. When execution reach the function call with an existing function model, the following switch of execution happens:
-  
+
   * The host process which is doing his base block action still cannot attempt any other actions.
   * The execution of the source code of the base block is paused.
-  * A new function model begins its execution in the same context. 
-  * The function model attempts doing its actions as  any other process. It may do base block execution, send signals, etc. 
-  * The last action of the function model should contain the return statement with values provided back to the paused code as any function does after its finishing. 
-  * The execution of the source code of the base block is resumed. 
+  * A new function model begins its execution in the same context.
+  * The function model attempts doing its actions as  any other process. It may do base block execution, send signals, etc.
+  * The last action of the function model should contain the return statement with values provided back to the paused code as any function does after its finishing.
+  * The execution of the source code of the base block is resumed.
   * Other processes do their stuff in parallel during the described procedure as usual.
 
 
@@ -212,7 +212,7 @@ process description (considered below) using a simple language:
 
 Order of actions is described with the help of two operators:
 
-#. "**.**" is a sequential combination operator. 
+#. "**.**" is a sequential combination operator.
    Actions *a* . *b* combined this way mean *b* follows *a*.
 
 #. "**\|**" is a non-deterministic choice operator. Only one action of combined ones will be selected for *a* \| *b*. But verification tools analyse both options as possible alternatives.
@@ -273,27 +273,27 @@ The root object has the following attributes:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - name
     - string / “base”
     - The name of the model.
     - No
-  * - main process 
+  * - main process
     - *Process description* object / *null*.
     - The main process describes the first process of the environment model that does not wait for any registering signals.
     - No
   * - environment processes
     - Value is an object that maps process identifiers (a category and process name separated by “/” symbol) to process descriptions. Process identifiers are used in attributes. A category and process name should be C identifiers. Example:
-      
+
       {
       “category1/name1”: {process description},
       “category2/name2”: {process description}
-      }        
+      }
     - Names are identifiers of processes described in values.
     - No
   * - functions models
@@ -329,10 +329,10 @@ A process description has the following attributes:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - comment
@@ -347,8 +347,8 @@ A process description has the following attributes:
     - No
   * - relevant
     - Bool
-    - If the flag is true, then the process description will be used for other specification sets. 
-    - No 
+    - If the flag is true, then the process description will be used for other specification sets.
+    - No
   * - labels
     - The object maps label names to label descriptions. Label names should be C identifiers.
 
@@ -365,11 +365,11 @@ A process description has the following attributes:
     - Transition relation describes the possible order of actions performed by the process.
     - Yes
   * - declarations
-    - The option maps names of program source files or *environment model* (meaning the main C file) to maps from C identifiers to declarations to add. C identifiers are used to combine declarations from different process descriptions at translation. If identifiers from different process descriptions match, then only one value is selected for the main C file. 
+    - The option maps names of program source files or *environment model* (meaning the main C file) to maps from C identifiers to declarations to add. C identifiers are used to combine declarations from different process descriptions at translation. If identifiers from different process descriptions match, then only one value is selected for the main C file.
 
       {“dir/name.c”: {“func”: “extern void func(void);”}, “environment model”: {“func”: “void func(void);”}}
     - Declarations are added to the beginning of the given files (program files or the main C file).
-    - No 
+    - No
   * - definitions
     - The object maps names of program fragment files or *environment model* (mean the main C file) to maps from C identifiers to definitions of functions to add or paths to C files to inline. In the case of a C file, whole its content will be weaved into the program file or main C file.
 
@@ -385,12 +385,12 @@ A process description has the following attributes:
     - Definitions work the same way as declarations, but definitions are multi-line and added after declarations to files of a program fragment or the main C file.
     - No
   * - peers
-    - The map from process identifiers to lists of action names. 
+    - The map from process identifiers to lists of action names.
 
       "peers": {"c/name": ["register"]}
     - The member describes which processes are connected with this one. Keys of the map list names of processes that can send signals to the process or receive signals from it. Values enumerate corresponding sending and receiving actions.
     - No
- 
+
 There is an example of a process description with simplified values below:
 
 .. code-block:: json
@@ -439,10 +439,10 @@ An object that describes a label has the following attributes:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - declaration
@@ -477,10 +477,10 @@ The sequence of actions provided within a process attribute can be reduced to an
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - comment
@@ -520,10 +520,10 @@ Signaling action description can have the following attributes:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - comment
@@ -533,16 +533,16 @@ Signaling action description can have the following attributes:
   * - condition
     - The same as in conditions of base block actions. It is also allowed to use incoming parameters of the signal at receive actions: use *$ARG1*, …, *$ARGN* expressions.
     - The condition restricts the acceptance of signals with the proper name but unexpected values.
-    - 
+    -
   * - parameters
     - A list of label names to save received values or send values from.
-      
+
       [“%ret%, “%struct%”]
     - Labels to save or send data.
     - Yes
   * - require
     - The object is a map from process identifiers to objects with the *include* attribute. The latter lists actions required for this one.
-      
+
       {"c/p1": {"include": ["probe", "success"]}}
     - The attribute says that the action requires another process that should have specific actions in turn. This field is used only at the decomposition of models, which is considered in the following chapters.
     - No
@@ -570,7 +570,7 @@ The registering action does not have any condition and just saves the received p
 Base Block Actions
 ~~~~~~~~~~~~~~~~~~
 
-Base blocks contain statements in the C programming language. These statements over labels are used to compose the code of a FEM. A user may call any functions, use any global variables and labels of the process but concerning the scope of the main C file. The EMG does not resolve scope issues for you, and to add more variables, types, or functions to the file, one should include or implement additional headers and maybe wrappers of static functions. 
+Base blocks contain statements in the C programming language. These statements over labels are used to compose the code of a FEM. A user may call any functions, use any global variables and labels of the process but concerning the scope of the main C file. The EMG does not resolve scope issues for you, and to add more variables, types, or functions to the file, one should include or implement additional headers and maybe wrappers of static functions.
 
 Base block action descriptions have the following attributes:
 
@@ -578,10 +578,10 @@ Base block action descriptions have the following attributes:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - comment
@@ -592,7 +592,7 @@ Base block action descriptions have the following attributes:
     - String with a boolean statement over global variables or labels. % symbols enclose label names.
       “%ret% == 0 && %arg% != 0”
     - If the condition is feasible, then a verifier can go analyzing the action. If it is infeasible and not the first action of a sequence which is an option of the choice operator, then the action is skipped, and the following is attempted. If the action is the first in a sequence considered as an option of a choice operator, then the whole series is deemed to be unfeasible.
-      
+
       Example 1: <a>.<b>.<c>
       If <b> has an invalid condition, then <b> is just skipped.
       Example 2: <a>.<b> | <c>.<d>
@@ -600,7 +600,7 @@ Base block action descriptions have the following attributes:
     - No
   * - statements
     - List of strings with statements to execute over global variables or labels. % symbols enclose label names.
-      
+
       [
       “%one% = 1;”,
       “%ret% = callback(%one%);”,
@@ -613,7 +613,7 @@ Base block action descriptions have the following attributes:
     - True if the action should always be shown in the error trace. If it is false, then in some cases error traces would hide the action.
     - Yes
 
-Each base block is independent. Its source code should be correct. Avoid leaving open brackets, parentheses, or incomplete operators. It is also forbidden to declare new variables in base blocks. 
+Each base block is independent. Its source code should be correct. Avoid leaving open brackets, parentheses, or incomplete operators. It is also forbidden to declare new variables in base blocks.
 
 To use the variables and functions from the program, one needs to include header files as other files of the program fragment do. There are several ways to do it:
 
@@ -631,13 +631,13 @@ Sometimes entry points that should be called by the environment models are imple
 
 There are several auxiliary expressions allowed in base block statements:
 
-* $ALLOC(%\*labelname*\%);  
+* $ALLOC(%\*labelname*\%);
       Allocate memory according to the label type size (the label is expected to be a pointer) using :c:func:`ldv_xmalloc` function.
-* $UALLOC(%\*labelname*\%); 
+* $UALLOC(%\*labelname*\%);
       Allocate memory according to the label type size (the label is expected to be a pointer) using :c:func:`ldv_xmalloc_unknown_size` function.
-* $ZALLOC(%\*labelname*\%); 
+* $ZALLOC(%\*labelname*\%);
       Allocate memory according to the label type size (the label is expected to be a pointer) using :c:func:`ldv_xzalloc` function.
-* $FREE(%\*labelname*\%); 
+* $FREE(%\*labelname*\%);
       Free memory by :c:func:`ldv_free` function.
 
 It is allowed to use function parameters when describing statements and conditions of function models. To do that one may use expressions *$ARG1*, *$ARG2*, etc.
@@ -728,7 +728,7 @@ Provided program fragment can contain several Linux kernel modules or/and subsys
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -787,7 +787,7 @@ The generator generates environment processes and function models for program fr
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -863,7 +863,7 @@ The generator helps to start using Klever with a new program. A user provides a 
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -915,7 +915,7 @@ Specifications for the generator have names with *user model* suffixes.
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -945,7 +945,7 @@ A scenario is a simplified process that can take fewer actions than the original
 Savepoints
 ----------
 
-Imagine, that there is a sime model illustrated in the picture below. There are two processes A and B. The process A activates the B process. 
+Imagine, that there is a sime model illustrated in the picture below. There are two processes A and B. The process A activates the B process.
 
 .. figure:: ./media/env/origin-savepoint-example-of-Decomposing.png
 
@@ -960,10 +960,10 @@ savepoints should follow the following table:
   :widths: 12 40 40 8
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Name
-    - Value type / default value 
+    - Value type / default value
     - Description
     - Required
   * - comment
@@ -1032,7 +1032,7 @@ To activate decomposition, one should set the *single environment model per frag
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1063,7 +1063,7 @@ Complicated models can be decomposed in many scenarios, so there could be even m
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1071,19 +1071,19 @@ Complicated models can be decomposed in many scenarios, so there could be even m
     - Description
   * - must contain
     - Map from process identifiers to must contain selection descriptions for the property:
-      
+
       {“category/name”: {...}}
     - {}
     - The value lists processes that must be in every generated after decomposition environment model.
   * - must not contain
     - Map from process identifiers to must contain selection descriptions for the property:
-      
+
       {“category/name”: {...}}
     - {}
     - The value lists processes that must be removed from every generated after decomposition environment model.
   * - cover scenarios
     - Map from process identifiers to coverage descriptions for the property:
-      
+
       {“category/name”: {...}}
     - The parameter is necessary and should not be empty.
     - Names enumerate process identifiers with actions and savepoints covered by at least a single generated IEM.
@@ -1095,7 +1095,7 @@ The *must contain* configuration property allows a user to select actions and sa
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1103,7 +1103,7 @@ The *must contain* configuration property allows a user to select actions and sa
     - Description
   * - actions
     - List of lists of action names. Example:
-      
+
       [[“a”, “b”], [“c”, “d”]]
     - []
     - The list contains corteges of actions that should be in the process in each environment model. If several corteges are provided, then an output model may have all actions of any cortege in the corresponding selected scenario.
@@ -1125,7 +1125,7 @@ There are attributes of selection descriptions for the *must not contain* config
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1133,13 +1133,13 @@ There are attributes of selection descriptions for the *must not contain* config
     - Description
   * - actions
     - List of actions.
-      
+
       [“a”, “b”]
     - []
     - Output models will not have any actions listed in the attribute value.
   * - savepoints
     - List of savepoint names.
-      
+
       [“a”, “b”]
     - []
     - Output models will not have any savepoints listed in the attribute value.
@@ -1151,7 +1151,7 @@ The *cover scenarios* parameter is always necessary. It lists processes and thei
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1159,25 +1159,25 @@ The *cover scenarios* parameter is always necessary. It lists processes and thei
     - Description
   * - actions
     - A list of action names.
-      
+
       [“a”, “b”]
     - If it is missing, then all actions should be covered.
     - The list of actions that should be added to at least one output model.
   * - actions except
     - A list of action names.
-      
+
       [“a”, “b”]
     - Ignored if it is missing.
     - The value is the list of actions that are removed from the list of actions that should be covered. Note that provided actions can be added to output models but not ought to be. If almost all actions should be covered, it is helpful to set the property instead of the *actions* one.
   * - savepoints
     - A list of savepoint names.
-      
+
       [“a”, “b”]
     - If it is missing, then all savepoints should be covered.
     - The list of savepoints that should be added to at least one output model.
   * - savepoints except
     - A list of savepoint names.
-      
+
       [“a”, “b”]
     - Ignored if it is missing.
     - The value is the list of savepoints that are removed from the list of savepoints that should be covered. Note that provided savepoints can be added to output models but not ought to be. If almost all savepoints should be covered, it is helpful to set the property instead of the *savepoints* one.
@@ -1258,25 +1258,25 @@ Generated models are not tidy enough. We can simplify them by doing the followin
 
   #. Remove all actions except *pm_deregister*, *pm_register*, *sus*, *suspend_34*, *post_call_33*, *sus_ok*, *sus_bad*, *res*, *resume_22*, *post_call_21*.
   #. Rename actions with suffixes to get rid of numerical suffixes. Move the code from post_call actions to suspending and resuming actions and delete formers. Rename *sus_ok* to *ok* and do the same with other ok/bad actions.
-  #. Then remove jumping actions, there are too many of them. Use *normal*, *sus*, *res* subprocesses to make a new actions sequence without loops and checking the return value of resuming callback.    
-     
+  #. Then remove jumping actions, there are too many of them. Use *normal*, *sus*, *res* subprocesses to make a new actions sequence without loops and checking the return value of resuming callback.
+
      "process": "(!pm_register).(<suspend>.(<ok>.<resume>|<bad>).(pm_deregister)"
 
   #. Add a call of :c:func:`ldv_assume` to the resuming action to make it always expect a successful return value of the callback.
   #. Remove the unnecessary *replicative* member from the *pm_deregister* action.
-  #. Remove unused label *pm_ops*. 
+  #. Remove unused label *pm_ops*.
 
 2. Next, it is time to clean up the *platform_instance_arasan_cf_driver* process.
 
   #. Merge *pre_call_0*, *probe_2* and *post_call_1* actions. Name the final action *probe*.  Choose shorter names for *positive_probe* and *negative_probe* actions such as *ok* and *bad*.
-  #. Remove actions intended for calling callbacks by pointers: *pre_call_6*, *suspend_8*, *post_call_7*, *resume_4*, *shutdown_5*. 
+  #. Remove actions intended for calling callbacks by pointers: *pre_call_6*, *suspend_8*, *post_call_7*, *resume_4*, *shutdown_5*.
   #. #. Rename *release_3* to *release*.
   #. Move left actions from *call* to *main* to make a sequential order of actions. Remove the *call* action to get process order as in the snippet given below.
   #. Remove the unused label *emg_param_1_0*.
   #. Remove replicative entry from the dispatch as it is not required.
 
 .. code-block:: json
-  
+
   {
     "main": {
       "comment": "Check that device is truly in the system and begin callback invocations.",
@@ -1528,9 +1528,9 @@ The descriptions of processes will be looking as follows (we used formatting to 
     }
   }
 
-Now, a user can add his/her own extensions to these models. Function models’ descriptions we have left as is. 
+Now, a user can add his/her own extensions to these models. Function models’ descriptions we have left as is.
 
-Rename actions *init_failed_0* and *init_success_0* to *init_failed* and *init_success* in the main process correspondingly. 
+Rename actions *init_failed_0* and *init_success_0* to *init_failed* and *init_success* in the main process correspondingly.
 
 There are environment processes and the main process of the generated environment model in the picture below. There are three processes. The main process starts doing its actions first. Then it registers the *platform/platform_instance_arasan_cf_driver* process implicitly by function models called at the initialization function. The deregistration of the process is also implicit. Dashed arrows visualize possible signals. The last-mentioned process can register *pm/pm_ops_scenario_arasan_cf_pm_ops* in case of the successful probe. These arrows have a bold style.
 
@@ -1560,7 +1560,7 @@ The main process does not have peers. But it calls the initialization function t
     "main/process": {"include": ["init_success"]}
   }
 
-Finally, we can add a savepoint to the *main_register* action of *main/process*. 
+Finally, we can add a savepoint to the *main_register* action of *main/process*.
 
 .. code-block:: json
 
@@ -1576,7 +1576,7 @@ Next we can run the model. One needs to activate decomposition and select the pr
 Set additional configuration properties in :file:`job.json`:
 
 .. code-block:: json
-  
+
   {
     "scenario separation": "linear",
     "single environment model per fragment": false
@@ -1588,7 +1588,7 @@ they result in.
 1. **Cover only the failed initialization function.** In the case we need only the main process and the branch of the choice operator with *init_failed* action. Thus, we set this action as a single to cover. The *savepoints only* parameter forces the Decomposer to generate models only with savepoints of *main/process* scenario. There is a single model should be generated of this configuration:
 
 .. code-block:: json
-  
+
   "select scenarios": {
     "cover scenarios": {
       "main/process": {"actions":  ["init_failed"], "savepoints only":  true}
@@ -1656,7 +1656,7 @@ The parallel model for data race detection is multithreaded and does not support
   :widths: 10 25 10 55
   :header-rows: 1
   :align: left
-  :class: tight-table  
+  :class: tight-table
 
   * - Configuration Parameter
     - Value Type
@@ -1702,27 +1702,27 @@ The parallel model for data race detection is multithreaded and does not support
     - []
     - A list of process identifiers for which the translator creates a single thread in the generated parallel model despite the previous active configuration parameter.
   * - ignore missing function models
-    - 
+    -
     - False
     - Do not generate models of functions, if they are not found in the program fragment file and the configuration parameter is valid.
   * - implicit signal peers
-    - 
+    -
     - False
     - If the configuration parameter is valid, then the translator attempts to find peers by matching signals. The option is needed if the provided IEM misses attributes that describe peers.
   * - do not skip signals
-    - 
+    -
     - False
     - If the parameter is set, the translator removes signal dispatches and receives for actions for which there are no known peers.
   * - initialize requirements
-    - 
+    -
     - True
     - The translator inserts an initialization function (ldv_initialize) at the beginning of the environment model entry point to initialize the rule to check.
   * - check final state
-    - 
+    -
     - True
     - The translator inserts a function (ldv_check_final_state) at the end of the environment model entry point function to apply checks implemented by the checked rule at the end of environment model activities.
   * - allocate external
-    - 
+    -
     - True
     - Marks all labels as externally allocated data for the CPAchecker SMG if the configuration property is set.
 
