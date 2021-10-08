@@ -445,6 +445,21 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
+def _to_sorted_attr_str(attrs):
+    return ", ".join(f"{k}: {attrs[k]}" for k in sorted(attrs.keys()))
+
+
+def _expect_models_with_attrs(models, attributes):
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    attrs = {_to_sorted_attr_str(attrs) for attrs in attributes}
+
+    unexpected = model_attrs.difference(attrs)
+    assert len(unexpected) == 0, f"There are unexpected models: {unexpected}"
+
+    missing = attrs.difference(model_attrs)
+    assert len(missing) == 0, f"There are missing models: {missing}"
+
+
 def test_default_coverage(logger, advanced_model):
     spec = {
         "must not contain": {"c/p3": {}},
@@ -923,7 +938,6 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
         assert scenario.name in names
 
 
-# # todo: Good test, all works fine
 def test_double_sender_model_single_init(logger, double_init_model):
     spec = {
         "cover scenarios": {
@@ -932,11 +946,14 @@ def test_double_sender_model_single_init(logger, double_init_model):
         }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
-    attributes = {str(m.attributes): m for m in models}
-    pass
-#
-#
-# todo: ?
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
 def test_double_sender_model(logger, double_init_model):
     spec = {
         "cover scenarios": {
@@ -946,11 +963,16 @@ def test_double_sender_model(logger, double_init_model):
         }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
-    attributes = {str(m.attributes): m for m in models}
-    pass
+    expected = [
+        {'c2/p2': 'Removed', 'c1/p1': 'Removed', 'c2/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
 
 
-# # todo: Now it is working fine
 def test_double_sender_model_full_list(logger, double_init_model):
     spec = {
         "cover scenarios": {
@@ -961,36 +983,11 @@ def test_double_sender_model_full_list(logger, double_init_model):
         }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
-    attributes = {str(m.attributes): m for m in models}
-    pass
-
-
-def test_double_sender_model_must_contain(logger, double_init_model):
-    spec = {
-        "cover scenarios": {
-            "c1/p1": {"savepoints only": True},
-            "c1/p2": {"savepoints only": True},
-            "c2/p1": {},
-            "c2/p2": {}
-        },
-        "must contain": {"c2/p1": {}}
-    }
-    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
-    attributes = {str(m.attributes): m for m in models}
-    pass
-
-#
-#
-# # todo: p2c2 should be for each c1p1 and without option
-def test_double_sender_model_with_all_sends(logger, double_init_model):
-    spec = {
-        "cover scenarios": {
-            "c1/p1": {"savepoints only": True},
-            "c1/p2": {"savepoints only": True},
-            "c2/p1": {"savepoints only": True},
-            "c2/p2": {}
-        }
-    }
-    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
-    attributes = {str(m.attributes): m for m in models}
-    pass
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
