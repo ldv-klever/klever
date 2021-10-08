@@ -85,7 +85,7 @@ There are the following main configuration parameters of the EMG plugin:
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - specifications set
     - String
@@ -400,13 +400,13 @@ There is an example of a process description with simplified values below:
     "labels": {},
     "declarations": {
         "environment model": {
-            "get_dev_id": "const struct platform_device_id *get_dev_id(struct platfrom_driver *drv);"
+            "get_dev_id": "const struct platform_device_id *get_dev_id(struct platform_driver *drv);"
         }
     },
     "definitions": {
         "environment model": {
             "get_dev_id": [
-                "const struct platform_device_id *get_dev_id(struct platfrom_driver *drv) {",
+                "const struct platform_device_id *get_dev_id(struct platform_driver *drv) {",
                 "\treturn & drv->id_table[0];",
                 "}"
             ]
@@ -426,7 +426,7 @@ There is an example of a process description with simplified values below:
     }
   }
 
-The *headers* member has a single header to add. It is necessary to allocate memory and dereference pointers to :c:struct:`platfrom_driver` and :c:struct:`platfrom_device` structures. We will describe labels and actions below with more discussion. *Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` to use in actions. Its definition and declaration will be added to the main C file of the FEM. We suggest users to implement more complicated functions in separate C files and provide a path to them instead of the list of strings.
+The *headers* member has a single header to add. It is necessary to allocate memory and dereference pointers to :c:struct:`platform_driver` and :c:struct:`platform_device` structures. We will describe labels and actions below with more discussion. *Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` to use in actions. Its definition and declaration will be added to the main C file of the FEM. We suggest users to implement more complicated functions in separate C files and provide a path to them instead of the list of strings.
 
 Labels
 ~~~~~~
@@ -460,7 +460,7 @@ There is an example of labels descriptions for the example provided above.
 .. code-block:: json
 
   "labels": {
-    "driver": {"declaration": "struct platfrom_driver \*s"},
+    "driver": {"declaration": "struct platform_driver \*s"},
     "device": {"declaration": "struct platform_device \*device"},
     "msg": {"declaration": "pm_message_t msg"},
     "ret": {"declaration": "int a", "value": "ldv_undef_int_nonpositive()"}
@@ -919,7 +919,7 @@ Specifications for the generator have names with *user model* suffixes.
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - enforce replacement
     - Bool
@@ -945,7 +945,7 @@ A scenario is a simplified process that can take fewer actions than the original
 Savepoints
 ----------
 
-Imagine, that there is a sime model illustrated in the picture below. There are two processes A and B. The process A activates the B process.
+Imagine, that there is a same model illustrated in the picture below. There are two processes A and B. The process A activates the B process.
 
 .. figure:: ./media/env/origin-savepoint-example-of-Decomposing.png
 
@@ -1011,7 +1011,7 @@ savepoints.
 
 The second tactic splits process actions into sequences of actions without choices. Together created scenarios cover the exact behavior of the original process.
 
-The example of a model provided above can be splitted into three models assuming there are no savepoints. A process can be splitted into two versions: Process *A.1* and Process *A.2*. The first model does not contain any versions of B process, since there is no any activating signal sending to it. Models 2 and 3 have *A.2* process and *B.1* and *B.2* correspondingly.
+The example of a model provided above can be split into three models assuming there are no savepoints. A process can be split into two versions: Process *A.1* and Process *A.2*. The first model does not contain any versions of B process, since there is no any activating signal sending to it. Models 2 and 3 have *A.2* process and *B.1* and *B.2* correspondingly.
 
 .. figure:: ./media/env/linear-example-of-decomposing.png
 
@@ -1036,7 +1036,7 @@ To activate decomposition, one should set the *single environment model per frag
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - scenario separation
     - linear, None
@@ -1067,7 +1067,7 @@ Complicated models can be decomposed in many scenarios, so there could be even m
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - must contain
     - Map from process identifiers to must contain selection descriptions for the property:
@@ -1099,7 +1099,7 @@ The *must contain* configuration property allows a user to select actions and sa
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - actions
     - List of lists of action names. Example:
@@ -1129,7 +1129,7 @@ There are attributes of selection descriptions for the *must not contain* config
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - actions
     - List of actions.
@@ -1155,7 +1155,7 @@ The *cover scenarios* parameter is always necessary. It lists processes and thei
 
   * - Configuration Parameter
     - Value Type
-    - Defaul Value
+    - Default Value
     - Description
   * - actions
     - A list of action names.
@@ -1376,7 +1376,7 @@ The descriptions of processes will be looking as follows (we used formatting to 
         }
       },
       "category": "platform",
-      "comment": "Invoke platfrom callbacks. (Relevant to 'arasan_cf_driver')",
+      "comment": "Invoke platform callbacks. (Relevant to 'arasan_cf_driver')",
       "declarations": {
         "environment model": {
           "emg_wrapper_arasan_cf_probe": "extern int emg_wrapper_arasan_cf_probe(struct platform_device *);\n",
@@ -1571,7 +1571,7 @@ Finally, we can add a savepoint to the *main_register* action of *main/process*.
     }
   }
 
-Next we can run the model. One needs to activate decomposition and select the proper selection tactics. We are going to separate the model into simpler scenarios. It is useful to use linear scenarios in this case. All variants of action sequences will be splitted in separate scenarios. But it will result in many scenario combinations. Thus, we choose the selective tactic for scenario selection to reduce their number.
+Next we can run the model. One needs to activate decomposition and select the proper selection tactics. We are going to separate the model into simpler scenarios. It is useful to use linear scenarios in this case. All variants of action sequences will be split in separate scenarios. But it will result in many scenario combinations. Thus, we choose the selective tactic for scenario selection to reduce their number.
 
 Set additional configuration properties in :file:`job.json`:
 
@@ -1689,7 +1689,7 @@ The parallel model for data race detection is multithreaded and does not support
       "ldv/verifier/common.h",    "ldv/verifier/gcc.h",    "ldv/verifier/nondet.h",    "ldv/verifier/memory.h",    "ldv/verifier/thread.h"
       ]
     - The parameter allows including additional header files to the main C file. Paths are relative to the directory with specifications.
-  * - propogate headers to instrumented files
+  * - propagate headers to instrumented files
     - Bool
     - True
     - Header files provided with the help of the previous configuration options become included in the program fragment files.
