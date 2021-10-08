@@ -204,7 +204,20 @@ class SelectiveSelector(Selector):
         if not model_pool:
             self.logger.info('No models have been selected, use the base one')
             model_pool = {first_model}
-        for model in sorted(model_pool, key=lambda x: x.attributed_name):
+
+        # Remove infeasible models
+        model_pool = self._get_feasible_models(model_pool)
+
+        # Detect models that can be superseded
+        model_pool = self._supersede_models(model_pool)
+
+        for model, related_process in model_pool:
+            self.logger.info(f"Finally return a batch for model {model.attributed_name}")
+            yield model, related_process
+
+    def _get_feasible_models(self, models):
+        new_model_pool = []
+        for model in sorted(models, key=lambda x: x.attributed_name):
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
@@ -214,8 +227,31 @@ class SelectiveSelector(Selector):
                 self.logger.warning(f"Skip model {model.attributed_name} as it has no savepoints and the entry process")
                 continue
 
-            self.logger.info(f"Finally return a batch for model {model.attributed_name}")
-            yield model, related_process
+            new_model_pool.append((model, related_process))
+        return new_model_pool
+
+    def _supersede_models(self, models_list):
+        model_attributes = {m.attributed_name: {p: s for p, s in m.attributes.items() if s != 'Removed'}
+                            for m, _ in models_list}
+        sorted_names = sorted(model_attributes.keys(),
+                              key=lambda x: len(model_attributes[x].keys()), reverse=True)
+
+        selected = set()
+        for name in sorted_names:
+            my_attrs = model_attributes[name]
+            for accepted in selected:
+                selected_attrs = model_attributes[accepted]
+
+                for key, scenario in my_attrs.items():
+                    if key not in selected_attrs or selected_attrs[key] != scenario:
+                        break
+                else:
+                    self.logger.info(f"Model {name} is superseded by model {accepted}")
+                    break
+            else:
+                selected.add(name)
+
+        return [m for m in models_list if m[0].attributed_name in selected]
 
     def _add_peers_as_requirements(self, model):
         model.establish_peers()
