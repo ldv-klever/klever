@@ -51,7 +51,11 @@ class LinearExtractor(ScenarioExtractor):
                     new_scenario.actions[behaviour.name] = new_description
 
                     # Transform blocks
-                    if isinstance(new_description, Block) and new_description.condition:
+                    if isinstance(new_description, Block) and new_description.condition and \
+                            (isinstance(behaviour.my_operator, Choice) or
+                             (isinstance(behaviour.my_operator, Concatenation)
+                              and behaviour.my_operator.index(behaviour) == 0)):
+                        self.logger.debug(f"Convert conditions to assumptions in {behaviour.name} of {name} scenario")
                         for statement in reversed(new_description.condition):
                             new_description.statements.insert(0, f"ldv_assume({statement});")
                         new_description.condition = []
