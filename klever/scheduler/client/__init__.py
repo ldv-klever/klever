@@ -210,7 +210,7 @@ def solve_job(logger, conf):
     Perfrom preparation of job run and start it using RunExec in either container or no-container mode.
 
     :param logger: Logger object.
-    :param conf: Donfiguration dictionary.
+    :param conf: Configuration dictionary.
     :return: RunExec exit code.
     """
 

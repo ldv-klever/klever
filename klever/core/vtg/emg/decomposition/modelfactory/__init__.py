@@ -100,7 +100,7 @@ class Selector:
         if include_base_model:
             yield self._make_base_model(), None
         if include_savepoints:
-            for scenario, related_process in self._scenarions_with_savepoint.items():
+            for scenario, related_process in self._scenarios_with_savepoint.items():
                 new = ScenarioCollection(scenario.name)
                 for process in self.model.environment:
                     new.environment[str(process)] = None
@@ -113,7 +113,7 @@ class Selector:
         return {s: p for p, group in self.processes_to_scenarios.items() for s in group}
 
     @property
-    def _scenarions_with_savepoint(self):
+    def _scenarios_with_savepoint(self):
         return {s: p for s, p in self._scenarios.items() if s.savepoint}
 
     def _make_base_model(self):
@@ -146,7 +146,7 @@ class Selector:
 
 def process_dependencies(process):
     """
-    Collect dependnecies (p->actions) for a given process.
+    Collect dependencies (p->actions) for a given process.
 
     :param process: Process.
     :return: {p: {actions}}
@@ -261,7 +261,7 @@ def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollecti
 
     :param model: Origin model.
     :param batch: Collection with some scenarios.
-    :param process: Collect dependecnies upt to this process.
+    :param process: Collect dependencies upt to this process.
     :param dep_order: List of processes where at the end are not required and at the beginning are the most required
                       ones.
     :param processed: A set with process names that are in model.

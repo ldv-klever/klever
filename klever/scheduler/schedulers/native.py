@@ -142,7 +142,7 @@ class Native(runners.Speculative):
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
+        :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
         # Use resource manager to determine which jobs or task we can run t the moment.
         new_tasks, new_jobs = self._manager.schedule(pending_tasks, pending_jobs)
@@ -171,12 +171,12 @@ class Native(runners.Speculative):
         :return: Return True if nothing has changes.
         """
         # todo: Need refactoring!
-        # Use resource mamanger to manage resources
-        cacnel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
+        # Use resource manager to manage resources
+        cancel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
-        if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
+        if len(cancel_tasks) > 0 or len(cancel_jobs) > 0:
             self.logger.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
-                                "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
+                                "decreased".format(str(cancel_jobs), str(cancel_tasks)))
         return self._manager.submit_status(self.server)
 
     def update_tools(self):
@@ -254,7 +254,7 @@ class Native(runners.Speculative):
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         return self._cancel_solution(identifier, future, mode='job')
 
@@ -265,7 +265,7 @@ class Native(runners.Speculative):
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         return self._cancel_solution(identifier, future, mode='task')
 
@@ -282,7 +282,7 @@ class Native(runners.Speculative):
         Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
 
         :param identifier: Job or task identifier.
-        :param configuration: A dictionary with a cinfiguration or description.
+        :param configuration: A dictionary with a configuration or description.
         :param mode: 'task' or 'job'.
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
@@ -395,7 +395,7 @@ class Native(runners.Speculative):
         :param identifier: A job or task identifier.
         :param future: A future object.
         :return: Status after solution: FINISHED.
-        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
+        :raise SchedulerException: Raised if an exception occurred during the solution or if results are inconsistent.
         """
         self.logger.info(f"Going to check execution of the {mode} {identifier}")
         return self._postprocess_solution(identifier, future, mode)
@@ -408,7 +408,7 @@ class Native(runners.Speculative):
         :param future: Future object.
         :param mode: 'task' or 'job'.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: raise if an exception occured during solution or results are inconsistent.
+        :raise SchedulerException: raise if an exception occurred during solution or results are inconsistent.
         """
         self.logger.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
@@ -431,7 +431,7 @@ class Native(runners.Speculative):
 
         :param identifier: A job or task identifier
         :param mode: 'task' or 'job'.
-        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
+        :raise SchedulerException: Raised if an exception occurred during the solution or if results are inconsistent.
         """
         if mode == 'task':
             subdir = 'tasks'
@@ -567,11 +567,11 @@ class Native(runners.Speculative):
         """
         Function just executes native scheduler client and waits until it terminates.
 
-        :param timeout: Check that tool will exit definetly within this period of time.
+        :param timeout: Check that tool will exit definitely within this period of time.
         :param args: Native scheduler client execution command arguments.
         :return: It exits with the exit code returned by a client.
         """
-        # todo: implement proper self.logger here, since usage of self.logger lead to hanging of threads dont know why
+        # todo: implement proper self.logger here, since usage of self.logger lead to hanging of threads don't know why
         ####### !!!! #######
         # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
         # This is because bug in self.logger library. After an attempt to start the client with self.logger in a
@@ -622,11 +622,11 @@ class Native(runners.Speculative):
         if "client" not in data:
             raise KeyError("Specify 'client' object at task client configuration {!r}".format(name))
         if "verification tools" not in data["client"] or len(data["client"]["verification tools"]) == 0:
-            raise KeyError("Specify pathes to verification tools installed as 'client''verification tools' object at "
+            raise KeyError("Specify paths to verification tools installed as 'client''verification tools' object at "
                            "task client configuration {!r}".format(name))
         for tool in data["client"]["verification tools"]:
             if len(data["client"]["verification tools"].keys()) == 0:
-                raise KeyError("Specify versions and pathes to them for installed verification tool {!r} at "
+                raise KeyError("Specify versions and paths to them for installed verification tool {!r} at "
                                "'client''verification tools' object at task client configuration".format(tool))
 
             for version in data["client"]["verification tools"][tool]:

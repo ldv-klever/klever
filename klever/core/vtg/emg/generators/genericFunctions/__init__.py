@@ -42,7 +42,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         functions_collection = sortedcontainers.SortedDict()
 
         # Import Specifications
-        self.logger.info("Generate an entry process on base of given funcitons list")
+        self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
             raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
                              'configuration')
@@ -91,7 +91,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         #     for func in (f for f in set(headers_map.keys).intersection(set(functions_list))):
         #         functions_collection[func].headers.extend(headers_map[func])
 
-        # Genrate scenario
+        # Generate scenario
         self.logger.info('Generate main scenario')
         if self.conf.get("process per call"):
             processes, main_process = self.__generate_separate_processes(functions_collection)
@@ -108,7 +108,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         Generate the main process and child processes. The main process registers child processes and
         each of which calls a separate function. This would allow to spawn a thread per process.
 
-        :param functions_collection: Dictionary: function name -> a list of Function obects.
+        :param functions_collection: Dictionary: function name -> a list of Function objects.
         :return: name -> child Process, main Process object.
         """
         processes = dict()
@@ -152,14 +152,14 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     def __generate_process(self, func_obj, identifier):
         """
-        Generate a separte process with a function call.
+        Generate a separate process with a function call.
 
         :param func_obj: Function object.
         :param identifier: Identifier of the function.
         :return: a new Process object.
         """
         child_proc = Process(f"{func_obj.name}_{identifier}", "manual")
-        child_proc.comment = "Call fucntion {!r}.".format(func_obj.name)
+        child_proc.comment = "Call function {!r}.".format(func_obj.name)
         child_proc.self_parallelism = False
 
         # Make register action

@@ -44,7 +44,7 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     :param logger: Logger object.
     :param conf: Configuration dictionary.
     :param sa: Source.
-    :param interfaces: Inerfaces collection.
+    :param interfaces: Interfaces collection.
     :param model: ProcessCollection.
     :param instance_maps: Dict
     :return: instance_maps, data.
@@ -94,12 +94,12 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
 def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_collection):
     """
-    Convert the extended processes into simple ones by replacing extentions with simple analogues.
+    Convert the extended processes into simple ones by replacing extensions with simple analogues.
 
     :param logger: Logger.
     :param conf: Dict.
     :param sa: Source.
-    :param interfaces: Inerfaces collection.
+    :param interfaces: Interfaces collection.
     :param process: ExtendedProcess.
     :param peers_cache: dict.
     :param new_collection: ExtendedProcessCollection.
@@ -242,13 +242,13 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
         _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
-    def code_replacment(statments):
+    def code_replacement(statements):
         access_re = re.compile(r'(%\w+(?:(?:[.]|->)\w+)*%)')
 
         # Replace rest accesses
         final = []
-        for original_stm in statments:
-            # Collect dublicates
+        for original_stm in statements:
+            # Collect duplicates
             if access_re.finditer(original_stm):
                 matched = False
                 tmp = sortedcontainers.SortedSet({original_stm})
@@ -277,9 +277,9 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
     for action in process.actions.values():
         if isinstance(action, Block):
             # Implement statements processing
-            action.statements = code_replacment(action.statements)
+            action.statements = code_replacement(action.statements)
         if action.condition:
-            action.condition = code_replacment(action.condition)
+            action.condition = code_replacement(action.condition)
 
     # Now we ready to get rid of implementations but first we must add declarations to the main file
     for access in process.allowed_implementations:
@@ -293,7 +293,7 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
                     true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params',
                                                                   specifiers=True, qualifiers=True)
                 elif not svar:
-                    # Seems that it is a funciton
+                    # Seems that it is a function
                     sf = sa.get_source_function(implementation.value, file)
                     if sf and not (sf.static or sf.declaration.static):
                         true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params', scope={file},
@@ -344,16 +344,16 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
 def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
     """
     This function takes an extended Process and converts the given Call action into a Condition object as a part of
-    translation of an extrended Process into a common one.
+    translation of an extended Process into a common one.
 
     :param logger: Logger object.
     :param conf: Configuration dictionary.
     :param sa: Source object.
-    :param interfaces: Inerfaces collection.
+    :param interfaces: Interfaces collection.
     :param process: Process object.
     :param label_map: Process label map dictionary.
     :param call: Call object.
-    :param action_identifiers: Genrerator of action identifiers.
+    :param action_identifiers: Generator of action identifiers.
     :param param_identifiers: Generator of parameters identifiers.
     :return:
     """
@@ -631,7 +631,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     :param model: ProcessCollection object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
            {'Access.expression string'->'Interface string'->'value string'}}}.
-    :return: List with model qutomata, list with callback automata.
+    :return: List with model automata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
     identifiers = id_generator()
@@ -644,7 +644,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
         else:
             identifiers_map[str(inst)] = [inst]
 
-    # Check configuraition properties first
+    # Check configuration properties first
     conf.setdefault("max instances number", 1000)
     conf.setdefault("instance modifier", 1)
     conf.setdefault("instances per resource implementation", 1)
@@ -759,7 +759,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
 
 def __get_relevant_expressions(process):
     """
-    Function extracts relevant interface implementation for a processs.
+    Function extracts relevant interface implementation for a process.
 
     :param process: Process object.
     :return: List of string identifiers.
@@ -801,8 +801,8 @@ def __get_relevant_expressions(process):
 
 def __add_pretty_name(logger, process, names):
     """
-    This function adds to a process name a unique suffix based on some implementation to avoid numerical processs
-    identifiers and consequently use them in manual specificatin for addressing signals.
+    This function adds to a process name a unique suffix based on some implementation to avoid numerical process
+    identifiers and consequently use them in manual specification for addressing signals.
 
     :param logger: Logger object.
     :param process: Process object.
@@ -860,8 +860,8 @@ def _remove_statics(logger, sa, process):
             return collection[search_implementation][search_name]
         return None
 
-    def create_definition(decl, nm, impl, requre_suffix=False):
-        if requre_suffix:
+    def create_definition(decl, nm, impl, require_suffix=False):
+        if require_suffix:
             new_name = "emg_wrapper_{}_{}".format(nm, next(_f_identifiers))
         else:
             new_name = "emg_wrapper_{}".format(nm)
@@ -942,7 +942,7 @@ def _remove_statics(logger, sa, process):
                             if len(sa.get_source_functions(function_name)) > 1:
                                 suffix = True
                             func = create_definition(declaration.to_string('x', specifiers=False), name, implementation,
-                                                     requre_suffix=suffix)
+                                                     require_suffix=suffix)
                             _definitions[file][name] = func
                             if not isinstance(declaration, Pointer) and isinstance(implementation.declaration, Pointer):
                                 # Try to use pointer instead of the value
@@ -1021,14 +1021,14 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     Get a process and calculate instances to get automata with exactly one implementation per interface.
 
     This function generates a number of instances which equals to max number of implementations available for
-    an interface. For example, having 2 implementations for an intance A and 3 implementations for an instance B
+    an interface. For example, having 2 implementations for an instance A and 3 implementations for an instance B
     there are 3 instances will be generated. By the way only containers, interfaces without base values
-    (parent containers) and implementations from the same array container are concidered for creating instances,
+    (parent containers) and implementations from the same array container are considered for creating instances,
      since the other interfaces will get their implementations according to chosen implementations for interfaces
     mentioned above. For example there is no need to generate instances for interfaces file_operations and
     file.operations.open if implementations of the second one depends on implementations of the first one.
 
-    Generated instance here is a just map from accesses and interfaces to particular implementations whish will be
+    Generated instance here is a just map from accesses and interfaces to particular implementations which will be
     provided to a copy of the Process object later in translation.
     :param sa: Source analysis.
     :param interfaces: InterfaceCollection object.
@@ -1076,7 +1076,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                     ivector[interface_index] = 0
             maps.append([new_map, chosen_values])
     else:
-        # Choose atleast one map
+        # Choose at least one map
         if not maps:
             maps = [[access_map, sortedcontainers.SortedSet()]]
 
@@ -1084,7 +1084,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     for expression in access_map.keys():
         for interface in access_map[expression].keys():
             intf_additional_maps = []
-            # If container has values which depends on another container add a map with unitialized value for the
+            # If container has values which depends on another container add a map with uninitialized value for the
             # container
             if access_map[expression][interface] and [val for val in interface_to_value[interface]
                                                       if interface_to_value[interface][val]]:
@@ -1131,7 +1131,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                             # Ignore additional container values which does not influence the other interfaces
                             suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
                         else:
-                            # Try not to repeate values
+                            # Try not to repeat values
                             suits = [v for v in suits if v not in total_chosen_values]
 
                         value_map = _match_array_maps(expression, interface, suits, maps, interface_to_value,
@@ -1224,7 +1224,7 @@ def _extract_implementation_dependencies(access_map, accesses):
     basevalue_to_interface = sortedcontainers.SortedDict()
     options_interfaces = sortedcontainers.SortedSet()
 
-    # Collect dependencies between interfaces, implem,entations and containers
+    # Collect dependencies between interfaces, implementations and containers
     for access in accesses.keys():
         access_map[access] = {}
 
@@ -1285,7 +1285,7 @@ def _extract_implementation_dependencies(access_map, accesses):
                     break
 
             if not chosen_value:
-                raise RuntimeError('Inifnite loop due to inability to cover an implementation by a container')
+                raise RuntimeError('Infinite loop due to inability to cover an implementation by a container')
 
         containers_impacts[container_id] = len(final_set)
 
@@ -1305,7 +1305,7 @@ def _extract_implementation_dependencies(access_map, accesses):
 def _match_array_maps(expression, interface, values, maps, interface_to_value, value_to_implementation):
     """
     Tries to find an existing solution map for a given value which will contain another values from the same container
-    from which springs a value under conideration. Function also distinguish containers from the same arrays and tries
+    from which springs a value under consideration. Function also distinguish containers from the same arrays and tries
     to not mix callbacks from such arrays of containers. Such match allows to drastically reduce number of generated
     instances especially generated for containers from arrays.
 
@@ -1373,7 +1373,7 @@ def _fulfil_map(expression, interface, value_map, reuse, value_to_implementation
     new_maps = []
 
     if not reuse:
-        raise ValueError('Expect non-empty list of maps for instanciating from')
+        raise ValueError('Expect non-empty list of maps for instantiating from')
     first = reuse[0]
 
     for value in value_map.keys():

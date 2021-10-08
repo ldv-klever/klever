@@ -62,8 +62,8 @@ class SelectiveSelector(Selector):
         deleted_processes, order, dep_order = self._calculate_process_order(must_contain, must_not_contain, coverage)
         self.logger.info("Order of process iteration is: " + ', '.join(order))
 
-        # Check contraversal requirements
-        self._check_contraversal_requirements(deleted_processes, must_contain, must_not_contain, coverage, order)
+        # Check controversial requirements
+        self._check_controversial_requirements(deleted_processes, must_contain, must_not_contain, coverage, order)
 
         # Prepare the initial base models
         first_model = self._make_base_model()
@@ -264,13 +264,13 @@ class SelectiveSelector(Selector):
                         self.logger.debug(f"Add requirement {peer}:{dispatch} to process {str(process)}")
                         process.actions[dispatch].add_required_process(peer, {dispatch})
 
-    def _check_contraversal_requirements(self, deleted_processes, must_contain, must_not_contain, coverage, order):
-        # todo: We may need to implement more chacks for complicated cases
+    def _check_controversial_requirements(self, deleted_processes, must_contain, must_not_contain, coverage, order):
+        # todo: We may need to implement more checks for complicated cases
         for deleted in deleted_processes:
             if deleted in must_contain or deleted in coverage:
                 raise ValueError(f"Forced to delete {deleted} process according to 'must not contain' property but it "
                                  f"is mentioned in 'cover scenarios' or 'must contain' properties. Such specification"
-                                 f" is contradicting.")
+                                 f" is controversial.")
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
@@ -326,7 +326,7 @@ class SelectiveSelector(Selector):
         # Detect order using transitive dependencies
         todo = set(self.model.environment.keys())
 
-        # Check contraversal configurations
+        # Check controversial configurations
         for process_name in sorted(todo):
             if process_name in must_not_contain and len(must_not_contain[process_name].keys()) == 0 and \
                     process_name in must_contain:
@@ -446,7 +446,7 @@ class SelectiveSelector(Selector):
                 for action_set in must_contain[process_name]['actions']:
                     if set(action_set).issubset(set(suitable.actions.keys())):
                         new_scenarios_items.add(suitable)
-            self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios with required actions: " +
+            self.logger.debug(f"{process_name.capitalize()} has the following scenarios with required actions: " +
                               ', '.join(list(map(str, new_scenarios_items))))
             return new_scenarios_items
         else:
@@ -460,7 +460,7 @@ class SelectiveSelector(Selector):
                              str(s.savepoint) in must_contain[process_name]['savepoints']):
                 new_scenarios_items.add(suitable)
 
-            self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios with required savepoints: " +
+            self.logger.debug(f"{process_name.capitalize()} has the following scenarios with required savepoints: " +
                               ', '.join(list(map(str, new_scenarios_items))))
             return new_scenarios_items
         else:
@@ -480,7 +480,7 @@ class SelectiveSelector(Selector):
                 if add_flag:
                     new_scenarios_items.add(suitable)
 
-            self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios without forbidden actions: " +
+            self.logger.debug(f"{process_name.capitalize()} has the following scenarios without forbidden actions: " +
                               ', '.join(list(map(str, new_scenarios_items))))
             return new_scenarios_items
         else:
@@ -497,7 +497,7 @@ class SelectiveSelector(Selector):
                 else:
                     new_scenarios_items.add(suitable)
 
-            self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios without forbidden "
+            self.logger.debug(f"{process_name.capitalize()} has the following scenarios without forbidden "
                               f"savepoints: " + ', '.join(list(map(str, new_scenarios_items))))
             return new_scenarios_items
         else:
@@ -537,7 +537,7 @@ class SelectiveSelector(Selector):
             if satisfy_deps(deps, self.model.environment[process_name], scenario):
                 self.logger.debug(f"Scenario {scenario.name} meets model {model.attributed_name}")
 
-                # Now chack that model is compatible with the scenario
+                # Now check that model is compatible with the scenario
                 model.environment[process_name] = scenario
                 deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
                 model.environment[process_name] = None

@@ -30,13 +30,13 @@ class ResourceManager:
     The class is in charge of resource management. It tracks all resources of the system consisting of several
     nodes running the scheduler controller. It provides means for other schedulers to calculate resources,
     reserve resources, checking whether it possible to run a job or task and even choosing appropriate nodes for it.
-    It requests data from the shceduler controller and submits the current system workload to Bridge. It does not do
+    It requests data from the scheduler controller and submits the current system workload to Bridge. It does not do
     any specific actions to prepare, start or cancel jobs or tasks.
     """
 
     def __init__(self, logger, max_jobs=1, pool_size=1000):
         """
-        Initiaize the manager of resources.
+        Initialize the manager of resources.
 
         :param max_jobs: The maximum number of running jobs with the same or higher priority.
         :param pool_size: The total number of running tasks and jobs if it is limited. By default it should be very high.
@@ -59,7 +59,7 @@ class ResourceManager:
         resources the method checks the invariant and reports jobs and tasks to cancel to prevent scheduling deadlocks.
 
         :param address: Controllers address to make the request.
-        :param wait_controller: Wait until controller intializes its KV storage.
+        :param wait_controller: Wait until controller initializes its KV storage.
         :raise ValueError: If the request to controller fails then raise the exception.
         :return: [list of identifiers of jobs to cancel], [list of identifiers of tasks to cancel].
         """
@@ -165,7 +165,7 @@ class ResourceManager:
 
     def submit_status(self, server):
         """
-        Caclulate an available configuration of all nodes, nodes with particular configuration and the current workload,
+        Calculate an available configuration of all nodes, nodes with particular configuration and the current workload,
         and send it all to Bridge. Does not send any data if nothing has been changed from the previous dispatch.
 
         :param server: {'node name': {node status}} - the system status.
@@ -260,7 +260,7 @@ class ResourceManager:
                                                                     True)]
         schedule_jobs(filtered_jobs)
 
-        # Schedule all posible tasks
+        # Schedule all possible tasks
         processing_tasks = self.__processing_tasks
         for task in reversed(pending_tasks):
             if (self.__pool_size - (len(running_jobs) + len(jobs_to_run))
@@ -317,7 +317,7 @@ class ResourceManager:
 
     def release_resources(self, identifier, node, job=False, keep_disk=0):
         """
-        Paried method with claim_resources. Call it if the task or job solution is finished and reserved resources
+        Paired method with claim_resources. Call it if the task or job solution is finished and reserved resources
         should become available again.
 
         :param identifier: An identifier of the given job or task.
@@ -419,7 +419,7 @@ class ResourceManager:
 
     def node_info(self, node):
         """
-        Return the status of partucular node. It will be a copy of the particular object from the system status.
+        Return the status of particular node. It will be a copy of the particular object from the system status.
         It prevents any modifications of the system status outside of the manager.
 
         :param node: A node name string.
@@ -574,7 +574,7 @@ class ResourceManager:
         def check_invariant_for_jobs(jobs_list):
             par = self.__create_system_status(delete_jobs=True, delete_tasks=True, keep_jobs=[j[0] for j in jobs_list])
 
-            # Collect maximum task restrictions for each CPU model cpecified for tasks
+            # Collect maximum task restrictions for each CPU model specified for tasks
             required_cpu_models = \
                 sorted({j[1]['configuration']['task resource limits']['CPU model'] for j in jobs_list
                         if j[1]['configuration']['task scheduler'] != 'VerifierCloud'})
@@ -653,7 +653,7 @@ class ResourceManager:
         :return: The copy of system status that can be modified anyhow.
         """
 
-        def relaease_all_tasks(s, kt=None):
+        def release_all_tasks(s, kt=None):
             if not kt:
                 kt = []
 
@@ -669,14 +669,14 @@ class ResourceManager:
             for j, node in (j for j in self.__processing_jobs if j not in kj):
                 self.__release_resources(s, self.__jobs_config[j]['configuration']['resource limits'], node)
 
-        # Copy system status to calculatepotentially available resources
+        # Copy system status to calculate potentially available resources
         status = copy.deepcopy(self.__system_status)
 
         # Free there all task resources but reserve all max task resources
         if not keep_tasks:
             keep_tasks = []
         if delete_tasks:
-            relaease_all_tasks(status, keep_tasks)
+            release_all_tasks(status, keep_tasks)
 
         if not keep_jobs:
             keep_jobs = []

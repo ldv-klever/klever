@@ -68,7 +68,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         extra_cc_indexes_queue.put(None)
 
-        self.logger.info('Start Wearver pull of workers')
+        self.logger.info('Start Weaver pull of workers')
 
         # Here workers will put their results, namely, paths to extra C files.
         vals = {'extra C files': multiprocessing.Manager().list()}

@@ -153,7 +153,7 @@ class Scheduler:
         Start scheduler loop. This is an infinite loop that exchange data with Bridge to fetch new jobs and tasks and
         upload result of solution previously received tasks and jobs. After data exchange it prepares for solution
         new jobs and tasks, updates statuses of running jobs and tasks and schedule for solution pending ones.
-        This is just an algorythm, and all particular logic and resource management should be implemented in classes
+        This is just an algorithm, and all particular logic and resource management should be implemented in classes
         that inherits this one.
         """
 
@@ -190,10 +190,10 @@ class Scheduler:
                             if sch_status in ('PENDING', 'PROCESSING'):
                                 self._jobs[identifier]['status'] = 'PROCESSING'
                             elif identifier not in self._jobs:
-                                self.server.submit_job_error(identifier, 'Job {!r} is not traching by the scheduler'.
+                                self.server.submit_job_error(identifier, 'Job {!r} is not tracked by the scheduler'.
                                                              format(identifier))
                             else:
-                                self.logger.warning('Job {!r} alrady has status {!r}'.format(identifier, sch_status))
+                                self.logger.warning('Job {!r} already has status {!r}'.format(identifier, sch_status))
                         elif status in ('FAILED', 'CORRUPTED', 'CANCELLED'):
                             if identifier in self._jobs and self.runner.is_solving(self._jobs[identifier]):
                                 self.logger.warning('Job {!r} is running but got status '.format(identifier))
@@ -389,7 +389,7 @@ class Scheduler:
                 self._listening_thread.join()
                 exit(137)
             except Exception:
-                exception_info = 'An error occured:\n{}'.format(traceback.format_exc().rstrip())
+                exception_info = 'An error occurred:\n{}'.format(traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
                 self.terminate()
                 self._listening_thread.stop()
@@ -410,7 +410,7 @@ class Scheduler:
         """
         if len(collection.keys()) == 0:
             raise SchedulerException("Resource limitations are missing: upload correct tasks.json file and properly "
-                                     "set job resource limitiations")
+                                     "set job resource limitations")
 
         for tag in ['memory size', 'number of CPU cores', 'disk memory size']:
             if tag not in collection or collection[tag] is None:
@@ -426,7 +426,7 @@ class Scheduler:
             for tag in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
                 collection[tag] = time_units_converter(collection[tag])[0]
         except Exception:
-            raise SchedulerException('Cannot interprete {} resource limitations: {!r}'.format(tag, collection[tag]))
+            raise SchedulerException('Cannot interpret {} resource limitations: {!r}'.format(tag, collection[tag]))
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
@@ -449,7 +449,7 @@ class Scheduler:
         for job_id in running_jobs:
             self.server.submit_job_error(job_id, 'Scheduler has been terminated or reset')
 
-        # Do final unitializations
+        # Do final uninitializations
         self.runner.terminate()
 
     def add_new_pending_job(self, identifier):
@@ -474,7 +474,7 @@ class Scheduler:
             self.logger.info("Prepare new job {} before launching".format(identifier))
             if identifier in self._jobs and self._jobs[identifier]["status"] == "PROCESSING":
                 raise RuntimeError(
-                    "This should not be possible to get PEDING status for a PROCESSING jib {!r}".format(identifier))
+                    "This should not be possible to get PENDING status for a PROCESSING jib {!r}".format(identifier))
 
             # Check and set necessary restrictions for further scheduling
             for collection in [job_conf['configuration']["resource limits"],
@@ -564,13 +564,13 @@ class Scheduler:
             try:
                 self.server.delete_task(identifier)
             except BridgeError as err:
-                self.logger.warning('Brdige reports an error on attempt to delete task {}: {!r}'.
+                self.logger.warning('Bridge reports an error on attempt to delete task {}: {!r}'.
                                     format(identifier, err))
 
     def _check_jobs_status(self):
-        """This functions checks complience of server and scheduler statuses."""
+        """This functions checks compliance of server and scheduler statuses."""
         if self._runner_class.accept_jobs:
-            # todo: At the moment we do not have several scheduilers that can serve jobs but in other case whis should
+            # todo: At the moment we do not have several schedulers that can serve jobs but in other case this should
             #       be fixed
             result = self.server.get_all_jobs()
             if result:

@@ -33,7 +33,7 @@ class Busybox(FragmentationAlgorythm):
 
     def _determine_units(self, program):
         """
-        Find all files that has \w+_main function and add dependecnies files except that ones that stored in libbb dir.
+        Find all files that has \w+_main function and add dependencies files except that ones that stored in libbb dir.
         All files from the libbb directory add to the specific unit with the libbb name.
 
         :param program: Program object.

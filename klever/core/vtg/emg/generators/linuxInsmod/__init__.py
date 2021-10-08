@@ -192,7 +192,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         elif kernel_initializations and not inits:
             process += "<kernel_initialization>.(<kernel_initialization_success> | <kernel_initialization_fail>)"
         elif not inits and not kernel_initializations:
-            raise NotImplementedError("There is no both kernel initilization functions and module initialization "
+            raise NotImplementedError("There is no both kernel initialization functions and module initialization "
                                       "functions")
 
         # This populates all actions
@@ -246,7 +246,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             ki_failed = ep.actions['kerninit_failed']
             ki_failed.condition = ["%ret% != 0"]
-            ki_failed.commnet = "Kernel initialization is unsuccessful."
+            ki_failed.comment = "Kernel initialization is unsuccessful."
         if len(inits) > 0:
             # Generate init subprocess
             for filename, init_name in inits:

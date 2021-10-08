@@ -114,7 +114,7 @@ class SSH:
         retcode = chan.recv_exit_status()
 
         if retcode:
-            self.logger.error('Command exitted with {0}'.format(retcode))
+            self.logger.error('Command exited with {0}'.format(retcode))
             sys.exit(errno.EPERM)
 
     def open_shell(self):

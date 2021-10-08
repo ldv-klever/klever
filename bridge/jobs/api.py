@@ -387,6 +387,7 @@ class GetJobCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
 class CreateDefConfAPIView(LoggedCallMixin, CreateAPIView):
     serializer_class = DefaultDecisionConfigurationSerializer
     permission_classes = (IsAuthenticated,)
+    unparallel = [DefaultDecisionConfiguration]
 
     def create(self, request, *args, **kwargs):
         try:

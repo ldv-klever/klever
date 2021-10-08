@@ -66,7 +66,7 @@ def get_all_subclasses(cls):
 
 
 def get_program_class(class_name):
-    """Find a subclass of Programm class."""
+    """Find a subclass of Program class."""
     for program_class in get_all_subclasses(Program):
         if class_name == program_class.__name__:
             return program_class
@@ -208,7 +208,7 @@ def main(args=sys.argv[1:]):
         all_desc_paths.extend(desc_paths)
 
         if not desc_paths:
-            logger.error(f'There are no jsons corresponding to the specified description pattern {desc_name_pattern}')
+            logger.error(f'There are no JSONs corresponding to the specified description pattern {desc_name_pattern}')
             logger.error(f'Target program descriptions are stored in the {get_descs_dir()} directory')
             sys.exit(-1)
 

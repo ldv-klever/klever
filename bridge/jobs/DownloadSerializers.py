@@ -23,6 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import exceptions, serializers, fields
 
 from bridge.vars import MPTT_FIELDS, PRESET_JOB_TYPE
+from bridge.utils import require_lock
 from bridge.serializers import TimeStampField
 
 from jobs.models import Job, JobFile, FileSystem, Decision, Scheduler
@@ -57,6 +58,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
         attrs.pop('archive_format')
         return attrs
 
+    @require_lock(Job)
     def create(self, validated_data):
         try:
             return Job.objects.get(identifier=validated_data['identifier'])

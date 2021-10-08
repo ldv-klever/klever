@@ -19,7 +19,7 @@
 def calculate_load_order(logger, modules):
     """
     Get dependencies between modules and output modules list with order of possible loading according to solution of a
-    topological sorting problem yielded with Tarjan algorythm.
+    topological sorting problem yielded with Tarjan algorithm.
 
     :param logger: logging object.
     :param modules: Dictionary with modules dependencies.

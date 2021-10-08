@@ -35,11 +35,11 @@ def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessColle
     """
     if not conf.get('single environment model per fragment', True):
         logger.info(f'Decompose environment model {model.name}')
-        algorythm = Decomposition(logger, conf,
+        algorithm = Decomposition(logger, conf,
                                   model=model,
                                   separator=_choose_separator(logger, conf),
                                   factory=_choose_factory(logger, conf))
-        for new_model in algorythm():
+        for new_model in algorithm():
             logger.info(f'Generated a new model {new_model.attributed_name}')
             yield new_model
     else:
@@ -49,7 +49,7 @@ def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessColle
 
 def _choose_separator(logger, conf):
     if conf.get('scenario separation') == 'linear':
-        logger.info('Split processes into lienar sequences of actions')
+        logger.info('Split processes into linear sequences of actions')
         return LinearStrategy(logger, conf)
     else:
         logger.info('Do not split processes at separation stage of model decomposition')

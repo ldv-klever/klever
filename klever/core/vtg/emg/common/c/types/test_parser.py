@@ -130,7 +130,7 @@ def test_pointers():
 
 
 @parser_test
-def test_tructs():
+def test_structs():
     return [
         'struct usb a',
         'const struct usb a',

@@ -27,10 +27,10 @@ def extract_relevant_automata(logger, automata, automata_peers, peers, sb_type=N
 
     :param logger: Logger object.
     :param automata: List with Automaton objects.
-    :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+    :param automata_peers: Dictionary {'Automaton.identifier string' -> {'states': ['relevant State objects'],
                                                                         'automaton': 'Automaton object'}
     :param peers: List of relevant Peer objects.
-    :param sb_type: Receive or Dispatch class to choose only those automata that reseive or send signals to the
+    :param sb_type: Receive or Dispatch class to choose only those automata that receive or send signals to the
                     given one
     :return: None, since it modifies the first argument.
     """
@@ -53,7 +53,7 @@ def extract_relevant_automata(logger, automata, automata_peers, peers, sb_type=N
 
 def initialize_automaton_variables(conf, automaton):
     """
-    Initalize automaton variables with either external allocated function calls or some known explicit values. Print
+    Initialize automaton variables with either external allocated function calls or some known explicit values. Print
     the code of such initialization.
 
     :param conf: Translator configuration dictionary.

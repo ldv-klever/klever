@@ -338,7 +338,7 @@ class Process:
         Add new Condition action. Later you can add it to a particular place to execute using an another method.
 
         :param name: Action name.
-        :param condition: List of conditional expresstions.
+        :param condition: List of conditional expressions.
         :param statements: List with statements to execute.
         :param comment: A comment for the action (A short sentence).
         :return: A new Condition object.
@@ -454,7 +454,7 @@ class ProcessDescriptor:
     def __set__(self, obj, value):
         assert isinstance(value, Process) or value is None, f'Got {type(value).__name__} instead of a process'
         if value:
-            # Warning: this is becouse there is no setter in the class and this is normal
+            # Warning: this is because there is no setter in the class and this is normal
             value._category = self.EXPECTED_CATEGORY
         obj._entry = value
 
@@ -579,7 +579,7 @@ class ProcessCollection:
         for process in self.processes:
             process.peers.clear()
 
-        # Fisrt check models
+        # First check models
         for model in self.models.values():
             for process in list(self.environment.values()) + ([self.entry] if self.entry else []):
                 model.establish_peers(process)
@@ -629,7 +629,7 @@ class ProcessCollection:
             else:
                 raise NotImplementedError
 
-        # Dump separetly all automata
+        # Dump separately all automata
         for process in self.processes:
             dg_file = "{}/{}.dot".format(directory, str(process))
 

@@ -19,7 +19,7 @@ from klever.core.pfg.abstractions.strategies import Abstract
 
 
 class Callgraph(Abstract):
-    """This strategy gets a target fragment and adds recursievely fragments which are used by this one fragment."""
+    """This strategy gets a target fragment and adds recursively fragments which are used by this one fragment."""
 
     def __init__(self, logger, conf, tactic, program):
         """

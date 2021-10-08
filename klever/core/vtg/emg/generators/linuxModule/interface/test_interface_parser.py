@@ -33,7 +33,7 @@ def intf_collection():
     return collection
 
 
-def test_exentions(intf_collection):
+def test_extensions(intf_collection):
     tests = [
         '%usb.driver%',
         '%usb.driver% function(int, void *)',

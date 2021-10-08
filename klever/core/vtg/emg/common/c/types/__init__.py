@@ -313,7 +313,7 @@ class Declaration:
 
     def add_parent(self, parent):
         """
-        Specify that the given declaration object contains this one (in terms of structure fields or array alements).
+        Specify that the given declaration object contains this one (in terms of structure fields or array elements).
 
         :param parent: Declaration object.
         :return: None.
@@ -560,7 +560,7 @@ class Function(Declaration):
 
     def define_with_args(self, replacement, typedef='none', scope=None):
         """
-        Prints function dewclaration with arguments given with declarators. As argument declarators it prints
+        Prints function declaration with arguments given with declarators. As argument declarators it prints
         expressions like 'arg1', 'arg2', ....
 
         :param replacement: Function name or any other declarator.

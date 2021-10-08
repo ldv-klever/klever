@@ -18,7 +18,7 @@
 
 class Abstract:
 
-    DESC_FILE = 'agregations description.json'
+    DESC_FILE = 'aggregations description.json'
 
     def __init__(self, logger, conf, tactic, program):
         """

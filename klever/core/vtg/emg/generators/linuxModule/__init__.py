@@ -52,7 +52,7 @@ class ScenarioModelgenerator(AbstractGenerator):
     specifications_endings = {
         'event specifications': 'event spec.json',
         'interface specifications': 'interface spec.json',
-        'instance maps': 'insance map.json'
+        'instance maps': 'instance map.json'
     }
 
     def make_scenarios(self, abstract_task_desc, collection, source, specifications):

@@ -63,7 +63,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             v_code.extend(sp_v_code)
             f_code.extend([
                 '',
-                '/* Sbprocess {} */'.format(subp.name),
+                '/* Subprocess {} */'.format(subp.name),
                 'emg_{}_{}:'.format(str(subp.name), str(automaton))
             ])
             f_code.extend(sp_f_code)

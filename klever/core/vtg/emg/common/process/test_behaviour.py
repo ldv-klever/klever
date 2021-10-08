@@ -45,7 +45,7 @@ def test_savepoint():
     # Test __str__
     assert str(pnt) == name
 
-    # Test atatements
+    # Test statements
     for i1, i2 in zip(pnt.statements, statements):
         assert i1 == i2
 

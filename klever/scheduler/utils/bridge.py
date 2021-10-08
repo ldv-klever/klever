@@ -138,7 +138,7 @@ class Session:
 
     def push_archive(self, endpoint, data, archive):
         """
-        Apload an arcive to server.
+        Upload an archive to server.
 
         :param endpoint: URL endpoint.
         :param data: Data to push in case of POST request.

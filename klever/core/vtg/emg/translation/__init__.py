@@ -57,7 +57,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Prepare main configuration properties
     logger.info(f"Translate '{collection.attributed_name}' with an identifier {collection.name}")
     conf['translation options'].setdefault('entry point', 'main')
-    conf['translation options'].setdefault('enironment model file', 'environment_model.c')
+    conf['translation options'].setdefault('environment model file', 'environment_model.c')
     conf['translation options'].setdefault('nested automata', True)
     conf['translation options'].setdefault('direct control functions calls', True)
     conf['translation options'].setdefault('code additional aspects', list())
@@ -126,7 +126,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         if process.file == 'environment model':
             process.file = entry_file
 
-    # Initalize code representation
+    # Initialize code representation
     cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Then convert into proper format
