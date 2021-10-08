@@ -232,7 +232,9 @@ class SelectiveSelector(Selector):
         # todo: We may need to implement more chacks for complicated cases
         for deleted in deleted_processes:
             if deleted in must_contain or deleted in coverage:
-                raise ValueError(f"Cannot cover {deleted} process in must contain becaouse of the contraversal spec")
+                raise ValueError(f"Forced to delete {deleted} process according to 'must not contain' property but it "
+                                 f"is mentioned in 'cover scenarios' or 'must contain' properties. Such specification"
+                                 f" is contradicting.")
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
@@ -319,10 +321,6 @@ class SelectiveSelector(Selector):
                     # Check savepoints
                     if len(coverage[process_covered].keys()) == 1:
                         raise ValueError(f'Cannot cover {process_covered} as {process_name} should be deleted')
-                # Delete rest
-                for name in dep_order[:dep_order.index(process_name)+1]:
-                    dep_order.remove(name)
-                    deleted_processes.add(name)
         else:
             self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
 
