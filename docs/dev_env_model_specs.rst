@@ -1726,8 +1726,8 @@ The parallel model for data race detection is multithreaded and does not support
     - True
     - Marks all labels as externally allocated data for the CPAchecker SMG if the configuration property is set.
 
-.. [Z18] I. Zakharov, E. Novikov. Compositional Environment Modelling for Verification of GNU C Programs. In Proceedings of the 2018 Ivannikov Ispras Open Conference (ISPRAS'18), pp. 39-44. IEEE Computer Society, 2018. https://doi.org/10.1109/ISPRAS.2018.00013.
+.. [Z18] \I. Zakharov, E. Novikov. Compositional Environment Modelling for Verification of GNU C Programs. In Proceedings of the 2018 Ivannikov Ispras Open Conference (ISPRAS'18), pp. 39-44. IEEE Computer Society, 2018. https://doi.org/10.1109/ISPRAS.2018.00013.
 
-.. [N18] E. Novikov, I. Zakharov. Verification of Operating System Monolithic Kernels Without Extensions. In: Margaria T., Steffen B. (eds) Proceedings of the 8th International Symposium on Leveraging Applications of Formal Methods, Verification, and Validation. Industrial Practice (ISoLA’18), LNCS, volume 11247, pp. 230–248. Springer, Cham. 2018. https://doi.org/10.1007/978-3-030-03427-6_19.
+.. [N18] \E. Novikov, I. Zakharov. Verification of Operating System Monolithic Kernels Without Extensions. In: Margaria T., Steffen B. (eds) Proceedings of the 8th International Symposium on Leveraging Applications of Formal Methods, Verification, and Validation. Industrial Practice (ISoLA’18), LNCS, volume 11247, pp. 230–248. Springer, Cham. 2018. https://doi.org/10.1007/978-3-030-03427-6_19.
 
-.. [ZN18] E. Novikov, I. Zakharov. Towards automated static verification of GNU C programs. In: Petrenko A., Voronkov A. (eds) Proceedings of the 11th International Andrei Ershov Memorial Conference on Perspectives of System Informatics (PSI’17), LNCS, volume 10742, pp. 402–416. Cham, Springer. 2018. https://doi.org/10.1007/978-3-319-74313-4_30.
+.. [ZN18] \E. Novikov, I. Zakharov. Towards automated static verification of GNU C programs. In: Petrenko A., Voronkov A. (eds) Proceedings of the 11th International Andrei Ershov Memorial Conference on Perspectives of System Informatics (PSI’17), LNCS, volume 10742, pp. 402–416. Cham, Springer. 2018. https://doi.org/10.1007/978-3-319-74313-4_30.
