@@ -204,7 +204,7 @@ class VRP(klever.core.components.Component):
         self.logger.info("VRP fetcher finishes its work")
 
     def __get_common_attrs(self):
-        self.logger.info('Get common atributes')
+        self.logger.info('Get common attributes')
 
         common_attrs = self.mqs['VRP common attrs'].get()
 
@@ -308,13 +308,13 @@ class RP(klever.core.components.Component):
 
         if status == 'finished':
             self.process_finished_task(task_id, opts, verifier)
-            # Raise exception just here sinse the method above has callbacks.
+            # Raise exception just here since the method above has callbacks.
             if self.__exception:
                 self.logger.warning("Raising the saved exception")
                 raise self.__exception
         elif status == 'error':
             self.process_failed_task(task_id)
-            # Raise exception just here sinse the method above has callbacks.
+            # Raise exception just here since the method above has callbacks.
             raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
         else:
             raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
@@ -385,7 +385,7 @@ class RP(klever.core.components.Component):
 
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
         # not upload all witnesses that can be properly processed as well as information on all such failures.
-        # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
+        # Necessary verification finish report also won't be uploaded causing Bridge to corrupt the whole job.
         if re.search('true', decision_results['status']):
             klever.core.utils.report(self.logger,
                                      'safe',
@@ -411,7 +411,7 @@ class RP(klever.core.components.Component):
             if "expect several witnesses" in opts and opts["expect several witnesses"]:
                 self.verdict = 'unsafe'
 
-                # Suprisingly there may be no witnesses at all even when verifier reported unsafe.
+                # Surprisingly there may be no witnesses at all even when verifier reported unsafe.
                 if not len(witnesses) and re.search('false', decision_results['status']):
                     try:
                         raise RuntimeError('Verifier reported false without violation witnesses')
@@ -461,7 +461,7 @@ class RP(klever.core.components.Component):
                 os.mkdir('verification')
                 verification_problem_desc = os.path.join('verification', 'problem desc.txt')
 
-                # Check resource limitiations
+                # Check resource limitations
                 if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
                     if decision_results['status'] == 'OUT OF MEMORY':
                         msg = "memory exhausted"

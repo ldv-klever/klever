@@ -25,7 +25,7 @@ from django.core.files import File
 from django.db.models import Count, Case, When, Q
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
-from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum, require_lock
+from bridge.utils import logger, BridgeException, ArchiveFileContent, RequreLock, file_checksum, require_lock
 
 from reports.models import ReportUnsafe
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
@@ -39,12 +39,13 @@ ET_FILE_NAME = 'converted-error-trace.json'
 
 def perform_unsafe_mark_create(user, report, serializer):
     convert_func = serializer.validated_data['function']
-    try:
-        conv = UnsafeConvertionCache.objects.get(unsafe=report, converted__function=convert_func).converted
-    except UnsafeConvertionCache.DoesNotExist:
-        error_trace = get_report_trace(report)
-        conv = convert_error_trace(error_trace, convert_func)
-        UnsafeConvertionCache.objects.create(unsafe=report, converted=conv)
+    with RequreLock(UnsafeConvertionCache):
+        try:
+            conv = UnsafeConvertionCache.objects.get(unsafe=report, converted__function=convert_func).converted
+        except UnsafeConvertionCache.DoesNotExist:
+            error_trace = get_report_trace(report)
+            conv = convert_error_trace(error_trace, convert_func)
+            UnsafeConvertionCache.objects.create(unsafe=report, converted=conv)
 
     mark = serializer.save(job=report.decision.job, error_trace=conv)
     res = ConnectUnsafeMark(mark, prime_id=report.id, author=user)
@@ -116,6 +117,7 @@ def get_report_trace(report):
     return json.loads(error_trace_str)
 
 
+@require_lock(ConvertedTrace)
 def save_converted_trace(forests, function):
     fp = io.BytesIO(json.dumps(forests, ensure_ascii=False, sort_keys=True, indent=2).encode('utf8'))
     hash_sum = file_checksum(fp)

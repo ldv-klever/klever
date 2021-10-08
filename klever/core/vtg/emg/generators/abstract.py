@@ -50,7 +50,7 @@ class AbstractGenerator:
         :param directories: List with directories where to find JSON files.
         :return:
         """
-        # This is too verbous, use only for manual debugging
+        # This is too verbose, use only for manual debugging
         # self.logger.debug('Search for specifications in: {}'.format(', '.join(directories)))
 
         # First collect all files

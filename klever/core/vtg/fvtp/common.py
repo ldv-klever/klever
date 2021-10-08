@@ -27,7 +27,7 @@ def merge_files(logger, conf, abstract_task_desc):
     Merge several given C files into single one using CIL.
 
     :param logger: Logger object.
-    :param conf: Configration dictionary.
+    :param conf: Configuration dictionary.
     :param abstract_task_desc: Abstract verification task description dictionary.
     :return: A file name of the newly created file.
     """
@@ -89,7 +89,7 @@ def merge_files(logger, conf, abstract_task_desc):
 
 def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     """
-    Collect verifier oiptions from a user provided description, template and profile and prepare a final list of
+    Collect verifier options from a user provided description, template and profile and prepare a final list of
     options. Each option is represented as a small dictionary with an option name given as a key and value provided
     as a value. The value can be None. Priority of options is the following: options given by a user
     (the most important), options provided by a profile and options from the template.
@@ -108,7 +108,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
 
         if "exclude options" in desc2:
             remove = list()
-            # For each excuded option
+            # For each excluded option
             for e in desc2["exclude options"]:
                 name = list(e.keys())[0]
                 value = e[name]
@@ -168,7 +168,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
         profile = conf['verifier profile']
         profile_opts = profiles['profiles'][profile][verifier_name][verifier_version]
     except KeyError as err:
-        raise KeyError("To run verification you need to: 1) Provide name, version and profile name of verifer at FVTP"
+        raise KeyError("To run verification you need to: 1) Provide name, version and profile name of verifier at FVTP"
                        " plugin configuration. 2) Create such verifier profile at verifier profiles base file. The"
                        " following key is actually not found: {!r}".format(err))
 

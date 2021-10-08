@@ -41,7 +41,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         functions_collection = OrderedDict()
 
         # Import Specifications
-        self.logger.info("Generate an entry process on base of given funcitons list")
+        self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
             raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
                              'configuration')

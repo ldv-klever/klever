@@ -84,7 +84,7 @@ For *start_job_decision* there are arguments *rundata* and *replacement* corresp
 Waiting for Solution of Verification Job
 ----------------------------------------
 
-Most likely you will need to wait for solution of the verification job whatever it will be sucessfull or not.
+Most likely you will need to wait for solution of the verification job whatever it will be successful or not.
 For this purpose you can execute something like::
 
     klever-download-progress --host $hostname_or_ip:8998 --username manager --password manager -o progress.json $decision_id

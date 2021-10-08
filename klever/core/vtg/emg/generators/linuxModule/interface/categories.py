@@ -85,7 +85,7 @@ def __populate_resources(collection):
 def __fulfill_function_interfaces(logger, collection, interface, category=None):
     """
     Check an interface declaration (function or function pointer) and try to match its return value type and
-    parameters arguments types with existing interfaces. The algorythm should be the following:
+    parameters arguments types with existing interfaces. The algorithm should be the following:
 
     * Match explicitly stated interface References (only if they meet given category).
     * Match rest parameters:
@@ -107,7 +107,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         :param decl: Declaration object
         :return: True - it is primitive, False - otherwise
         """
-        # todo: Implement check agains arrays of primitives
+        # todo: Implement check against arrays of primitives
         return isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
             decl == 'void *' or decl == 'void **'
 
@@ -312,7 +312,7 @@ def __refine_categories(logger, conf, collection, sa):
             if not allowed_categories.intersection(relevant_categories):
                 interfaces_to_delete.append(str(function_intf))
 
-    logger.debug("Delete unrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
+    logger.debug("Delete irrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
     for interface_name in interfaces_to_delete:
         collection.del_intf(interface_name)
 

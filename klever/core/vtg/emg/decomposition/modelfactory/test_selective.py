@@ -458,7 +458,7 @@ def test_complex_restrictions(logger, model):
     assert all([True if p1_withsavepoint.actions != m.entry.actions else False for m in models])
 
 
-def test_contraversal_conditions(logger, model):
+def test_controversial_conditions(logger, model):
     spec = {
         "must contain": {"c/p2": {}},
         "must not contain": {"c/p1": {}},
@@ -489,14 +489,14 @@ def test_complex_exclusion(logger, model):
     # Test the number of models
     assert len(models) == len(relevant_scenarios)
 
-    # Test that threre is a p1 model in models
+    # Test that there is a p1 model in models
     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
               [m.entry.actions for m in models if 'c/p1' not in m.environment]
 
-    # Test allscenarios of p1 are covered
+    # Test all scenarios of p1 are covered
     assert len(actions) == len(relevant_scenarios)
-    for scneario_actions in relevant_scenarios:
-        assert scneario_actions in actions
+    for scenario_actions in relevant_scenarios:
+        assert scenario_actions in actions
 
 
 def test_cover_actions(logger, model):
@@ -792,7 +792,7 @@ def test_process_without_deps(logger, model_with_independent_process):
         assert scenario.name in names
 
 
-def test_process_ignoring_freee_process(logger, model_with_independent_process):
+def test_process_ignoring_free_process(logger, model_with_independent_process):
     spec = {
         "cover scenarios": {
             "c/p1": {"savepoints only": True},

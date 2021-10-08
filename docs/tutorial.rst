@@ -535,7 +535,7 @@ The latter has sense for tasks consisting of several source files.
 Code Coverage Reports for Safes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To open code coverage repots for safes you need to open a page with a list of safes
+To open code coverage reports for safes you need to open a page with a list of safes
 (:numref:`tutorial_opening_list_safes_page`) and then open a particular safe page
 (:numref:`tutorial_opening_safe_page`).
 Like for unsafe you can show on code coverage legend and statistics as well as to show code coverage for particular

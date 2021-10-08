@@ -201,7 +201,7 @@ def test_linear_strategy_c2p1(model, linear_separator):
                                 ', '.join([s.name for s in scenarios])
 
 
-def test_lienar_plain_process(specific_model, linear_separator):
+def test_linear_plain_process(specific_model, linear_separator):
     c1p1 = specific_model.environment['c1/p1']
     scenarios = linear_separator(c1p1)
     _check_linear_actions(scenarios, c1p1.actions)

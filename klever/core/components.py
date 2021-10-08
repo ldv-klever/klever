@@ -117,7 +117,7 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
     logger.debug('Count consumed resources')
 
     assert not (include_child_resources and child_resources), \
-        'Do not calculate resources of process with children and simultaneosly provide resources of children'
+        'Do not calculate resources of process with children and simultaneously provide resources of children'
 
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
 
@@ -189,7 +189,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     :param number: Max number of simultaneously working workers
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
-                            them fails then we should also termionate the rest workers.
+                            them fails then we should also terminate the rest workers.
     :return: 0 if all workers finish successfully and 1 otherwise.
     """
     logger.info("Start children set with {!r} workers".format(number))
@@ -219,7 +219,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
 
             # Wait for components termination
             finished = 0
-            # Becouse we use i for deletion we always delete the element near the end to not break order of
+            # Because we use i for deletion we always delete the element near the end to not break order of
             # following of the rest unprocessed elements
             for i, p in reversed(list(enumerate(list(components)))):
                 try:
@@ -245,7 +245,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     # Just remove it
                     components.pop(i)
                     finished += 1
-            # Check additional components, actually they should not terminate or finish during this funciton run so
+            # Check additional components, actually they should not terminate or finish during this function run so
             # just check that they are OK
             check_components(logger, monitoring_list)
 
@@ -274,7 +274,7 @@ def check_components(logger, components):
     :param components: List with Component objects.
     :return: None.
     """
-    # Check additional components, actually they should not terminate or finish during this funciton run so
+    # Check additional components, actually they should not terminate or finish during this function run so
     # just check that they are OK
     if isinstance(components, list):
         for mc in (m for m in components if not m.is_alive()):
@@ -327,7 +327,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         multiprocessing.Process.__init__(self)
 
         self.conf = conf
-        # Parent logger will be used untill component will change working directory and get its own logger. We should
+        # Parent logger will be used until component will change working directory and get its own logger. We should
         # avoid to use parent logger in component process.
         self.logger = logger
         self.parent_id = parent_id
@@ -353,7 +353,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # reports will be uploaded, so, corresponding unknown reports will not be created as it will not be possible to
         # bind them with non-existing start reports. There will be errors in logs, but it is not convenient to
         # investigate them (though, sometimes this is the only possible way).
-        # The only bad thing is that at this point we are not aware about lenghts of suffixes to be used, so, if one
+        # The only bad thing is that at this point we are not aware about lengths of suffixes to be used, so, if one
         # will suddenly exceed limit "255 - self.MAX_ID_LEN", there still will be an unclear failure in Bridge without
         # good unknown reports. Let's hope that this will not happen ever.
         if len(self.id) > self.MAX_ID_LEN:
@@ -457,7 +457,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 report = {'identifier': self.id}
                 report.update(count_consumed_resources(self.logger, self.tasks_start_time, self.include_child_resources,
                                                        child_resources))
-                # todo: this is embarassing
+                # todo: this is embarrassing
                 if self.coverage:
                     report['coverage'] = self.coverage
 
@@ -509,7 +509,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         for child in multiprocessing.active_children():
             self.logger.info('{0}Stop child "{1}"'.format(self.__get_subcomponent_name(), child.name))
             os.kill(child.pid, signal.SIGUSR1)
-            # Such the errors can happen here most likely just when unexpected exceptions happen when exitting
+            # Such the errors can happen here most likely just when unexpected exceptions happen when exiting
             # component. These exceptions are likely printed to logs but don't become unknown reports. In addition
             # finish reports including these logs aren't created. So they are invisible for the most of users
             # unfortunately. Nonetheless advanced users will examine logs manually when they will see status Corrupted
@@ -533,7 +533,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         # Examine component exit code in parent process.
         if self.exitcode:
-            self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
+            self.logger.warning('Component "{0}" exited with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
     def function_to_subcomponent(self, include_child_resources, name, executable):

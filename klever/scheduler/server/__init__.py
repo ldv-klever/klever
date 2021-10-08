@@ -41,7 +41,7 @@ class Server:
 
     def _robust_request(req):
         """
-        This decorator processes some error that can happen at requesting Bridge. If an error occured the decorated
+        This decorator processes some error that can happen at requesting Bridge. If an error occurred the decorated
         function will return None. This function should be used for decorating all requests that can fail but does not
         influence the whole scheduler but particular jobs or tasks.
         """

@@ -32,7 +32,7 @@ class Highlight:
         # Current token start offset within current line.
         self.cur_start_offset = 0
 
-        # List of entities (each represented as kind, line number, start and end offsets) to be highligted
+        # List of entities (each represented as kind, line number, start and end offsets) to be highlighted
         self.highlights = list()
 
         # Workaround for missed "\n" at the beginning of source file that do not become tokens.
@@ -53,7 +53,7 @@ class Highlight:
             return False
 
     # Simple token highlighting.
-    def highligh_token(self, token_type, token_len, split=False, token_text=None):
+    def highlight_token(self, token_type, token_len, split=False, token_text=None):
         if not token_len:
             return
 
@@ -136,7 +136,7 @@ class Highlight:
                 Name.Label,
                 Operator
             ):
-                self.highligh_token(token_type, token_len)
+                self.highlight_token(token_type, token_len)
                 continue
             # Trailing "\n" may be included into single line comment and preprocessor directives.
             elif token_type in (
@@ -146,27 +146,27 @@ class Highlight:
             ):
                 split = True if token_type == Comment.Preproc else False
                 if token_text[-1] == '\n':
-                    self.highligh_token(token_type, token_len - 1, split, token_text if split else None)
+                    self.highlight_token(token_type, token_len - 1, split, token_text if split else None)
                     self.go_to_next_line()
                     continue
                 else:
-                    self.highligh_token(token_type, token_len, split, token_text if split else None)
+                    self.highlight_token(token_type, token_len, split, token_text if split else None)
                     continue
             # Multiline comments include "\n".
             elif token_type is Comment.Multiline:
                 cur_end_offset = self.cur_start_offset
 
                 for c in token_text:
-                    # Finish hanling of current comment line.
+                    # Finish handling of current comment line.
                     if c == '\n':
-                        self.highligh_token(token_type, cur_end_offset - self.cur_start_offset)
+                        self.highlight_token(token_type, cur_end_offset - self.cur_start_offset)
                         self.go_to_next_line()
                         cur_end_offset = 0
                     else:
                         cur_end_offset += 1
 
                 # Add last multiline comment line.
-                self.highligh_token(token_type, cur_end_offset - self.cur_start_offset)
+                self.highlight_token(token_type, cur_end_offset - self.cur_start_offset)
                 continue
             # There is no special highlighting for punctuation.
             elif token_type is Punctuation:

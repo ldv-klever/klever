@@ -30,12 +30,12 @@ class FSATranslator:
 
     def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         """
-        Initialize new FSA translation object. During the initialization an enviornment model in form of finite
+        Initialize new FSA translation object. During the initialization an environment model in form of finite
         state machines with process-like actions is translated to C code. Translation includes the following steps:
         each pair label-interface is translated in a separate variable, each action is translated in code blocks
         (aux functions can be additionally generated), for each automaton a control function is generated, control
         functions for event modeling are called in a specific entry point function and control functions for function
-        modeling are called insted of modelled functions. This class has an abstract methods to provide ability to
+        modeling are called instead of modelled functions. This class has an abstract methods to provide ability to
         implement different translation.
 
         :param logger: Logger object.
@@ -68,7 +68,7 @@ class FSATranslator:
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
-            self._logger.debug("Generate code for instance {!r} of process {!r} of categorty {!r}".
+            self._logger.debug("Generate code for instance {!r} of process {!r} of category {!r}".
                                format(str(automaton), automaton.process.name, automaton.process.category))
             for beh in automaton.process.actions.behaviour():
                 if isinstance(beh, Behaviour):
@@ -298,11 +298,11 @@ class FSATranslator:
                     '{}({});'.format(df.name, ', '.join(df_parameters))
                 ])
             else:
-                # This is becouse translation can have specific restrictions
-                self._logger.debug(f'No block to implement signal receive of actioon {str(action)} in {str(automaton)}')
+                # This is because translation can have specific restrictions
+                self._logger.debug(f'No block to implement signal receive of action {str(action)} in {str(automaton)}')
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
-            self._logger.debug(f'No peers to implement signal receive of actioon {str(action)} in {str(automaton)}')
+            self._logger.debug(f'No peers to implement signal receive of action {str(action)} in {str(automaton)}')
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
@@ -310,7 +310,7 @@ class FSATranslator:
     def _condition(self, action, automaton):
         """
         Always translate a conditional action boolean expression or statement string into a corresponding boolean
-        cnditional expression or C statement string correspondingly. Each such conditional expression or statement is
+        conditional expression or C statement string correspondingly. Each such conditional expression or statement is
         parsed and all entries of labels and the other model expressions are replaced by particular C implementation.
         Note, that if a label with different interface matches is used than each string can be translated into several
         ones depending on the number of interfaces but keeping the original order with a respect to the other statements
@@ -471,12 +471,12 @@ class FSATranslator:
 
         return self._control_functions[automaton]
 
-    def _relevant_checks(self, relevent_automata):
+    def _relevant_checks(self, relevant_automata):
         """
         This function allows to add your own additional conditions before function calls and dispatches. The
         implementation in your translation is required.
 
-        :param relevent_automata: {'Automaton identifier string': {'automaton': Automaton object,
+        :param relevant_automata: {'Automaton identifier string': {'automaton': Automaton object,
                'states': set of Action objects peered with the considered action}}
         :return: List with additional C logic expressions.
         """

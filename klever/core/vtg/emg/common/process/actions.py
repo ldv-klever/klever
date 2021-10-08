@@ -91,7 +91,7 @@ class BaseAction:
 
     @property
     def my_operator(self):
-        """Returns the operator that joins this actiosn with the others in the process."""
+        """Returns the operator that joins this action with the others in the process."""
         return self._my_operator
 
     @my_operator.setter
@@ -105,7 +105,7 @@ class BaseAction:
 
 class Behaviour(BaseAction):
     """
-    Behaviour class helps to represent individual actions in a transition system. There can be several actuins with
+    Behaviour class helps to represent individual actions in a transition system. There can be several actions with
     the same name and all they should have a common description implemented by an Action class."""
 
     def __init__(self, name, accepted_class):
@@ -237,7 +237,7 @@ class Operator(BaseAction, collections.UserList):
 
 class Parentheses(Operator):
     """
-    This class represent an open parenthese symbol to simplify serialization and import.
+    This class represent an open parenthesis symbol to simplify serialization and import.
     """
     def __repr__(self):
         return '()' if not self.data else f'({repr(self.data[0])})'
@@ -346,7 +346,7 @@ class Subprocess(Action):
 
 
 class Signal(Action):
-    """This is a common represenation of signal actions: dispatches and receives."""
+    """This is a common representation of signal actions: dispatches and receives."""
 
     def __init__(self, name):
         super().__init__(name)
@@ -383,9 +383,9 @@ class Receive(Signal):
     An example of action string: "(mysend)".
     """
 
-    def __init__(self, name, repliative=False):
+    def __init__(self, name, replicative=False):
         super(Receive, self).__init__(name)
-        self.replicative = repliative
+        self.replicative = replicative
         self.parameters = []
 
     def __repr__(self):
@@ -559,9 +559,9 @@ class Actions(collections.UserDict):
         """
         exclude = {a.action for a in self.filter(include={Subprocess})}
         acts = {a for a in self.behaviour() if not a.my_operator and isinstance(a, Operator) and a not in exclude}
-        assert len(self.behaviour()) > 0, "There is no any actions in the prcess"
+        assert len(self.behaviour()) > 0, "There is no any actions in the process"
         assert len(acts) != 0,\
-            'Ther is no any initial action. There are actions in total: {}'.\
+            'There is no any initial action. There are actions in total: {}'.\
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.behaviour()))
         assert len(acts) == 1, 'There are more than one initial action: {}'.\
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in acts))

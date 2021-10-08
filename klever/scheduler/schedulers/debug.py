@@ -34,7 +34,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
         Do what usually Native Scheduler does but instead of worker use a sleeping process in case of Job.
 
         :param identifier: Job or task identifier.
-        :param configuration: A dictionary with a cinfiguration or description.
+        :param configuration: A dictionary with a configuration or description.
         :param mode: 'task' or 'job'.
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
@@ -52,7 +52,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
 
         :param identifier: A job or task identifier
         :param mode: 'task' or 'job'.
-        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
+        :raise SchedulerException: Raised if an exception occurred during the solution or if results are inconsistent.
         """
         if mode == 'task':
             subdir = 'tasks'

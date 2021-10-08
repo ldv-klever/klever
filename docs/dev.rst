@@ -302,7 +302,7 @@ Klever Core Run/Debug Configuration
 This run/debug configuration is only useful if you are going to debug Klever Core.
 
 * Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
-  Aspectator (:file:`aspectator`) and CIL (:file:`toplever.opt`) binaries could be found (edit value of field
+  Aspectator (:file:`aspectator`) and CIL (:file:`toplevel.opt`) binaries could be found (edit value of field
   :guilabel:`Environment variables`).
 * Specify the absolute path to the working directory in field :guilabel:`Working directory`.
 
@@ -316,7 +316,7 @@ This run/debug configuration is only useful if you are going to debug Klever Cor
 Documentation Run/Debug Configuration
 """""""""""""""""""""""""""""""""""""
 
-Specify another representation of documenation in field :guilabel:`Command` if you need it.
+Specify another representation of documentation in field :guilabel:`Command` if you need it.
 
 Testing
 ^^^^^^^

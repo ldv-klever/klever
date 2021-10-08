@@ -120,7 +120,7 @@ class LinearExtractor(ScenarioExtractor):
                         # Now save new paths
                         subp_to_paths[subprocess] = new_paths
                 
-                    # Check that the dependecy is not terminated and self-dependent only
+                    # Check that the dependency is not terminated and self-dependent only
                     new_deps = self.__path_dependencies(subp_to_paths[subprocess])
                     if len(new_deps) == 0 or (len(new_deps) == 1 and subprocess in new_deps):
                         # Determine terminal paths and do substitution removing the recursion

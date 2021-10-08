@@ -106,7 +106,7 @@ class PW(klever.core.components.Component):
             return None
 
     def watch_progress(self):
-        self.logger.info("Start progress caclulator")
+        self.logger.info("Start progress calculator")
         tasks_start_time = None
         task_update_time = None
         subjobs_update_time = None
@@ -157,7 +157,7 @@ class PW(klever.core.components.Component):
                     job_id, number = total_tasks_messages.pop()
                     self.total_tasks_data[job_id] = number
 
-            # Check that VTG started taks solution
+            # Check that VTG started tasks solution
             if self.first_task_flag.value and not first_task_appeared:
                 self.logger.info('The first task is submitted, starting the time counter')
                 data_report["tasks_started"] = True
@@ -188,7 +188,7 @@ class PW(klever.core.components.Component):
                     else:
                         total = (self.finished_tasks_data[job_id] if job_id in self.finished_tasks_data else 0) + \
                                 (self.failed_tasks_data[job_id] if job_id in self.failed_tasks_data else 0)
-                        # Estimate it as summ of already reaceived tasks
+                        # Estimate it as sum of already received tasks
                         self.total_tasks_data[job_id] = total
                 # Check solved job
                 if any([True for i in self.subjobs.keys()
@@ -198,7 +198,7 @@ class PW(klever.core.components.Component):
                 for i in changes:
                     self.subjobs_cache[i] = self.subjobs[i]
 
-            # Calculate time on each report sending on base of all time and the whole numbe of tasks/subjobs
+            # Calculate time on each report sending on base of all time and the whole number of tasks/subjobs
             if isinstance(self.total_tasks, int) and isinstance(self.tasks_progress, int):
                 self.logger.info("Current tasks progress is {}".format(self.tasks_progress))
                 self.logger.debug("Left to solve {} tasks of {} in total".format(self.rest_tasks, self.total_tasks))

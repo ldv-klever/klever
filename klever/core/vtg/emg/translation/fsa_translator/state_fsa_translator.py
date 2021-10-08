@@ -27,7 +27,7 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 class StateTranslator(FSATranslator):
 
     def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
-        raise NotImplementedError('State translator requires update to the newst API which has not been done')
+        raise NotImplementedError('State translator requires update to the newest API which has not been done')
 
         self.__state_variables = dict()
         self.__state_chains_memoization = dict()
@@ -69,7 +69,7 @@ class StateTranslator(FSATranslator):
                     block.append("/* Transfer parameters */")
 
                     for index in range(len(function_parameters)):
-                        # Determine exression
+                        # Determine expression
                         receiver_access = automata_peers[name]['automaton'].process.\
                             resolve_access(r_state.action.parameters[index])
 
@@ -79,7 +79,7 @@ class StateTranslator(FSATranslator):
                         block.append("{} = arg{};".format(var.name, index))
 
                 # Update state
-                block.extend(['', "/* Switch state of the reciever */"])
+                block.extend(['', "/* Switch state of the receiver */"])
                 block.extend(self.__switch_state_code(automata_peers[name]['automaton'], r_state))
                 self._cmodel.add_global_variable(self.__state_variable(automata_peers[name]['automaton']),
                                                  automaton.process.file, extern=True)

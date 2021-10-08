@@ -90,7 +90,7 @@ class OSClient:
         instances = self.get_instances(instance_name)
 
         if len(instances) == 0:
-            self.logger.error(f'There are no intances matching "{instance_name}"')
+            self.logger.error(f'There are no instances matching "{instance_name}"')
             sys.exit(errno.EINVAL)
 
         if len(instances) > 1:
@@ -165,7 +165,7 @@ class OSClient:
         for port in ports:
             instance.interface_detach(port['id'])
             network_name = self.get_network_name(port["network_id"])
-            self.logger.info(f'Network "{network_name}" is dettached from instance "{instance.name}"')
+            self.logger.info(f'Network "{network_name}" is detached from instance "{instance.name}"')
 
     def interface_attach(self, instance, share=False):
         if share:

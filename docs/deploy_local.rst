@@ -35,7 +35,7 @@ for development purposes, otherwise, please, choose *production*) and to run the
 .. note:: You should install Klever Python package in the editable mode in case of the development mode
           (:ref:`software_requirements`). Otherwise, some functionality may not work as intended.
 
-After successfull installation one is able to *update* Klever multiple times to install new or to update alredy
+After successful installation one is able to *update* Klever multiple times to install new or to update already
 installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
 .. parsed-literal::
@@ -76,5 +76,5 @@ Troubleshooting
 
 If something went wrong during installation, you need to uninstall Klever completely prior to following attempts to
 install it.
-In case of ambiguos issues in the development mode you should try to remove the virtual environment and to create it
+In case of ambiguous issues in the development mode you should try to remove the virtual environment and to create it
 from scratch.
