@@ -373,7 +373,7 @@ The root object has the following attributes:
     - Description
     - Required
   * - name
-    - string/“base”
+    - string/"base"
     - The name of the model.
     - No
   * - main process
@@ -382,23 +382,23 @@ The root object has the following attributes:
       signals.
     - No
   * - environment processes
-    - Value is an object that maps process identifiers (a category and process name separated by “/” symbol) to process
+    - Value is an object that maps process identifiers (a category and process name separated by "/" symbol) to process
       descriptions.
       Process identifiers are used in attributes.
       A category and process name should be C identifiers.
       Example:
 
       {
-      “category1/name1”: {process description},
-      “category2/name2”: {process description}
+      "category1/name1": {process description},
+      "category2/name2": {process description}
       }
     - Names are identifiers of processes described in values.
     - No
   * - functions models
     - Value is an object that maps enumerations of function names to corresponding process descriptions:
 
-      {“name1, ..., nameN”: {process description},
-      “name”: {process description}}
+      {"name1, ..., nameN": {process description},
+      "name": {process description}}
 
     - A name of the member is a string which is an enumeration of function names.
       These functions will be replaced by models generated from the provided process descriptions.
@@ -444,7 +444,7 @@ A process description has the following attributes:
   * - headers
     - A list of relative paths to header files:
 
-      [“stdio.h”, “pthread.h”]
+      ["stdio.h", "pthread.h"]
     - Headers are included in the main C file of an environment model to bring type definitions and function
       declarations to the main C file of the FEM.
     - No
@@ -456,8 +456,8 @@ A process description has the following attributes:
     - The object maps label names to label descriptions.
       Label names should be C identifiers.
 
-      {“var”: {...},
-      “ret”: {...}}
+      {"var": {...},
+      "ret": {...}}
     - Labels represent the state of a process.
     - No
   * - actions
@@ -475,7 +475,7 @@ A process description has the following attributes:
       C identifiers are used to combine declarations from different process descriptions at translation.
       If identifiers from different process descriptions match, then only one value is selected for the main C file.
 
-      {“dir/name.c”: {“func”: “extern void func(void);”}, “environment model”: {“func”: “void func(void);”}}
+      {"dir/name.c": {"func": "extern void func(void);"}, "environment model": {"func": "void func(void);"}}
     - Declarations are added to the beginning of the given files (program files or the main C file).
     - No
   * - definitions
@@ -488,9 +488,9 @@ A process description has the following attributes:
       The former is the declaration of the target static function, the latter is the name of the wrapper to generate.
 
       {
-      “file.c”: {
-      “myfunctions”: “linux/file.c”,
-      “wrapper”: [“void wrapper(void) {”, “func();”, “}”],
+      "file.c": {
+      "myfunctions": "linux/file.c",
+      "wrapper": ["void wrapper(void) {", "func();", "}"],
       "callback": {"declaration": "static void callback(void)", "wrapper": "emg_callback"}
       }
       }
@@ -672,7 +672,7 @@ Signaling action description can have the following attributes:
   * - parameters
     - A list of label names to save received values or send values from.
 
-      [“%ret%, “%struct%”]
+      ["%ret%, "%struct%"]
     - Labels to save or send data.
     - Yes
   * - require
@@ -736,7 +736,7 @@ Base block action descriptions have the following attributes:
   * - condition
     - String with a boolean statement over global variables or labels.
       % symbols enclose label names.
-      “%ret% == 0 && %arg% != 0”
+      "%ret% == 0 && %arg% != 0"
     - If the condition is feasible, then a verifier can go analyzing the action.
       If it is infeasible and not the first action of a sequence which is an option of the choice operator, then the
       action is skipped, and the following is attempted.
@@ -752,9 +752,9 @@ Base block action descriptions have the following attributes:
     - List of strings with statements to execute over global variables or labels. % symbols enclose label names.
 
       [
-      “%one% = 1;”,
-      “%ret% = callback(%one%);”,
-      “ldv_assume(%ret%);”
+      "%one% = 1;",
+      "%ret% = callback(%one%);",
+      "ldv_assume(%ret%);"
       ]
     - Statements describe state changing.
       There are just strings with the C code that can call functions from the program fragment or auxiliary C files,
@@ -778,7 +778,7 @@ There are several ways to do it:
 #. Add required headers to the *additional header* configuration parameter.
    These headers will be added to all output models.
    For this purpose, you may create a separate header file in the specifications directory and include this single file.
-#. Add headers to the “headers* attribute of a specific process in the UDEMS.
+#. Add headers to the "headers* attribute of a specific process in the UDEMS.
    This approach works only using genericManual and linuxModule generators.
 
 The default value of *additional header* configuration parameter lists several files.
@@ -1190,7 +1190,7 @@ Description of savepoints should follow the following table:
     - Yes
   * - savepoints
     - It is a map from savepoint names to their descriptions.
-      {“name”: {...}}
+      {"name": {...}}
     - Any action can have this attribute.
       The action must be the first one in the process.
       All savepoints across all environment model processes should have unique names.
@@ -1324,19 +1324,19 @@ They are given below.
   * - must contain
     - Map from process identifiers to must contain selection descriptions for the property:
 
-      {“category/name”: {...}}
+      {"category/name": {...}}
     - {}
     - The value lists processes that must be in every generated after decomposition environment model.
   * - must not contain
     - Map from process identifiers to must contain selection descriptions for the property:
 
-      {“category/name”: {...}}
+      {"category/name": {...}}
     - {}
     - The value lists processes that must be removed from every generated after decomposition environment model.
   * - cover scenarios
     - Map from process identifiers to coverage descriptions for the property:
 
-      {“category/name”: {...}}
+      {"category/name": {...}}
     - The parameter is necessary and should not be empty.
     - Names enumerate process identifiers with actions and savepoints covered by at least a single generated IEM.
 
@@ -1358,7 +1358,7 @@ There are attributes of selection descriptions for the *must contain* configurat
   * - actions
     - List of lists of action names. Example:
 
-      [[“a”, “b”], [“c”, “d”]]
+      [["a", "b"], ["c", "d"]]
     - []
     - The list contains corteges of actions that should be in the process in each environment model.
       If several corteges are provided, then an output model may have all actions of any cortege in the corresponding
@@ -1394,13 +1394,13 @@ to the *must contain* parameter.
   * - actions
     - List of actions.
 
-      [“a”, “b”]
+      ["a", "b"]
     - []
     - Output models will not have any actions listed in the attribute value.
   * - savepoints
     - List of savepoint names.
 
-      [“a”, “b”]
+      ["a", "b"]
     - []
     - Output models will not have any savepoints listed in the attribute value.
 
@@ -1422,13 +1422,13 @@ There are the following attributes to configure the description for a process:
   * - actions
     - A list of action names.
 
-      [“a”, “b”]
+      ["a", "b"]
     - If it is missing, then all actions should be covered.
     - The list of actions that should be added to at least one output model.
   * - actions except
     - A list of action names.
 
-      [“a”, “b”]
+      ["a", "b"]
     - Ignored if it is missing.
     - The value is the list of actions that are removed from the list of actions that should be covered.
       Note that provided actions can be added to output models but not ought to be.
@@ -1436,13 +1436,13 @@ There are the following attributes to configure the description for a process:
   * - savepoints
     - A list of savepoint names.
 
-      [“a”, “b”]
+      ["a", "b"]
     - If it is missing, then all savepoints should be covered.
     - The list of savepoints that should be added to at least one output model.
   * - savepoints except
     - A list of savepoint names.
 
-      [“a”, “b”]
+      ["a", "b"]
     - Ignored if it is missing.
     - The value is the list of savepoints that are removed from the list of savepoints that should be covered.
       Note that provided savepoints can be added to output models but not ought to be.
@@ -1954,7 +1954,7 @@ they result in.
   }
 
 3. **Cover suspend-resume callbacks without failing initialization and probing callbacks**.
-   In this example we add a requirement that each model must contain a “pm_register” signal sending action.
+   In this example we add a requirement that each model must contain a "pm_register" signal sending action.
 
 .. code-block:: json
 
