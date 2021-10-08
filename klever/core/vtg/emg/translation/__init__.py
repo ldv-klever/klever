@@ -148,7 +148,11 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
                 # Generate wrappers or do any other transformations
                 func = cmodel.create_wrapper(name, item['wrapper'], item['declaration'])
                 additional_code[file]['definitions'].extend(func.define() + ["\n"])
-                additional_code['environment model']['declarations'].append(func.declare(extern=True)[0] + "\n")
+                if isinstance(additional_code['environment model']['declarations'], list):
+                    additional_code['environment model']['declarations'].append(func.declare(extern=True)[0] + "\n")
+                elif func.name not in additional_code['environment model']['declarations']:
+                    additional_code['environment model']['declarations'][func.name] = \
+                        func.declare(extern=True)[0] + "\n"
             else:
                 raise ValueError("Expect either a list of string as a definition in intermediate model specification of"
                                  " a path name but got {!r}".format(item))
