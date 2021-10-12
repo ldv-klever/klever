@@ -265,6 +265,22 @@ P5 = {
         "w2": {"comment": ""}
     }
 }
+P6 = {
+    "comment": "The process that does not rely on any other.",
+    "labels": {},
+    "process": "(!register_unique).(<w1> | <w2>)",
+    "actions": {
+        "register_unique": {
+            "parameters": [],
+            "savepoints": {
+                'sp_unique_1': {"statements": []},
+                'sp_unique_2': {"statements": []}
+            }
+        },
+        "w1": {"comment": ""},
+        "w2": {"comment": ""}
+    }
+}
 
 
 @pytest.fixture()
@@ -381,6 +397,37 @@ def advanced_model():
             "c/p2": P2,
             "c/p3": P3,
             "c/p4": P4
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
+
+
+@pytest.fixture()
+def advanced_model_with_unique():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+    spec = {
+        "functions models": {
+            "f1": REGISTER_P2,
+            "f2": DEREGISTER_P2,
+        },
+        "environment processes": {
+            "c/p1": P1,
+            "c/p2": P2,
+            "c/p3": P3,
+            "c/p4": P4,
+            "c/p6": P6
         }
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
@@ -880,6 +927,24 @@ def test_all_process_savepoints_and_actions_without_base(logger, advanced_model)
     for name, scenarios in zip(names, [s1, s2, s3, s4]):
         model_scenarios = {m.attributes[name] for m in models}
         assert {s.name for s in scenarios}.issubset(model_scenarios)
+
+
+def test_advanced_model_with_unique_processes(logger, advanced_model_with_unique):
+    spec = {
+        "cover scenarios": {
+            "c/p6": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model_with_unique, spec,
+                                                          separate_dispatches=True)
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    expected = [
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w1"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w1"}
+    ]
+    _expect_models_with_attrs(models, expected)
 
 
 def test_process_without_deps(logger, model_with_independent_process):
