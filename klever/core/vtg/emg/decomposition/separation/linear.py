@@ -95,11 +95,7 @@ class LinearExtractor(ScenarioExtractor):
         subp_to_paths = dict()
         # Collect subprocesses and possible different paths
         for subprocess_desc in self._actions.filter(include={Subprocess}):
-            subp_paths = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
-            if len(subp_paths) == 1:
-                if not list(subp_paths)[0].name:
-                    list(subp_paths)[0].name = str(subprocess_desc)
-            subp_to_paths[str(subprocess_desc)] = subp_paths
+            subp_to_paths[str(subprocess_desc)] = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
         # Add the main path
         initial_paths = set(self.__choose_subprocess_paths(self._actions.initial_action, []))
 
@@ -161,6 +157,10 @@ class LinearExtractor(ScenarioExtractor):
             new_initial_paths = set()
             for path in initial_paths:
                 if not path.terminal and not self.__path_dependencies(subp_to_paths[path[-1].name]):
+                    if not path.name and len(subp_to_paths[path[-1].name]) == 1 and \
+                            not list(subp_to_paths[path[-1].name])[0].name:
+                        single_path = list(subp_to_paths[path[-1].name])[0]
+                        single_path.name = path[-1].name
                     new_initial_paths.update(self.__do_substitution(path, subp_to_paths[path[-1].name]))
                 else:
                     new_initial_paths.add(path)
