@@ -579,7 +579,9 @@ class FSATranslator:
                               ['\t{}'.format(s) for s in code] + \
                               ['}']
             elif conditions:
-                raise ValueError('Cannot print assume or if statement')
+                raise ValueError(f'Action {str(beh.description)} should have either both condition and statements '
+                                 f'attributes, or a statements attribute or at least it can be used in a choice '
+                                 f'operator.')
             else:
                 final_code += code
 
