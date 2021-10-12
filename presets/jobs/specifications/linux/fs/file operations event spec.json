@@ -205,7 +205,7 @@
         "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
-            "comment": "Allocate memory for extrnal model dentry and inode.",
+            "comment": "Allocate memory for external model dentry and inode.",
             "trace relevant": true,
             "statements": [
               "$ALLOC(%dentry%);",

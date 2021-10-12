@@ -98,7 +98,7 @@
           "send_xchar": {
             "callback": "%uart_port.uart_ops.send_xchar%",
             "comment": "Transmit a high priority character.",
-            "contition": [
+            "condition": [
               "%uart_port.uart_ops.send_xchar%"
             ],
             "parameters": [
@@ -190,7 +190,7 @@
           "start_tx_if": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Transmit a high priority character.",
-            "contition": [
+            "condition": [
               "!%uart_port.uart_ops.send_xchar%"
             ],
             "parameters": [
@@ -391,7 +391,7 @@
           "send_xchar": {
             "callback": "%uart_port.uart_ops.send_xchar%",
             "comment": "Transmit a high priority character.",
-            "contition": [
+            "condition": [
               "%uart_port.uart_ops.send_xchar%"
             ],
             "parameters": [
@@ -482,7 +482,7 @@
           "start_tx_if1": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Transmit a high priority character.",
-            "contition": [
+            "condition": [
               "!%uart_port.uart_ops.send_xchar%"
             ],
             "parameters": [
@@ -492,7 +492,7 @@
           "start_tx_if2": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Transmit a high priority character.",
-            "contition": [
+            "condition": [
               "!%uart_port.uart_ops.send_xchar%"
             ],
             "parameters": [

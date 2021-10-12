@@ -82,7 +82,7 @@ around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_loc
 	}
 	else
 	{
-		/* NOTE Finish with fail. Mutex is keeped unlocked */
+		/* NOTE Finish with fail. Mutex is kept unlocked */
 		return -4;
 	}
 }

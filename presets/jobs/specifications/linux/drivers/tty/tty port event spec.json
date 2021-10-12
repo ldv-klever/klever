@@ -10,7 +10,7 @@
             ]
           },
           "activate_success": {
-            "comment": "Port activation has been successfull.",
+            "comment": "Port activation has been successful.",
             "condition": [
               "%ret% == 0"
             ]

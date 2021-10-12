@@ -24,7 +24,7 @@
             ]
           },
           "bind_success": {
-            "comment": "Bind has been successfull.",
+            "comment": "Bind has been successful.",
             "condition": [
               "%ret% == 0"
             ]
@@ -130,7 +130,7 @@
             ]
           },
           "create_success": {
-            "comment": "Create has been successfull.",
+            "comment": "Create has been successful.",
             "condition": [
               "%ret% == 0"
             ]
@@ -216,7 +216,7 @@
             ]
           },
           "create_success": {
-            "comment": "Create has been successfull.",
+            "comment": "Create has been successful.",
             "condition": [
               "%ret% == 0"
             ]

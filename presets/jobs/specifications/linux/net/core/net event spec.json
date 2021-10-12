@@ -209,7 +209,7 @@
             ]
           },
           "deregister": {
-            "comment": "Deregiste of the network device has finished.",
+            "comment": "Deregistration of the network device has finished.",
             "parameters": [
               "%netdev%"
             ]

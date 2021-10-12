@@ -19,7 +19,7 @@
             ]
           },
           "irq_deregister": {
-            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are deregistered.",
+            "comment": "Industrial I/O triggered buffer poll function top and bottom halves are deregistered.",
             "condition": [
               "%line% == $ARG1"
             ],
@@ -28,7 +28,7 @@
             ]
           },
           "irq_register": {
-            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are registered.",
+            "comment": "Industrial I/O triggered buffer poll function top and bottom halves are registered.",
             "parameters": [
               "%dev%",
               "%callback%",
@@ -139,7 +139,7 @@
             ]
           },
           "irq_register": {
-            "comment": "Register top and bottom halfs handlers for a poll function.",
+            "comment": "Register top and bottom halves handlers for a poll function.",
             "parameters": [
               "%dev%",
               "%callback%",

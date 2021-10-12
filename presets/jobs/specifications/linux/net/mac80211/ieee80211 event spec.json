@@ -124,7 +124,7 @@
             ]
           },
           "success": {
-            "comment": "Hardware device structure allocation has been successfull.",
+            "comment": "Hardware device structure allocation has been successful.",
             "trace relevant": true,
             "statements": [
               "return %ieee80211_hw%;"
@@ -320,7 +320,7 @@
             ]
           },
           "success": {
-            "comment": "Hardware device structure allocation has been successfull.",
+            "comment": "Hardware device structure allocation has been successful.",
             "trace relevant": true,
             "statements": [
               "return %ieee80211_hw%;"

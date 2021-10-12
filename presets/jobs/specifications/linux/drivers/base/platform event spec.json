@@ -61,7 +61,7 @@
             ]
           },
           "main": {
-            "comment": "Check that device is truely in the system and begin callback invocations.",
+            "comment": "Check that device is truly in the system and begin callback invocations.",
             "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
           },
           "negative_probe": {
@@ -112,7 +112,7 @@
             ]
           }
         },
-        "comment": "Invoke platfrom callbacks.",
+        "comment": "Invoke platform callbacks.",
         "labels": {
           "container": {
             "container": true,

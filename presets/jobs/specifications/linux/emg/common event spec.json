@@ -57,7 +57,7 @@
             ]
           },
           "probe_success": {
-            "comment": "Probing has been successfull.",
+            "comment": "Probing has been successful.",
             "condition": [
               "%ret% == 0"
             ]
@@ -96,7 +96,7 @@
             ]
           },
           "suspend_success": {
-            "comment": "Suspending has been successfull.",
+            "comment": "Suspending has been successful.",
             "condition": [
               "%ret% == 0"
             ]
@@ -235,7 +235,7 @@
             ]
           }
         },
-        "comment": "Scenario for calling callbacks with partitial order.",
+        "comment": "Scenario for calling callbacks with partial order.",
         "labels": {
           "callback": {
             "callback": true

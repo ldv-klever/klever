@@ -97,7 +97,7 @@
         "reference": true
       },
       "inode_init_once": {
-        "comment": "Init inode fields at cration.",
+        "comment": "Init inode fields at creation.",
         "headers": ["linux/fs.h"],
         "labels": {},
         "declarations": {
@@ -118,7 +118,7 @@
         "reference": true
       },
       "clear_inode": {
-        "comment": "Crear inode before deletion.",
+        "comment": "Clear inode before deletion.",
         "headers": ["linux/fs.h"],
         "labels": {},
         "declarations": {
@@ -168,7 +168,7 @@
             ]
           },
           "inode_operations": {
-            "countainer": true,
+            "container": true,
             "interface": [
               "inode.inode_operations"
             ]
