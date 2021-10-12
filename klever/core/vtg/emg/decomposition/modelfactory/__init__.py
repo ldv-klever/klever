@@ -160,6 +160,29 @@ def process_dependencies(process):
     return dependencies_map
 
 
+def check_process_deps_aginst_model(model, process):
+    """
+    We have a model and would like to know about its consistency. We would take each process and check that it has all
+    necessary in the model.
+
+    :param model: ProcessCollection.
+    :param process: Process object.
+    :return: Bool
+    """
+    dependencies = process_dependencies(process)
+    processes = {str(p): (model.environment[p] if p in model.environment else model.entry)
+                 for p, v in model.attributes.items()
+                 if v != 'Removed'}
+    if not dependencies:
+        return True
+
+    for required in dependencies:
+        if required in processes and dependencies[required].issubset(set(processes[required].actions.keys())):
+            return True
+    else:
+        return False
+
+
 def process_transitive_dependencies(processes: set, process: Process):
     """
     Collect dependencies transitively of a given process.
@@ -176,10 +199,11 @@ def process_transitive_dependencies(processes: set, process: Process):
     todo = [str(process)]
     while todo:
         p_name = todo.pop()
+        processed.add(p_name)
         p = processes_map[p_name]
         deps = process_dependencies(p)
         for required_name in deps:
-            if required_name in processed:
+            if required_name == str(process):
                 raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(process)}')
             elif required_name not in todo and required_name in processes_map:
                 todo.append(required_name)
@@ -423,17 +447,29 @@ class ModelFactory:
 
         return new_process
 
-    def _remove_unused_processes(self, model: ProcessCollection):
-        for key, process in model.environment.items():
-            receives = set(map(str, process.actions.filter(include={Receive})))
-            all_peers = {a for acts in process.peers.values() for a in acts}
+    def _remove_unused_processes(self, model: ProcessCollection):\
+        # We need more iterations to detect all processes that can be deleted
+        iterate = True
+        while iterate:
+            iterate = False
+            for key, process in model.environment.items():
+                receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
+                all_peers = {a for acts in process.peers.values() for a in acts}
 
-            if not receives.intersection(all_peers):
-                self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
-                self._copy_declarations_to_init(model.environment[key], model.entry)
-                remove_process(model, key)
+                if not receives.intersection(all_peers) or \
+                        not check_process_deps_aginst_model(model, process):
+                    self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
+                    self._copy_declarations_to_init(model.environment[key], model.entry)
+                    remove_process(model, key)
 
-        model.establish_peers()
+                    iterate = True
+                else:
+                    names = ', '.join(sorted(receives.intersection(all_peers)))
+                    self.logger.info(f'Process {key} from the model {model.attributed_name} has peers for {names}')
+
+            if iterate:
+                model.establish_peers()
+        self.logger.info(f"New attributes of the model: {model.attributed_name}")
 
     def _copy_declarations_to_init(self, process: Process, init: Process):
         assert process

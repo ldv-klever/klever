@@ -68,12 +68,23 @@ def specific_model():
             "d": {"comment": "", "statements": [], "condition": []}
         }
     }
+    c2p1 = {
+        "comment": "Category 2, process 1.",
+        "process": "(!register_c2p1).{level_one}",
+        "actions": {
+            "level_one": {"process": "<a>.<b>"},
+            "register_c2p1": {"parameters": []},
+            "a": {"comment": "", "statements": [], "condition": []},
+            "b": {"comment": "", "statements": [], "condition": []}
+        }
+    }
     spec = {
         "name": 'test_model',
         "functions models": {},
         "environment processes": {
             "c1/p1": c1p1,
-            "c1/p2": c1p2
+            "c1/p2": c1p2,
+            "c2/p1": c2p1
         }
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
@@ -227,6 +238,19 @@ def test_linear_deep_subprocesses(specific_model, linear_separator):
     assert scenarios['finish'].actions.sequence == '(!register_c1p1).(deregister_c1p1)'
     assert 'level_two_a_b' in scenarios
     assert scenarios['level_two_a_b'].actions.sequence == '(!register_c1p1).<a>.<b>.(deregister_c1p1)'
+
+
+def test_linear_c2_p1(specific_model, linear_separator):
+    c2p1 = specific_model.environment['c2/p1']
+    scenarios = linear_separator(c2p1)
+    _check_linear_actions(scenarios, c2p1.actions)
+
+    assert len(scenarios) == 1, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
+
+    scenarios = {s.name: s for s in scenarios}
+    assert 'level_one' in scenarios
+    assert scenarios['level_one'].actions.sequence == '(!register_c2p1).<a>.<b>'
 
 
 def _check_linear_actions(scenarios, actions):

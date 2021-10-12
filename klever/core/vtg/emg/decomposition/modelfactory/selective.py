@@ -20,7 +20,8 @@ from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
-    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps
+    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps, \
+    process_dependencies
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -203,7 +204,20 @@ class SelectiveSelector(Selector):
         if not model_pool:
             self.logger.info('No models have been selected, use the base one')
             model_pool = {first_model}
-        for model in sorted(model_pool, key=lambda x: x.attributed_name):
+
+        # Remove infeasible models
+        model_pool = self._get_feasible_models(model_pool)
+
+        # Detect models that can be superseded
+        model_pool = self._supersede_models(model_pool)
+
+        for model, related_process in model_pool:
+            self.logger.info(f"Finally return a batch for model {model.attributed_name}")
+            yield model, related_process
+
+    def _get_feasible_models(self, models):
+        new_model_pool = []
+        for model in sorted(models, key=lambda x: x.attributed_name):
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
@@ -213,8 +227,31 @@ class SelectiveSelector(Selector):
                 self.logger.warning(f"Skip model {model.attributed_name} as it has no savepoints and the entry process")
                 continue
 
-            self.logger.info(f"Finally return a batch for model {model.attributed_name}")
-            yield model, related_process
+            new_model_pool.append((model, related_process))
+        return new_model_pool
+
+    def _supersede_models(self, models_list):
+        model_attributes = {m.attributed_name: {p: s for p, s in m.attributes.items() if s != 'Removed'}
+                            for m, _ in models_list}
+        sorted_names = sorted(model_attributes.keys(),
+                              key=lambda x: len(model_attributes[x].keys()), reverse=True)
+
+        selected = set()
+        for name in sorted_names:
+            my_attrs = model_attributes[name]
+            for accepted in selected:
+                selected_attrs = model_attributes[accepted]
+
+                for key, scenario in my_attrs.items():
+                    if key not in selected_attrs or selected_attrs[key] != scenario:
+                        break
+                else:
+                    self.logger.info(f"Model {name} is superseded by model {accepted}")
+                    break
+            else:
+                selected.add(name)
+
+        return [m for m in models_list if m[0].attributed_name in selected]
 
     def _add_peers_as_requirements(self, model):
         model.establish_peers()
@@ -231,7 +268,9 @@ class SelectiveSelector(Selector):
         # todo: We may need to implement more checks for complicated cases
         for deleted in deleted_processes:
             if deleted in must_contain or deleted in coverage:
-                raise ValueError(f"Cannot cover {deleted} process in must contain because of the controversial spec")
+                raise ValueError(f"Forced to delete {deleted} process according to 'must not contain' property but it "
+                                 f"is mentioned in 'cover scenarios' or 'must contain' properties. Such specification"
+                                 f" is controversial.")
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
@@ -318,10 +357,6 @@ class SelectiveSelector(Selector):
                     # Check savepoints
                     if len(coverage[process_covered].keys()) == 1:
                         raise ValueError(f'Cannot cover {process_covered} as {process_name} should be deleted')
-                # Delete rest
-                for name in dep_order[:dep_order.index(process_name)+1]:
-                    dep_order.remove(name)
-                    deleted_processes.add(name)
         else:
             self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
 
@@ -506,7 +541,8 @@ class SelectiveSelector(Selector):
                 model.environment[process_name] = scenario
                 deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
                 model.environment[process_name] = None
-                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment):
+                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment and
+                                 r in process_dependencies(self.model.environment[process_name])):
                     if required in model.environment and model.environment[required]:
                         possible_actions = set(model.environment[required].actions.keys())
                     elif required in model.environment:
@@ -519,6 +555,8 @@ class SelectiveSelector(Selector):
                         self.logger.debug(f"Model {model.attributed_name} do not have actions ({acts}) of {required}"
                                           f" required by {process_name}")
                         break
+                    else:
+                        selected_items.add(scenario)
                 else:
                     selected_items.add(scenario)
             else:
@@ -526,7 +564,7 @@ class SelectiveSelector(Selector):
         new_scenarios_items = selected_items
         return new_scenarios_items
 
-    def break_dependencies(self, model, process_name, scenario, dep_order, processed):
+    def detect_broken_dependencies(self, model, process_name, scenario, dep_order, processed):
         # Check that there is a savepoint in the model and required by must contain
         savepoint = None
         for name, s in model.environment.items():
@@ -548,9 +586,11 @@ class SelectiveSelector(Selector):
                                                       dep_order, processed)
                     if deps:
                         for asker, required in ((a, r) for a, r in deps.items() if a != savepoint):
-                            if scenario in required or \
-                                    (process_name in required and
-                                     not set(scenario.actions.keys()).issubset(required[process_name])):
+                            if savepoint in required and \
+                                    process_name not in process_dependencies(self.model.environment[asker]):
+                                broken.add(asker)
+                            elif process_name in required and \
+                                    not required[process_name].issubset(set(scenario.actions.keys())):
                                 broken.add(asker)
                         return broken
                     else:
@@ -642,7 +682,7 @@ class SelectiveSelector(Selector):
         new = model.clone(model.name)
 
         # Check dependencies
-        broken = self.break_dependencies(new, process_name, scenario, dep_order, processed)
+        broken = self.detect_broken_dependencies(new, process_name, scenario, dep_order, processed)
         if reassign:
             broken.add(reassign)
         if broken:

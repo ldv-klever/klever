@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import sys
 import json
 import pytest
 import logging
@@ -266,6 +265,114 @@ P5 = {
         "w2": {"comment": ""}
     }
 }
+P6 = {
+    "comment": "The process that does not rely on any other.",
+    "labels": {},
+    "process": "(!register_unique).(<w1> | <w2>)",
+    "actions": {
+        "register_unique": {
+            "parameters": [],
+            "savepoints": {
+                'sp_unique_1': {"statements": []},
+                'sp_unique_2': {"statements": []}
+            }
+        },
+        "w1": {"comment": ""},
+        "w2": {"comment": ""}
+    }
+}
+
+
+@pytest.fixture()
+def double_init_model():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+
+    c1p1 = {
+        "comment": "Category 1, process 1.",
+        "process": "(!register_c1p1).<init>.(<ok>.[register_c2p2].[deregister_c2p2] | <fail>)",
+        "actions": {
+            "register_c1p1": {
+                "parameters": [],
+                "savepoints": {
+                    "s1": {"statements": []}
+                }
+            },
+            "register_c2p2": {"parameters": []},
+            "deregister_c2p2": {"parameters": []},
+            "init": {"coment": ""},
+            "ok": {"coment": ""},
+            "fail": {"coment": ""}
+        }
+    }
+    c1p2 = {
+        "comment": "Category 1, process 1.",
+        "process": "(!register_c1p2).<init>.(<ok> | <fail>)",
+        "actions": {
+            "register_c1p2": {
+                "parameters": [],
+                "savepoints": {
+                    "basic": {"statements": []}
+                }
+            },
+            "init": {"coment": ""},
+            "ok": {"coment": ""},
+            "fail": {"coment": ""}
+        }
+    }
+    c2p1 = {
+        "comment": "Category 2, process 1.",
+        "process": "(!register_p1).<probe>.(deregister_p1)",
+        "labels": {"container": {"declaration": "struct validation *var"}},
+        "actions": {
+            "register_p1": {
+                "parameters": ["%container%"],
+                "require": {
+                    "c1/p1": {"include": ["ok"]},
+                    "c1/p2": {"include": ["ok"]}
+                }
+            },
+            "deregister_p1": {"parameters": ["%container%"]},
+            "probe": {"comment": ""},
+        }
+    }
+    c2p2 = {
+        "comment": "Category 2, process 2.",
+        "process": "(!register_c2p2).(<v1> | <v2>).(deregister_c2p2)",
+        "actions": {
+            "register_c2p2": {
+                "parameters": [], "require": {"c2/p1": {"include": ["probe"]}}
+            },
+            "deregister_c2p2": {"parameters": []},
+            "v1": {"comment": ""},
+            "v2": {"comment": ""}
+        }
+    }
+    spec = {
+        "name": 'test_model',
+        "functions models": {
+            "f1": REGISTER,
+            "f2": DEREGISTER
+        },
+        "environment processes": {
+            "c1/p1": c1p1,
+            "c1/p2": c1p2,
+            "c2/p1": c2p1,
+            "c2/p2": c2p2
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
 
 
 @pytest.fixture()
@@ -290,6 +397,37 @@ def advanced_model():
             "c/p2": P2,
             "c/p3": P3,
             "c/p4": P4
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
+
+
+@pytest.fixture()
+def advanced_model_with_unique():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+    spec = {
+        "functions models": {
+            "f1": REGISTER_P2,
+            "f2": DEREGISTER_P2,
+        },
+        "environment processes": {
+            "c/p1": P1,
+            "c/p2": P2,
+            "c/p3": P3,
+            "c/p4": P4,
+            "c/p6": P6
         }
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
@@ -352,6 +490,21 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+
+
+def _to_sorted_attr_str(attrs):
+    return ", ".join(f"{k}: {attrs[k]}" for k in sorted(attrs.keys()))
+
+
+def _expect_models_with_attrs(models, attributes):
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    attrs = {_to_sorted_attr_str(attrs) for attrs in attributes}
+
+    unexpected = model_attrs.difference(attrs)
+    assert len(unexpected) == 0, f"There are unexpected models: {unexpected}"
+
+    missing = attrs.difference(model_attrs)
+    assert len(missing) == 0, f"There are missing models: {missing}"
 
 
 def test_default_coverage(logger, advanced_model):
@@ -776,6 +929,24 @@ def test_all_process_savepoints_and_actions_without_base(logger, advanced_model)
         assert {s.name for s in scenarios}.issubset(model_scenarios)
 
 
+def test_advanced_model_with_unique_processes(logger, advanced_model_with_unique):
+    spec = {
+        "cover scenarios": {
+            "c/p6": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model_with_unique, spec,
+                                                          separate_dispatches=True)
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    expected = [
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w1"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w1"}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
 def test_process_without_deps(logger, model_with_independent_process):
     spec = {
         "must not contain": {"c/p1": {"savepoints": ["sp_init_first", "sp_init_second", "sp_init_third"]}},
@@ -830,3 +1001,58 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
     names = [m.attributes['c/p2'] for m in models if m.attributes.get('c/p2')]
     for scenario in s2:
         assert scenario.name in names
+
+
+def test_double_sender_model_single_init(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_double_sender_model(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c1/p1': 'Removed', 'c2/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_double_sender_model_full_list(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p1": {},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
