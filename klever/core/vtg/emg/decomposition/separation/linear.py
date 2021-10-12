@@ -95,7 +95,11 @@ class LinearExtractor(ScenarioExtractor):
         subp_to_paths = dict()
         # Collect subprocesses and possible different paths
         for subprocess_desc in self._actions.filter(include={Subprocess}):
-            subp_to_paths[str(subprocess_desc)] = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
+            subp_paths = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
+            if len(subp_paths) == 1:
+                if not list(subp_paths)[0].name:
+                    list(subp_paths)[0].name = str(subprocess_desc)
+            subp_to_paths[str(subprocess_desc)] = subp_paths
         # Add the main path
         initial_paths = set(self.__choose_subprocess_paths(self._actions.initial_action, []))
 
