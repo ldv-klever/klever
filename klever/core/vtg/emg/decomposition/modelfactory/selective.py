@@ -564,7 +564,7 @@ class SelectiveSelector(Selector):
         new_scenarios_items = selected_items
         return new_scenarios_items
 
-    def break_dependencies(self, model, process_name, scenario, dep_order, processed):
+    def detect_broken_dependencies(self, model, process_name, scenario, dep_order, processed):
         # Check that there is a savepoint in the model and required by must contain
         savepoint = None
         for name, s in model.environment.items():
@@ -682,7 +682,7 @@ class SelectiveSelector(Selector):
         new = model.clone(model.name)
 
         # Check dependencies
-        broken = self.break_dependencies(new, process_name, scenario, dep_order, processed)
+        broken = self.detect_broken_dependencies(new, process_name, scenario, dep_order, processed)
         if reassign:
             broken.add(reassign)
         if broken:
