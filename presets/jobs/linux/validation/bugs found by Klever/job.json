@@ -117,7 +117,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found. Non-target bug. The overall verdict is unknown (timeout)."
+        "comment": "Target bug is found (4 unsafes). Non-target bug. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
