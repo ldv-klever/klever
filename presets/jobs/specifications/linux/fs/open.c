@@ -23,9 +23,9 @@ int ldv_vfs_open(const struct path *path, struct file *file)
 	if (ldv_undef_int() && path && path->dentry) {
 		file->f_path = *path;
 
-		f->f_inode = path->dentry->d_inode;
-		f->f_mapping = path->dentry->d_inode->i_mapping;
-		f->f_mode |= FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE;
+		file->f_inode = path->dentry->d_inode;
+		file->f_mapping = path->dentry->d_inode->i_mapping;
+		file->f_mode |= FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE;
 
 		return 0;
 	} else
