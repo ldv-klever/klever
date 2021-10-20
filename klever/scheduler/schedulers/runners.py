@@ -572,7 +572,7 @@ class SpeculativeSimple(Runner):
         if job_identifier in self._jdata and attribute in self._jdata[job_identifier]["limits"] and \
                 identifier in self._jdata[job_identifier]["limits"][attribute]["tasks"] and \
                 self._jdata[job_identifier]["limits"][attribute]["tasks"][identifier]["status"] in \
-                ('OUT OF MEMORY', 'TIMEOUT'):
+                ('OUT OF MEMORY', 'TIMEOUT', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)'):
             return True
         return False
 
