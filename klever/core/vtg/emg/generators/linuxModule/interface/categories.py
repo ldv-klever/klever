@@ -117,7 +117,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
     elif isinstance(interface, FunctionInterface):
         declaration = interface.declaration
     else:
-        raise TypeError('Expect pointer to function or function declaration but got {!r}'.
+        raise TypeError("Expect pointer to function or function declaration but got {!r}".
                         format(str(type(interface.declaration).__name__)))
 
     # Second match rest types
@@ -176,7 +176,7 @@ def __complement_interfaces(logger, collection):
                     return None
 
             if len(strict_candidates) > 1:
-                raise RuntimeError('There are several interfaces with the same declaration {}'.
+                raise RuntimeError("There are several interfaces with the same declaration {!r}".
                                    format(signature.to_string('a')))
 
             # Filter of resources
@@ -293,7 +293,7 @@ def __refine_categories(logger, conf, collection, sa):
                     relevant_interfaces.add(container)
                     add_cnt += 1
             else:
-                raise TypeError('Expect structure or array container')
+                raise TypeError("Expect structure or array container")
 
     interfaces_to_delete = [str(i) for i in [collection.get_intf(name) for name in collection.interfaces]
                             if i not in relevant_interfaces]
@@ -322,4 +322,4 @@ def __refine_categories(logger, conf, collection, sa):
             getter = getattr(collection, interface_kind)
             interface_names = tuple(map(str, getter(category)))
             if interface_names:
-                logger.debug(f'{interface_kind.capitalize()} of {category} : {", ".join(interface_names)}')
+                logger.debug(f"{interface_kind.capitalize()} of '{category}': {', '.join(interface_names)}")

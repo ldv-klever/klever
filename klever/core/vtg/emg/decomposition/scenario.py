@@ -132,7 +132,7 @@ class Scenario:
             new = self._add_action_copy(behaviour)
             self.__initial_action = new
         else:
-            raise ValueError(f'An initial action {str(self.__initial_action)} is already set')
+            raise ValueError(f"An initial action '{str(self.__initial_action)}' is already set")
 
     def add_action_copy(self, action: BaseAction, operator: Operator = None):
         assert isinstance(operator, Operator) or operator is None

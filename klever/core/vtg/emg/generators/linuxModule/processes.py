@@ -153,13 +153,13 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
     for process in (collection.environment[name] for name in estimations):
         for sending in process.actions.filter(include=[Dispatch], exclude={Call}):
             params = str(len(sending.parameters))
-            logger.debug(f'Found dispatch {str(sending)} with {params}')
+            logger.debug(f"Found dispatch '{str(sending)}' with parameters: {params}")
             nname = str(sending) + '_' + params
             signal_maps.setdefault(nname, {'send': set(), 'receive': set()})
             signal_maps[nname]['send'].add(str(process))
         for receive in process.actions.filter(include=[Receive], exclude={CallRetval}):
             params = str(len(receive.parameters))
-            logger.debug(f'Found dispatch {str(receive)} with {params}')
+            logger.debug(f"Found dispatch '{str(receive)}' with parameters: {params}")
             nname = str(receive) + '_' + str(len(receive.parameters))
             signal_maps.setdefault(nname, {'send': set(), 'receive': set()})
             signal_maps[nname]['receive'].add(str(process))
@@ -171,7 +171,7 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
             to_remove.add(dependant)
     if len(to_remove) < len(list(estimations.keys())):
         # Do not remove them all!
-        logger.debug('Going to remove the following signal depending processes: {}'.
+        logger.debug("Going to remove the following signal depending processes: {}".
                      format(', '.format(list(to_remove))))
         estimations = {n: estimations[n] for n in estimations if n not in to_remove}
     else:
@@ -233,8 +233,8 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
                          format(str(process), str(candidate)))
             categories = __find_native_categories(candidate)
             if len(categories) > 1:
-                raise ValueError('Process {!r} is a possible peer for {!r} but it allows adding for several '
-                                 'possible categories {} which is too many'.
+                raise ValueError('Process {!r} is a possible peer for {!r} but it allows adding to several '
+                                 'possible categories which is too mush: {}'.
                                  format(candidate.name, process.name, ', '.join(categories)))
             elif len(categories) == 1:
                 category = list(categories)[0]
@@ -549,7 +549,7 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
     elif not model and category:
         chosen.environment[str(new)] = new
     else:
-        raise ValueError('Provide either model or category arguments but not simultaneously')
+        raise ValueError("Provide either model or category arguments but not simultaneously")
 
     if peer:
         logger.debug("Match signals with signals of process {!r}".format(str(peer)))
@@ -601,7 +601,7 @@ def __resolve_accesses(logger, chosen, interfaces):
             label, tail = process.extract_label_with_tail(access)
 
             if not label:
-                raise ValueError(f"Expect a label in {access} access in process {process.name} description")
+                raise ValueError(f"Expect a label in '{access}' access in process '{process.name}' description")
             elif label.interfaces:
                 for interface in label.interfaces:
                     new = ExtendedAccess(access)
@@ -657,7 +657,7 @@ def __resolve_accesses(logger, chosen, interfaces):
                         new.interface = interfaces.get_intf(interface)
                         new.list_access = [label.name]
                     else:
-                        logger.debug(f'Cannot match {str(new)} with missing interface {interface}')
+                        logger.debug(f"Cannot match '{str(new)}' with missing interface '{interface}'")
                         continue
 
                     accesses[access].append(new)
@@ -694,7 +694,7 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
     elif isinstance(interface, str) and interface not in interfaces.interfaces:
         return None
     else:
-        raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
+        raise TypeError("Expect Interface object but not {!r}".format(str(type(interface))))
 
     # Be sure the first interface is a container
     if not isinstance(matched[-1], Container) and tail:
@@ -749,12 +749,12 @@ def __refine_processes(logger, chosen):
                 model_senders = [p for p in process.peers if p in models and str(signal) in process.peers[p]]
                 if len(model_senders) == 0 and \
                         len(irrelevant_dispatches) == len(process.actions.filter(include={Dispatch}, exclude={Call})):
-                    logger.debug(f'Process {str(process)} do not have dispatches to anybody else in the model')
+                    logger.debug(f"Process '{str(process)}' do not have dispatches to anybody else in the model")
                     # Then check that there is no any interface implementations which are relevant to the the process
                     accesses = [a for many in process.accesses().values() for a in many if a.interface]
                     implemented = [a for a in accesses if a.interface.implementations]
                     if not implemented:
-                        logger.debug(f'Delete process {str(process)} as it does not have any relevant implemented '
+                        logger.debug(f"Delete process '{str(process)}' as it does not have any relevant implemented "
                                      f'interfaces')
                         delete.append(str(process))
 

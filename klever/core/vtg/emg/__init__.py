@@ -42,7 +42,7 @@ class EMG(Plugin):
 
         :return: None
         """
-        self.logger.info("Start environment model generator {}".format(self.id))
+        self.logger.info("Start environment model generator {!r}".format(self.id))
 
         # Initialization of EMG
         self.logger.info("Import results of source analysis")
@@ -67,7 +67,7 @@ class EMG(Plugin):
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
             if model.attributed_name in used_attributed_names:
-                raise ValueError(f'The model with name "{model.attributed_name}" has been already been generated')
+                raise ValueError(f"The model with name '{model.attributed_name}' has been already been generated")
             else:
                 used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
@@ -76,7 +76,7 @@ class EMG(Plugin):
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
             self.abstract_task_desc.append(new_description)
-            self.logger.info(f"An environment model {model.attributed_name} has been generated successfully")
+            self.logger.info(f"An environment model '{model.attributed_name}' has been generated successfully")
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')

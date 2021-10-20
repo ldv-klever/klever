@@ -62,7 +62,7 @@ class ExtendedAccess(Access):
     @interface.setter
     def interface(self, value):
         if not isinstance(value, Interface):
-            raise ValueError(f'Cannot set non-interface value as an interface to the access {str(self)}')
+            raise ValueError(f"Cannot set non-interface value as an interface to the access '{str(self)}'")
         self._interface = value
 
     @property
@@ -77,9 +77,9 @@ class ExtendedAccess(Access):
     @base_interface.setter
     def base_interface(self, value):
         if not isinstance(value, Interface):
-            raise ValueError(f'Cannot set non-interface as a base interface to the access {str(self)}')
+            raise ValueError(f"Cannot set non-interface as a base interface to the access '{str(self)}'")
         if not self._interface:
-            raise ValueError(f'Set the interface attribute before setting the base interface of {str(self)}')
+            raise ValueError(f"Set the interface attribute before setting the base interface of '{str(self)}'")
         self._base_interface = value
 
     def replace_with_label(self, statement, label):
@@ -126,10 +126,10 @@ class ExtendedAccess(Access):
                         else:
                             expression += '.{}'.format(field)
                     else:
-                        raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                        raise ValueError("Cannot build access from given variable {!r}, something wrong with types".
                                          format(self.expression))
                 else:
-                    raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                    raise ValueError("Cannot build access from given variable {!r}, something wrong with types".
                                      format(self.expression))
 
                 previous = tmp
@@ -292,11 +292,11 @@ class ExtendedProcess(Process):
             name = self.label_re.fullmatch(string).group(1)
             tail = self.label_re.fullmatch(string).group(2)
             if name not in self.labels:
-                raise ValueError("Cannot extract label name from string '{}': no such label".format(string))
+                raise ValueError("Cannot extract label name from string {!r}: no such label".format(string))
             else:
                 return self.labels[name], tail
         else:
-            raise ValueError('Cannot extract label from access {} in process {}'.format(string, format(string)))
+            raise ValueError("Cannot extract label from access {!r} in process {!r}".format(string, format(string)))
 
     def establish_peers(self, process):
         assert isinstance(process, ExtendedProcess), \
@@ -444,11 +444,11 @@ class ExtendedProcess(Process):
             for index in range(len(first.parameters)):
                 label = self.extract_label(first.parameters[index])
                 if not label:
-                    raise ValueError("Provide label in action '{}' at position '{}' in process '{}'".
+                    raise ValueError("Provide label in action {!r} at position {!r} in process {!r}".
                                      format(first.name, index, self._name))
                 pair = process.extract_label(second.parameters[index])
                 if not pair:
-                    raise ValueError("Provide label in action '{}' at position '{}'".
+                    raise ValueError("Provide label in action {!r} at position {!r}".
                                      format(second.name, index, process.name))
 
                 if label != pair:

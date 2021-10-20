@@ -49,12 +49,12 @@ class ScenarioModelgenerator(AbstractGenerator):
         descriptions = None
         for imap in all_instance_maps:
             if fragment_name in imap.get('fragments', []):
-                self.logger.info(f'Found model for the fragment {fragment_name}')
+                self.logger.info(f"Found model for the fragment '{fragment_name}'")
                 descriptions = imap.get("model", None)
 
                 contains = ', '.join([i for i in ("functions models", "environment processes", "main process")
                                       if i in descriptions and descriptions[i]])
-                self.logger.debug(f'The model contains sections: {contains}')
+                self.logger.debug(f"The model contains sections: '{contains}'")
 
         # Import manual process
         if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or

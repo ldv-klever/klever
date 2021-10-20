@@ -289,8 +289,8 @@ class Source:
             if os.path.isfile(real_path):
                 return _accurate_concatenation(source_prefix, path)
         else:
-            raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
-                                    ' is not provided. Have the following prefixes: {}'.format(path, str(self.prefixes)))
+            raise FileNotFoundError('There is no file {!r} in the build base or the path to source files is incorrect.'
+                                    ' Set the following prefixes: {}'.format(path, str(self.prefixes)))
 
     def get_source_function(self, name=None, paths=None, declaration=None):
         """

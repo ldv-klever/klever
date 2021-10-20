@@ -188,8 +188,10 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
                     if len(suits) > index:
                         interface = suits[index]
                     else:
-                        cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]] for a in peers_cache[p]} for p in peers_cache}
-                        raise RuntimeError(f'Cannot find peers for {str(process)} and {str(action)} in {str(cache_repr)}')
+                        cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]]
+                                          for a in peers_cache[p]} for p in peers_cache}
+                        raise RuntimeError(f"Cannot find peers for '{str(process)}' and '{str(action)}' in"
+                                           f" '{str(cache_repr)}'")
 
                 # Determine dispatch parameter
                 access = process.resolve_access(action.parameters[index], interface)
@@ -239,7 +241,8 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
     param_identifiers = id_generator()
     action_identifiers = id_generator()
     for action in list(process.actions.filter(include={Call})):
-        _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
+        _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers,
+                                param_identifiers)
 
     # Process rest code
     def code_replacement(statements):
@@ -538,7 +541,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
         if invoke:
             code, comments = list(), list()
             if not (isinstance(signature, Pointer) and isinstance(signature.points, Function)):
-                raise ValueError(f'Expect function pointer for {str(access)} but got {str(signature)}')
+                raise ValueError(f"Expect function pointer for '{str(access)}' but got '{str(signature)}'")
 
             # Determine structure type name of the container with the callback if such exists
             structure_name = None
@@ -657,7 +660,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     for process in model.environment.values():
         base_list = [_copy_process(process, instances_left)]
         base_list = _fulfill_label_maps(logger, conf, sa, interfaces, base_list, process, instance_maps, instances_left)
-        logger.info("Generate {} FSA instances for environment model processes {} with category {}".
+        logger.info("Generate {} FSA instances for environment model processes {!r} with category {!r}".
                     format(len(base_list), process.name, process.category))
 
         for instance in base_list:
@@ -667,7 +670,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     # Generate automata for models
     logger.info("Generate automata for functions model processes")
     for process in model.models.values():
-        logger.info("Generate FSA for functions model process {}".format(process.name))
+        logger.info("Generate FSA for functions model process {!r}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, sa, interfaces, [process], process, instance_maps, instances_left)
         # todo: at the moment anyway several instances of function models are ignored, it is better to do it there until
         #       the solution is found
@@ -712,7 +715,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
 
-    logger.info("Going to generate {} instances for process '{}' with category '{}'".
+    logger.info("Going to generate {} instances for process {!r} with category {!r}".
                 format(len(maps), process.name, process.category))
     new_base_list = []
     for access_map in maps:
@@ -823,7 +826,7 @@ def __add_pretty_name(logger, process, names):
 
         if process.name == old_name:
             process.name = f"{old_name}_{process.instance_number}"
-        logger.debug(f'Set new process name: {process.name} instead of {old_name}')
+        logger.debug(f"Set new process name: '{process.name}' instead of '{old_name}'")
     return process.name
 
 

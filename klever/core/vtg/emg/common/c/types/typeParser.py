@@ -141,11 +141,11 @@ def t_IDENTIFIER(t):
 
 
 def t_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    raise TypeError("Unknown token '%s'" % (t.value,))
 
 
 def p_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    raise TypeError("Unknown token '%s'" % (t.value,))
 
 
 def p_full_declaration(p):

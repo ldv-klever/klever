@@ -44,8 +44,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Import Specifications
         self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
-            raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
-                             'configuration')
+            raise ValueError("Do not expect any main process already attached to the model, reorder EMG generators in "
+                             "configuration")
 
         # Read configuration in abstract task
         self.logger.info("Determine functions to call in the environment model")
@@ -61,7 +61,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 func_obj = re.compile(expr[1])
                 expressions.append((file_obj, func_obj))
             else:
-                raise ValueError('Unknown element given instead of a file and function regular expressions pair: {!r}'.
+                raise ValueError("Unknown element given instead of a file and function regular expressions pair: {!r}".
                                  format(str(expr)))
 
         strict = self.conf.get("prefer not called")
@@ -74,7 +74,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                         (obj.declaration.static and statics or not obj.declaration.static) and obj.definition_file:
                     for file_expr, func_expr in expressions:
                         if func_expr.fullmatch(func) and (not file_expr or file_expr.fullmatch(obj.definition_file)):
-                            self.logger.debug('Add function {!r} from {!r}'.format(func, obj.definition_file))
+                            self.logger.debug("Add function {!r} from {!r}".format(func, obj.definition_file))
                             suits.append(obj)
                             break
 
@@ -126,7 +126,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             func, obj = pair
             self.logger.info("Call function {!r} from {!r}".format(func, obj.definition_file))
             decl = obj.declaration.to_string(func, typedef='none', scope={obj.definition_file})
-            self.logger.debug(f"Function has the signature: {decl}")
+            self.logger.debug(f"Function has the signature: '{decl}'")
             child_process = self.__generate_process(obj, identifier)
             processes[str(child_process)] = child_process
 
@@ -140,7 +140,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 raise RuntimeError("There is no any functions to call")
 
         process = ".".join(reg_list + dereg_list)
-        self.logger.debug(f"Going to parse main process: {process}")
+        self.logger.debug(f"Going to parse main process: '{process}'")
         parse_process(main_process, process)
         main_process.actions.populate_with_empty_descriptions()
 

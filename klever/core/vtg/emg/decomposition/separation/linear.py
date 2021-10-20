@@ -39,8 +39,8 @@ class LinearExtractor(ScenarioExtractor):
                 name = processing_path.name
             else:
                 name = "base"
-            self.logger.info(f'Generate {name} scenario for path {repr(processing_path)}' +
-                             (f' and savepoint {str(savepoint)}' if savepoint else ''))
+            self.logger.info(f"Generate '{name}' scenario for path '{repr(processing_path)}'" +
+                             (f" and savepoint '{str(savepoint)}'" if savepoint else ''))
 
             new_scenario = Scenario(savepoint, name)
             new_scenario.initial_action = Concatenation()
@@ -55,7 +55,8 @@ class LinearExtractor(ScenarioExtractor):
                             (isinstance(behaviour.my_operator, Choice) or
                              (isinstance(behaviour.my_operator, Concatenation)
                               and behaviour.my_operator.index(behaviour) == 0)):
-                        self.logger.debug(f"Convert conditions to assumptions in {behaviour.name} of {name} scenario")
+                        self.logger.debug(f"Convert conditions to assumptions in '{behaviour.name}' of '{name}' "
+                                          f"scenario")
                         for statement in reversed(new_description.condition):
                             new_description.statements.insert(0, f"ldv_assume({statement});")
                         new_description.condition = []
@@ -82,10 +83,10 @@ class LinearExtractor(ScenarioExtractor):
     def _get_scenarios_for_root_savepoints(self, root: Action):
         paths, subp_paths = self.__determine_paths()
 
-        self.logger.debug('Generate main scenarios')
+        self.logger.debug("Generate main scenarios")
         yield from self._new_scenarios(paths)
         for action in (a for a in self._actions.values() if a.savepoints):
-            self.logger.debug(f'Generate scenarios with savepoints for action {str(action)}')
+            self.logger.debug(f"Generate scenarios with savepoints for action '{str(action)}'")
             if isinstance(action, Subprocess):
                 yield from self._new_scenarios(subp_paths[str(action)], action)
             else:
