@@ -48,9 +48,9 @@ class OperatorDescriptor:
     def __set__(self, obj, value):
         assert value is not self, 'Prevent recursive operator dependency'
         assert isinstance(value, Operator) or value is None,\
-            f'Cannot set as operator a non-operator object {repr(value)}'
+            f"Cannot set as operator a non-operator object '{repr(value)}'"
         assert not value or not self._my_operator, \
-            f'Has operator {repr(self._my_operator)} at {repr(obj)} before setting {repr(value)}'
+            f"Has operator '{repr(self._my_operator)}' at '{repr(obj)}' before setting '{repr(value)}'"
         self._my_operator = value
 
     def __get__(self, obj, objtype):
@@ -97,9 +97,9 @@ class BaseAction:
     @my_operator.setter
     def my_operator(self, new):
         assert new is not self, 'Prevent recursive operator dependency'
-        assert isinstance(new, Operator) or new is None, f'Cannot set as operator a non-operator object {repr(new)}'
+        assert isinstance(new, Operator) or new is None, f"Cannot set as operator a non-operator object '{repr(new)}'"
         assert not new or not self._my_operator,\
-            f'Has operator {repr(self._my_operator)} at {repr(self)} before setting {repr(new)}'
+            f"Has operator '{repr(self._my_operator)}' at '{repr(self)}' before setting '{repr(new)}'"
         self._my_operator = new
 
 
@@ -155,7 +155,7 @@ class Behaviour(BaseAction):
     @description.setter
     def description(self, item):
         """Save a new description."""
-        assert isinstance(item, self.kind), f'Got {type(item).__name__} instead of {self.kind.__name__}'
+        assert isinstance(item, self.kind), f"Got '{type(item).__name__}' instead of '{self.kind.__name__}'"
         assert str(item) == self.name
 
         for name, value in self.specific_attributes:
@@ -174,8 +174,8 @@ class Operator(BaseAction, collections.UserList):
         return self.data[position]
 
     def __setitem__(self, position, value):
-        assert isinstance(value, BaseAction), f'Only actions can be added but got {type(value).__name__}'
-        assert value not in self.data, f'Attempt to add an existing object {repr(value)}'
+        assert isinstance(value, BaseAction), f"Only actions can be added but got '{type(value).__name__}'"
+        assert value not in self.data, f"Attempt to add an existing object '{repr(value)}'"
 
         # First clean the existing action
         if self.data[position]:
@@ -203,12 +203,12 @@ class Operator(BaseAction, collections.UserList):
         self.data.insert(position, value)
 
     def remove(self, value):
-        assert value in self.data, f'There is no {repr(value)} in {repr(self)}'
+        assert value in self.data, f"There is no '{repr(value)}' in '{repr(self)}'"
         index = self.data.index(value)
         del self[index]
 
     def replace(self, old, value):
-        assert old in self.data, f'There is no {repr(old)} in {repr(self)}'
+        assert old in self.data, f"There is no '{repr(old)}' in '{repr(self)}'"
         index = self.data.index(old)
         self[index] = value
 
@@ -418,8 +418,8 @@ class Actions(collections.UserDict):
         self._process_actions = dict()
 
     def __setitem__(self, key, value):
-        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
-        assert isinstance(value, Action), f'Accept only actions as values but got {type(value).__name__}'
+        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
+        assert isinstance(value, Action), f"Accept only actions as values but got '{type(value).__name__}'"
         if isinstance(key, Action):
             key = str(key)
 
@@ -429,11 +429,11 @@ class Actions(collections.UserDict):
                 item.description = value
 
     def __getitem__(self, key):
-        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
+        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
         return self.data[str(key)]
 
     def __delitem__(self, key):
-        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
+        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
         if self._process_actions.get(key):
             for action in self._process_actions[key]:
                 action.my_operator.remove(action)

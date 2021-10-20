@@ -274,53 +274,53 @@ class SelectiveSelector(Selector):
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
-            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
+            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
 
             if 'actions' in must_contain[process_name]:
-                assert isinstance(must_contain[process_name]['actions'], list), 'Provide a list of lists to the ' \
-                                                                                '"must contain" parameter'
+                assert isinstance(must_contain[process_name]['actions'], list), "Provide a list of lists to the " \
+                                                                                "'must contain' parameter"
 
                 for item in must_contain[process_name].get('actions', []):
-                    assert isinstance(item, list), 'Provide a list of lists to the "must contain" parameter'
+                    assert isinstance(item, list), "Provide a list of lists to the 'must contain' parameter"
 
                     for action_name in item:
                         assert isinstance(action_name, str) and \
                                action_name in self.model.environment[process_name].actions, \
-                               f"There is no action {action_name} in {process_name}"
+                               f"There is no action '{action_name}' in '{process_name}'"
 
             if 'savepoints' in must_contain[process_name]:
                 assert isinstance(must_contain[process_name]['savepoints'], list), \
-                    'Provide a list of savepoints to the "must contain" parameter'
+                    "Provide a list of savepoints to the 'must contain' parameter"
 
                 for item in must_contain[process_name]['savepoints']:
                     assert isinstance(item, str), \
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
-                           f"There is no savepoint {item} in {process_name}"
+                           f"There is no savepoint '{item}' in '{process_name}'"
 
     def _sanity_check_must_not_contain(self, must_not_contain):
         for process_name in must_not_contain:
-            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
+            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
 
             for item in must_not_contain[process_name].get('actions', []):
-                assert isinstance(item, list), 'Provide a list of lists to the "must not contain" parameter'
+                assert isinstance(item, list), "Provide a list of lists to the 'must not contain' parameter"
 
                 for action_name in item:
                     assert isinstance(action_name, str) and \
                            action_name in action_name in self.model.environment[process_name].actions, \
-                           f"There is no action {action_name} in {process_name}"
+                           f"There is no action '{action_name}' in '{process_name}'"
 
             if 'savepoints' in must_not_contain[process_name]:
                 assert isinstance(must_not_contain[process_name]['savepoints'], list), \
-                    'Provide a list of savepoints to the "must not contain" parameter'
+                    "Provide a list of savepoints to the 'must not contain' parameter"
 
                 for item in must_not_contain[process_name]['savepoints']:
                     assert isinstance(item, str), \
                         "Provide a list of savepoints' names to the 'must not contain' parameter"
 
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
-                        f"There is no savepoint {item} in {process_name}"
+                        f"There is no savepoint '{item}' in '{process_name}'"
 
     def _calculate_process_order(self, must_contain, must_not_contain, coverage):
         # Detect order using transitive dependencies
@@ -377,7 +377,7 @@ class SelectiveSelector(Selector):
         coverage = dict()
         for process_name in cover_conf:
             # Subprocesses may not be covered in scenarios, so avoid adding the origin process to cover them
-            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
+            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
             actions = set(str(a) for a in self.model.environment[process_name].actions.filter(exclude={Subprocess}))
             savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
                           for sp in ac.savepoints}
@@ -386,7 +386,7 @@ class SelectiveSelector(Selector):
                 assert(isinstance(cover_conf[process_name]['actions'], list))
                 for item in cover_conf[process_name]['actions']:
                     assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
-                        f"There is no action {item} in {process_name}"
+                        f"There is no action '{item}' in '{process_name}'"
                 actions_to_cover = set(cover_conf[process_name]['actions'])
             else:
                 actions_to_cover = actions
@@ -395,14 +395,14 @@ class SelectiveSelector(Selector):
                 assert (isinstance(cover_conf[process_name]['actions except'], list))
                 for item in cover_conf[process_name]['actions except']:
                     assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
-                        f"There is no action {item} in {process_name}"
+                        f"There is no action '{item}' in '{process_name}'"
                 actions_to_cover.difference_update(set(cover_conf[process_name]['actions except']))
 
             if 'savepoints' in cover_conf[process_name]:
                 assert (isinstance(cover_conf[process_name]['savepoints'], list))
                 for item in cover_conf[process_name]['savepoints']:
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
-                        f"There is no savepoint {item} in {process_name}"
+                        f"There is no savepoint '{item}' in {process_name}"
                 sp_to_cover = set(cover_conf[process_name]['savepoints'])
             else:
                 sp_to_cover = savepoints
@@ -411,7 +411,7 @@ class SelectiveSelector(Selector):
                 assert (isinstance(cover_conf[process_name]['savepoints except'], list))
                 for item in cover_conf[process_name]['savepoints except']:
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
-                        f"There is no savepoint {item} in {process_name}"
+                        f"There is no savepoint '{item}' in '{process_name}'"
                 sp_to_cover.difference_update(set(cover_conf[process_name]['savepoints except']))
 
             self.logger.info(f"Cover the following actions from the process '{process_name}': " +
