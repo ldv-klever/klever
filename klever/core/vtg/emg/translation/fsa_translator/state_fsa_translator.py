@@ -96,9 +96,9 @@ class StateTranslator(FSATranslator):
         return code, v_code, conditions, comments
 
     def _compose_control_function(self, automaton):
-        self._logger.info("Generate state-based control function for automaton {!r} based on process {!r} of "
-                          "category {!r}".format(automaton.identifier, automaton.process.name,
-                                                 automaton.process.category))
+        self._logger.info(
+            "Generate state-based control function for automaton {!r} based on process {!r} of category {!r}".
+            format(automaton.identifier, automaton.process.name, automaton.process.category))
 
         # Get function prototype
         cf = self._control_function(automaton)

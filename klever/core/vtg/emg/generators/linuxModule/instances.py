@@ -190,8 +190,8 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
                     else:
                         cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]]
                                           for a in peers_cache[p]} for p in peers_cache}
-                        raise RuntimeError(f"Cannot find peers for '{str(process)}' and '{str(action)}' in"
-                                           f" '{str(cache_repr)}'")
+                        raise RuntimeError(
+                            f"Cannot find peers for '{str(process)}' and '{str(action)}' in '{str(cache_repr)}'")
 
                 # Determine dispatch parameter
                 access = process.resolve_access(action.parameters[index], interface)

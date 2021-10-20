@@ -46,8 +46,8 @@ class CombinatorialSelector(Selector):
                                       (f" for related_process '{related_process}'" if related_process else ''))
                     yield new_model, related_process
             else:
-                self.logger.info(f"No processes with scenarios without savepoints were selected for model"
-                                 f" '{new.attributed_name}'")
+                self.logger.info(
+                    f"No processes with scenarios without savepoints were selected for model '{new.attributed_name}'")
                 yield new, related_process
 
 

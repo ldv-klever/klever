@@ -401,8 +401,8 @@ class ModelFactory:
                     added_attributes.append(process_name)
                     extend_model_name(new, process_name, 'base')
                 added_attributes = ', '.join(added_attributes)
-                self.logger.debug(f"Add to model '{new.attributed_name}' the following "
-                                  f"attributes: '{added_attributes}'")
+                self.logger.debug(
+                    f"Add to model '{new.attributed_name}' the following attributes: '{added_attributes}'")
 
             yield new
 
@@ -444,8 +444,8 @@ class ModelFactory:
                 else:
                     new_process.insert_action(new, new_process.actions[name], before=True)
         else:
-            self.logger.debug(f"Keep the process '{str(process)}' created for the scenario '{str(scenario.name)}' as "
-                              f"is")
+            self.logger.debug(
+                f"Keep the process '{str(process)}' created for the scenario '{str(scenario.name)}' as is")
 
         return new_process
 
@@ -468,8 +468,8 @@ class ModelFactory:
                     iterate = True
                 else:
                     names = ', '.join(sorted(receives.intersection(all_peers)))
-                    self.logger.info(f"Process '{key}' from the model '{model.attributed_name}' has peers for"
-                                     f" '{names}'")
+                    self.logger.info(
+                        f"Process '{key}' from the model '{model.attributed_name}' has peers for '{names}'")
 
             if iterate:
                 model.establish_peers()

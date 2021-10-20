@@ -105,8 +105,8 @@ class SelectiveSelector(Selector):
                 local_coverage = copy.deepcopy(coverage)
 
                 if process_name not in model.environment:
-                    self.logger.warning(f"Skip processing model '{model.attributed_name}' as it does not "
-                                        f"require '{process_name}'")
+                    self.logger.warning(
+                        f"Skip processing model '{model.attributed_name}' as it does not require '{process_name}'")
                     next_model_pool.add(model)
                     continue
 

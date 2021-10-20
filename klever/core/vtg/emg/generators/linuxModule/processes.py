@@ -754,8 +754,8 @@ def __refine_processes(logger, chosen):
                     accesses = [a for many in process.accesses().values() for a in many if a.interface]
                     implemented = [a for a in accesses if a.interface.implementations]
                     if not implemented:
-                        logger.debug(f"Delete process '{str(process)}' as it does not have any relevant implemented "
-                                     f'interfaces')
+                        logger.debug(
+                            f"Delete process '{str(process)}' as it does not have any relevant implemented interfaces")
                         delete.append(str(process))
 
         for p in delete:

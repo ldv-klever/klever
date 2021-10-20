@@ -44,8 +44,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Import Specifications
         self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
-            raise ValueError("Do not expect any main process already attached to the model, reorder EMG generators in "
-                             "configuration")
+            raise ValueError(
+                "Do not expect any main process already attached to the model, reorder EMG generators in configuration")
 
         # Read configuration in abstract task
         self.logger.info("Determine functions to call in the environment model")

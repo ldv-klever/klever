@@ -147,8 +147,8 @@ class SimplestTranslator(FSATranslator):
                         code.extend(blocks[0])
             else:
                 # This is because translation can have specific restrictions
-                self._logger.debug(f"No block to implement signal receive of action"
-                                   f" '{str(action)}' in '{str(automaton)}'")
+                self._logger.debug(
+                    f"No block to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
             self._logger.debug(f"No peers to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
