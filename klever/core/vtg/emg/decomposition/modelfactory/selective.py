@@ -277,8 +277,8 @@ class SelectiveSelector(Selector):
             assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
 
             if 'actions' in must_contain[process_name]:
-                assert isinstance(must_contain[process_name]['actions'], list), "Provide a list of lists to the " \
-                                                                                "'must contain' parameter"
+                assert isinstance(must_contain[process_name]['actions'], list), \
+                    "Provide a list of lists to the 'must contain' parameter"
 
                 for item in must_contain[process_name].get('actions', []):
                     assert isinstance(item, list), "Provide a list of lists to the 'must contain' parameter"

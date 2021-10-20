@@ -737,8 +737,8 @@ def __refine_processes(logger, chosen):
             # Check replicative signals
             replicative = [a for a in process.actions.filter(include={Receive}, exclude={CallRetval}) if a.replicative]
             assert len(replicative) == 1, \
-                f"Process '{str(process)}' should have a single replicative signal but has" \
-                f" the following: {', '.join(map(str, replicative))}"
+                f"Process '{str(process)}' should have a single replicative signal but has the following: " \
+                f"{', '.join(map(str, replicative))}"
             signal = replicative.pop()
             if str(signal) in process.unmatched_signals(Receive):
                 # Remove the process from the collection

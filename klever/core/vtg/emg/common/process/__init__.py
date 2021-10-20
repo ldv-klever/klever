@@ -554,8 +554,8 @@ class ProcessCollection:
         assert isinstance(process, Process), f"Got '{type(process).__name__}'"
         if signals:
             for signal in signals:
-                assert isinstance(signal, str), f"Signal '{str(signal)}' has type '{type(process).__name__}' instead " \
-                                                f"of str"
+                assert isinstance(signal, str), \
+                    f"Signal '{str(signal)}' has type '{type(process).__name__}' instead of str"
         if processes:
             for name in processes:
                 assert isinstance(name, str), f"Process name '{str(name)}' has type '{type(process).__name__}'"
