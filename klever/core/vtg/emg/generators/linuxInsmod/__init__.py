@@ -250,7 +250,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         if len(inits) > 0:
             # Generate init subprocess
             for filename, init_name in inits:
-                self.logger.debug("Found init function {}".format(init_name))
+                self.logger.debug("Found init function {!r}".format(init_name))
                 new_name = self.__generate_alias(ep, init_name, filename, True)
                 init_subprocess = ep.actions[init_name]
                 init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
@@ -268,7 +268,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             self.logger.debug("There is no exit function found")
         else:
             for filename, exit_name in exits:
-                self.logger.debug("Found exit function {}".format(exit_name))
+                self.logger.debug("Found exit function {!r}".format(exit_name))
                 new_name = self.__generate_alias(ep, exit_name, filename, False)
                 exit_subprocess = ep.actions[exit_name]
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)

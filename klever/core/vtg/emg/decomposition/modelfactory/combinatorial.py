@@ -21,15 +21,15 @@ from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactor
 class CombinatorialSelector(Selector):
 
     def __call__(self, *args, **kwargs):
-        self.logger.info('Iterate over all generated scenarios with both SP and not')
+        self.logger.info("Iterate over all generated scenarios with both SP and not")
         for new, related_process in self._iterate_over_base_models(
                 include_base_model=True, include_savepoints=not self.conf.get('skip savepoints')):
             iterate_over_processes = [
                 p for p in self.processes_to_scenarios
                 if related_process != p and [x for x in self.processes_to_scenarios[p] if not x.savepoint]]
             if iterate_over_processes:
-                self.logger.info(f'Create copies of {new.attributed_name} for processes'
-                                 f' {", ".join(iterate_over_processes)}')
+                self.logger.info(f"Create copies of '{new.attributed_name}' for processes:"
+                                 f" {', '.join(iterate_over_processes)}")
                 pool = []
                 for process_name in iterate_over_processes:
                     for new_model in (list(pool) if pool else [new]):
@@ -42,12 +42,12 @@ class CombinatorialSelector(Selector):
                             pool.append(newest)
 
                 for new_model in pool:
-                    self.logger.debug(f'Generate model {new_model.name}' +
-                                      (f' for related_process {related_process}' if related_process else ''))
+                    self.logger.debug(f"Generate model '{new_model.name}'" +
+                                      (f" for related_process '{related_process}'" if related_process else ''))
                     yield new_model, related_process
             else:
-                self.logger.info(f'No processes with scenarios without savepoints were selected for model'
-                                 f' {new.attributed_name}')
+                self.logger.info(
+                    f"No processes with scenarios without savepoints were selected for model '{new.attributed_name}'")
                 yield new, related_process
 
 

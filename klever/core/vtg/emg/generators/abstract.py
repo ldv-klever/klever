@@ -76,7 +76,7 @@ class AbstractGenerator:
         """
         specification = specification
         with open(file_name, 'w', encoding='utf-8') as fp:
-            self.logger.debug('save specification %s' % file_name)
+            self.logger.debug('Save specification %s' % file_name)
             json.dump(specification, fp, indent=2, sort_keys=True)
 
     def _merge_specifications(self, specifications_set, files):

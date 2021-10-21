@@ -52,7 +52,7 @@ class CollectionEncoder(json.JSONEncoder):
         elif isinstance(o, (list, dict, str, int, float, bool, type(None))):
             return o
         else:
-            raise TypeError(f"Cannot serialize object {str(o)} of type {type(o).__name__}")
+            raise TypeError(f"Cannot serialize object '{str(o)}' of type '{type(o).__name__}'")
 
     def _serialize_collection(self, collection):
         data = {
@@ -173,7 +173,7 @@ class CollectionDecoder:
             assert isinstance(raw['name'], str)
             collection.name = raw['name']
 
-        self.logger.info(f"Import processes from provided event categories specification {collection.name}")
+        self.logger.info(f"Import processes from provided event categories specification '{collection.name}'")
         raise_exc = []
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model', there are "
@@ -190,7 +190,7 @@ class CollectionDecoder:
                         self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
                         raise_exc.append(name)
         else:
-            self.logger.info('There is no "functions models" description')
+            self.logger.info("There is no 'functions models' description")
         if "environment processes" in raw:
             self.logger.info(f"Import processes from 'environment processes', there are "
                              f"{len(raw['environment processes'].keys())} of them")
@@ -212,7 +212,7 @@ class CollectionDecoder:
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
                     raise_exc.append(name)
         else:
-            self.logger.info('There is no "environment processes" description')
+            self.logger.info("There is no 'environment processes' description")
 
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
@@ -254,13 +254,13 @@ class CollectionDecoder:
                         elif name in map(str, collection.environment.values()):
                             required = collection.environment[name]
                         else:
-                            raise ValueError(f'There is no process {name} required by {str(process)} in'
-                                             f' action {str(action)}')
+                            raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
+                                             f" action '{str(action)}'")
 
                         for action_name in action.require[name].get('include', set()):
                             if action_name not in required.actions:
-                                raise ValueError(f'Process {str(process)} in action {str(action)} requires action '
-                                                 f'{action_name} which is missing in process {name}')
+                                raise ValueError(f"Process '{str(process)}' in action '{str(action)}' requires action "
+                                                 f"'{action_name}' which is missing in process '{name}'")
 
         self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
         self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
@@ -303,7 +303,7 @@ class CollectionDecoder:
             names = some_name.split(", ")
             for act_name in names:
                 if act_name not in (x.name for x in process.actions.final_actions):
-                    raise ValueError(f'Action {act_name} was not used in {str(process)} process')
+                    raise ValueError(f"Action '{act_name}' was not used in '{str(process)}' process")
                 self._import_action(process, act_name, description)
 
         # Connect actions

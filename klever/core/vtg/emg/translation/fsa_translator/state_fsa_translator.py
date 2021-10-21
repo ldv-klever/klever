@@ -96,8 +96,9 @@ class StateTranslator(FSATranslator):
         return code, v_code, conditions, comments
 
     def _compose_control_function(self, automaton):
-        self._logger.info('Generate state-based control function for automaton {} based on process {} of category {}'.
-                          format(automaton.identifier, automaton.process.name, automaton.process.category))
+        self._logger.info(
+            "Generate state-based control function for automaton {!r} based on process {!r} of category {!r}".
+            format(automaton.identifier, automaton.process.name, automaton.process.category))
 
         # Get function prototype
         cf = self._control_function(automaton)
@@ -165,7 +166,7 @@ class StateTranslator(FSATranslator):
         return
 
     def _entry_point(self):
-        self._logger.info("Generate body for entry point function {}".format(self._cmodel.entry_name))
+        self._logger.info("Generate body for entry point function {!r}".format(self._cmodel.entry_name))
         body = []
         # Init original states
         for automaton in [self._entry_fsa] + self._event_fsa:
@@ -267,7 +268,7 @@ class StateTranslator(FSATranslator):
         try:
             found = (o for o in chains if state_identifier in next(chains[o]))
         except StopIteration:
-            raise RuntimeError('Seems that state {!r} is not reachable in automaton {!r}'.
+            raise RuntimeError("Seems that state {!r} is not reachable in automaton {!r}".
                                format(state_identifier, automaton.process.name))
 
         return found

@@ -107,7 +107,7 @@ class Scenario:
     def __init__(self, savepoint: Savepoint = None, name: str = None):
         assert isinstance(name, str) or name is None
         assert isinstance(savepoint, Savepoint) or savepoint is None,\
-            f'Receive incorrect object of type {type(savepoint).__name__}'
+            f"Receive incorrect object of type '{type(savepoint).__name__}'"
 
         self.savepoint = savepoint
         if name:
@@ -126,13 +126,13 @@ class Scenario:
     @initial_action.setter
     def initial_action(self, behaviour: Operator):
         assert isinstance(behaviour, Operator), \
-            f'Expect an operator instead of {type(behaviour).__name__}'
+            f"Expect an operator instead of '{type(behaviour).__name__}'"
 
         if not self.__initial_action:
             new = self._add_action_copy(behaviour)
             self.__initial_action = new
         else:
-            raise ValueError(f'An initial action {str(self.__initial_action)} is already set')
+            raise ValueError(f"An initial action '{str(self.__initial_action)}' is already set")
 
     def add_action_copy(self, action: BaseAction, operator: Operator = None):
         assert isinstance(operator, Operator) or operator is None
@@ -152,7 +152,7 @@ class Scenario:
 
     def _add_action_copy(self, behaviour: BaseAction):
         assert isinstance(behaviour, BaseAction), \
-            f'Expect a base action instead of {type(behaviour).__name__}'
+            f"Expect a base action instead of '{type(behaviour).__name__}'"
 
         new_copy = behaviour.clone()
         new_copy.my_operator = None

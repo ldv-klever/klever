@@ -61,7 +61,7 @@ class FSATranslator:
         conf.setdefault('do not skip signals', False)
 
         # Get from unused interfaces
-        for process in (a.process for a in self._model_fsa + self._event_fsa + [entry_fsa] 
+        for process in (a.process for a in self._model_fsa + self._event_fsa + [entry_fsa]
                         if len(a.process.headers) > 0):
             self._cmodel.add_headers(process.file, sorted(process.headers, key=len))
 
@@ -299,10 +299,11 @@ class FSATranslator:
                 ])
             else:
                 # This is because translation can have specific restrictions
-                self._logger.debug(f'No block to implement signal receive of action {str(action)} in {str(automaton)}')
+                self._logger.debug(
+                    f"No block to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
-            self._logger.debug(f'No peers to implement signal receive of action {str(action)} in {str(automaton)}')
+            self._logger.debug(f"No peers to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
@@ -579,9 +580,9 @@ class FSATranslator:
                               ['\t{}'.format(s) for s in code] + \
                               ['}']
             elif conditions:
-                raise ValueError(f'Action {str(beh.description)} should have either both condition and statements '
-                                 f'attributes, or a statements attribute or at least it can be used in a choice '
-                                 f'operator.')
+                raise ValueError(
+                    f"Action '{str(beh.description)}' should have either both condition and statements attributes, "
+                    f"or a statements attribute or at least it can be used in a choice operator.")
             else:
                 final_code += code
 
@@ -601,7 +602,7 @@ class FSATranslator:
         elif action is None:
             code_generator = self._art_action
         else:
-            raise TypeError('Unknown action type: {!r}'.format(type(action).__name__))
+            raise TypeError("Unknown action type: {!r}".format(type(action).__name__))
 
         c, vc, grds, cmmnts = code_generator(action, automaton)
         compose_single_action(behaviour, c, vc, grds, cmmnts)

@@ -112,7 +112,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Dump to disk instance map
         instance_map_file = 'instance map.json'
-        self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
+        self.logger.info("Dump information on chosen instances to file {!r}".format(instance_map_file))
         with open(instance_map_file, "w", encoding="utf-8") as fd:
             fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
                                       escape_forward_slashes=False))

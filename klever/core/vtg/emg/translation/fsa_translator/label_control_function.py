@@ -120,7 +120,7 @@ def __subprocess_code(automaton, initial_action, ret_expression):
                          ['\t' * (tab + 2) + 'break;', '\t' * (tab + 1) + '}']
                 f += ['\t' * (tab + 1) + 'default: ldv_assume(0);', '\t' * tab + '}']
             else:
-                raise ValueError('Invalid number of conditions in %s: %d' % (str(behaviour), len(behaviour)))
+                raise ValueError("Invalid number of conditions in '%s': %d" % (str(behaviour), len(behaviour)))
         elif isinstance(behaviour, Concatenation):
             for itm in behaviour:
                 itm_v, itm_f = _serialize_action(itm, tab)

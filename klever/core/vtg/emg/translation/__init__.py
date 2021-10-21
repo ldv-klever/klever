@@ -68,9 +68,9 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Make a separate directory
     model_path = str(collection.name)
     assert model_path, 'Each environment model should have a unique name'
-    assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
+    assert not os.path.isdir(model_path), f"Model name '{model_path}' is used twice"
     if os.path.isdir(model_path):
-        logger.info(f'Clean workdir for translation "{model_path}"')
+        logger.info(f"Clean workdir for translation '{model_path}'")
         shutil.rmtree(model_path)
     os.makedirs(model_path)
     if collection.attributed_name != collection.name:

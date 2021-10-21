@@ -133,7 +133,7 @@ class Selector:
         elif process_name in batch.environment:
             batch.environment[process_name] = scenario
         else:
-            raise ValueError(f'Cannot set scenario {scenario.name} to deleted process {process_name}')
+            raise ValueError(f"Cannot set scenario '{scenario.name}' to deleted process '{process_name}'")
 
         if scenario:
             assert scenario.name
@@ -141,7 +141,7 @@ class Selector:
             extend_model_name(batch, process_name, scenario.name)
         elif batch.attributes.get(process_name):
             del batch.attributes[process_name]
-        self.logger.info(f'The new model name is "{batch.attributed_name}"')
+        self.logger.info(f"The new model name is '{batch.attributed_name}'")
 
 
 def process_dependencies(process):
@@ -204,7 +204,7 @@ def process_transitive_dependencies(processes: set, process: Process):
         deps = process_dependencies(p)
         for required_name in deps:
             if required_name == str(process):
-                raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(process)}')
+                raise RecursionError(f"Recursive dependencies for '{required_name}' calculated for '{str(process)}'")
             elif required_name not in todo and required_name in processes_map:
                 todo.append(required_name)
 
@@ -385,14 +385,14 @@ class ModelFactory:
                         else:
                             collection[key] = self._process_copy(getattr(model, attr)[key])
                     else:
-                        self.logger.debug(f"Skip process {key} in {new.attributed_name}")
+                        self.logger.debug(f"Skip process '{key}' in '{new.attributed_name}'")
                         self._copy_declarations_to_init(getattr(model, attr)[key], new.entry)
 
             new.establish_peers()
             self._remove_unused_processes(new)
 
             if new.attributed_name != original_name:
-                self.logger.info('Reduced batch {!r} to {!r}'.format(original_name, new.attributed_name))
+                self.logger.info("Reduced batch {!r} to {!r}".format(original_name, new.attributed_name))
 
             # Add missing attributes to the model
             for process_name in model.environment:
@@ -401,7 +401,8 @@ class ModelFactory:
                     added_attributes.append(process_name)
                     extend_model_name(new, process_name, 'base')
                 added_attributes = ', '.join(added_attributes)
-                self.logger.debug(f'Add to model {new.attributed_name} the following attributes: {added_attributes}')
+                self.logger.debug(
+                    f"Add to model '{new.attributed_name}' the following attributes: '{added_attributes}'")
 
             yield new
 
@@ -412,7 +413,7 @@ class ModelFactory:
                 model_cache.add(model.attributed_name)
                 yield model
             else:
-                self.logger.info('Skip cached model {!r}'.format(model.attributed_name))
+                self.logger.info("Skip cached model {!r}".format(model.attributed_name))
                 continue
 
     def _process_copy(self, process: Process):
@@ -429,11 +430,11 @@ class ModelFactory:
         new_process.accesses(refresh=True)
 
         if scenario.savepoint:
-            self.logger.debug(f'Replace the first action in the process {str(process)} by the savepoint'
-                              f' {str(scenario.savepoint)}')
+            self.logger.debug(f"Replace the first action in the process '{str(process)}' by the savepoint"
+                              f" '{str(scenario.savepoint)}'")
             new = new_process.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
                                             scenario.savepoint.comment if scenario.savepoint.comment else
-                                            f'Save point {str(scenario.savepoint)}')
+                                            f"Save point '{str(scenario.savepoint)}'")
             new.trace_relevant = True
 
             firsts = scenario.actions.first_actions()
@@ -443,7 +444,8 @@ class ModelFactory:
                 else:
                     new_process.insert_action(new, new_process.actions[name], before=True)
         else:
-            self.logger.debug(f'Keep the process "{str(process)}" created for the scenario "{str(scenario.name)}" as is')
+            self.logger.debug(
+                f"Keep the process '{str(process)}' created for the scenario '{str(scenario.name)}' as is")
 
         return new_process
 
@@ -458,18 +460,20 @@ class ModelFactory:
 
                 if not receives.intersection(all_peers) or \
                         not check_process_deps_aginst_model(model, process):
-                    self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
+                    self.logger.info(f"Delete process '{key}' from the model '{model.attributed_name}' as it has no"
+                                     f" peers")
                     self._copy_declarations_to_init(model.environment[key], model.entry)
                     remove_process(model, key)
 
                     iterate = True
                 else:
                     names = ', '.join(sorted(receives.intersection(all_peers)))
-                    self.logger.info(f'Process {key} from the model {model.attributed_name} has peers for {names}')
+                    self.logger.info(
+                        f"Process '{key}' from the model '{model.attributed_name}' has peers for '{names}'")
 
             if iterate:
                 model.establish_peers()
-        self.logger.info(f"New attributes of the model: {model.attributed_name}")
+        self.logger.info(f"New attributes of the model: '{model.attributed_name}'")
 
     def _copy_declarations_to_init(self, process: Process, init: Process):
         assert process

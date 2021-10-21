@@ -60,7 +60,7 @@ def control_function_comment_begin(function_name, comment, identifier=None):
     elif identifier is None:
         pass
     else:
-        raise ValueError('Unsupported identifier type {}'.format(str(type(identifier).__name__)))
+        raise ValueError("Unsupported identifier type {!r}".format(str(type(identifier).__name__)))
     return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
 
 
@@ -155,7 +155,7 @@ class CModel:
         :return: None.
         """
         if not func.definition_file:
-            raise RuntimeError('Always expect file to place function definition')
+            raise RuntimeError("Always expect file to place function definition")
         definitions = self._function_definitions.setdefault(func.definition_file, {})
         self._function_definitions.setdefault(self.entry_file, sortedcontainers.SortedDict())
 
@@ -527,8 +527,8 @@ class FunctionModels:
                                              format(stm, expression))
                         var = automaton.determine_variable(access.label)
                         if not var:
-                            raise ValueError(f'There is no variable created for '
-                                             f'label {access.label} of access {str(access)}')
+                            raise ValueError(f"There is no variable created for "
+                                             f"label '{access.label}' of access '{str(access)}'")
                         stm = stm.replace(expression, var.name)
                         stm_set.add(stm)
                     else:
@@ -551,12 +551,12 @@ class FunctionModels:
 
         # TODO: Implement this using access parser
         if suffix:
-            raise NotImplementedError(f'Provide a label to an allocation function: {func}')
+            raise NotImplementedError(f"Provide a label to an allocation function: '{func}'")
 
         if func not in self.mem_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(func))
+            raise NotImplementedError("Model of {!r} is not supported".format(func))
         elif not self.mem_function_map[func]:
-            raise NotImplementedError("Set implementation for the function {}".format(func))
+            raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         if isinstance(self.signature, Pointer):
             if self._conf.get('disable ualloc') and func == 'UALLOC':
@@ -571,9 +571,9 @@ class FunctionModels:
     def _replace_free_call(self, match):
         func, label_name, suffix, flag = match.groups()
         if func not in self.free_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(func))
+            raise NotImplementedError("Model of {!r} is not supported".format(func))
         elif not self.free_function_map[func]:
-            raise NotImplementedError("Set implementation for the function {}".format(func))
+            raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         # Create function call
         if isinstance(self.signature, Pointer):

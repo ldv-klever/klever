@@ -247,12 +247,12 @@ class Process:
                 # Compare signatures of parameters
                 for num, p in enumerate(self.actions[action].parameters):
                     access1 = self.resolve_access(p)
-                    assert access1, f"No access {p} in process {str(self)}"
-                    assert access1.label, f"Access {p} of process {str(self)} does not connected to any label"
+                    assert access1, f"No access '{p}' in process '{str(self)}'"
+                    assert access1.label, f"Access '{p}' of process '{str(self)}' does not connected to any label"
                     access2 = process.resolve_access(process.actions[action].parameters[num])
-                    assert access2, f"No access {process.actions[action].parameters[num]} in process {str(process)}"
-                    assert access2.label, f"Access {process.actions[action].parameters[num]} of process {str(process)}" \
-                                          " does not connected to any label"
+                    assert access2, f"No access '{process.actions[action].parameters[num]}' in process '{str(process)}'"
+                    assert access2.label, f"Access '{process.actions[action].parameters[num]}' of process" \
+                                          f" '{str(process)}' does not connected to any label"
 
                     if access1.label.declaration != access2.label.declaration:
                         break
@@ -360,8 +360,8 @@ class Process:
         :param purge: Delete an object from collection.
         :return: None
         """
-        assert isinstance(old, Action), f'Expect strictly an Action to replace but got {repr(old)}'
-        assert isinstance(new, Action), f'Expect strictly an Action to replace with {repr(new)}'
+        assert isinstance(old, Action), f"Expect strictly an Action to replace but got '{repr(old)}'"
+        assert isinstance(new, Action), f"Expect strictly an Action to replace with '{repr(new)}'"
         self.actions[str(new)] = new
 
         for entry in self.actions.behaviour(str(old)):
@@ -382,8 +382,8 @@ class Process:
         :param target: Action object.
         :param before: True if append left ot append to  the right end.
         """
-        assert isinstance(new, Action), f'Got non-action object {str(new)}'
-        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
+        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
         if str(new) not in self.actions:
             self.actions[str(new)] = new
 
@@ -415,8 +415,8 @@ class Process:
         :param new: Action object.
         :param target: Action object.
         """
-        assert isinstance(new, Action), f'Got non-action object {str(new)}'
-        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
+        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
         if str(new) not in self.actions:
             self.actions[str(new)] = new
 
@@ -452,7 +452,7 @@ class ProcessDescriptor:
     EXPECTED_CATEGORY = 'entry_point'
 
     def __set__(self, obj, value):
-        assert isinstance(value, Process) or value is None, f'Got {type(value).__name__} instead of a process'
+        assert isinstance(value, Process) or value is None, f"Got '{type(value).__name__}' instead of a process"
         if value:
             # Warning: this is because there is no setter in the class and this is normal
             value._category = self.EXPECTED_CATEGORY
@@ -466,12 +466,12 @@ class ProcessDict(sortedcontainers.SortedDict):
     """The collection implements a dictionary with Processes (str -> Process)."""
 
     def __setitem__(self, key, value):
-        assert isinstance(value, Process), f'Expect a Process as a value bug got {type(value).__name__}'
+        assert isinstance(value, Process), f"Expect a Process as a value bug got '{type(value).__name__}'"
         if value.category and value.category == 'functions models':
-            assert key == value.name, f'Function models should be assigned by its name ({value.name}) but got {key}'
+            assert key == value.name, f"Function models should be assigned by its name ('{value.name}') but got '{key}'"
         else:
-            assert key == str(value), f'Environment processes should be saved by its string representation' \
-                                      f' ({str(value)}) but got {key}'
+            assert key == str(value), f"Environment processes should be saved by its string representation" \
+                                      f" ({str(value)}) but got '{key}'"
         super().__setitem__(key, value)
 
     def __getitem__(self, item):
@@ -551,13 +551,14 @@ class ProcessCollection:
         :param processes: Iterable of possible processes names.
         :return: list of Peer objects.
         """
-        assert isinstance(process, Process), f'Got {type(process).__name__}'
+        assert isinstance(process, Process), f"Got '{type(process).__name__}'"
         if signals:
             for signal in signals:
-                assert isinstance(signal, str), f'Signal {str(signal)} has type {type(process).__name__} instead of str'
+                assert isinstance(signal, str), \
+                    f"Signal '{str(signal)}' has type '{type(process).__name__}' instead of str"
         if processes:
             for name in processes:
-                assert isinstance(name, str), f'Process name {str(name)} has type {type(process).__name__}'
+                assert isinstance(name, str), f"Process name '{str(name)}' has type '{type(process).__name__}'"
 
         peers = []
         for agent_name in (n for n in process.peers if processes is None or n in processes):

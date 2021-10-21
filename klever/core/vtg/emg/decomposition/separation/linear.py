@@ -39,8 +39,8 @@ class LinearExtractor(ScenarioExtractor):
                 name = processing_path.name
             else:
                 name = "base"
-            self.logger.info(f'Generate {name} scenario for path {repr(processing_path)}' +
-                             (f' and savepoint {str(savepoint)}' if savepoint else ''))
+            self.logger.info(f"Generate '{name}' scenario for path '{repr(processing_path)}'" +
+                             (f" and savepoint '{str(savepoint)}'" if savepoint else ''))
 
             new_scenario = Scenario(savepoint, name)
             new_scenario.initial_action = Concatenation()
@@ -55,7 +55,8 @@ class LinearExtractor(ScenarioExtractor):
                             (isinstance(behaviour.my_operator, Choice) or
                              (isinstance(behaviour.my_operator, Concatenation)
                               and behaviour.my_operator.index(behaviour) == 0)):
-                        self.logger.debug(f"Convert conditions to assumptions in {behaviour.name} of {name} scenario")
+                        self.logger.debug(
+                            f"Convert conditions to assumptions in '{behaviour.name}' of '{name}' scenario")
                         for statement in reversed(new_description.condition):
                             new_description.statements.insert(0, f"ldv_assume({statement});")
                         new_description.condition = []
@@ -82,10 +83,10 @@ class LinearExtractor(ScenarioExtractor):
     def _get_scenarios_for_root_savepoints(self, root: Action):
         paths, subp_paths = self.__determine_paths()
 
-        self.logger.debug('Generate main scenarios')
+        self.logger.debug("Generate main scenarios")
         yield from self._new_scenarios(paths)
         for action in (a for a in self._actions.values() if a.savepoints):
-            self.logger.debug(f'Generate scenarios with savepoints for action {str(action)}')
+            self.logger.debug(f"Generate scenarios with savepoints for action '{str(action)}'")
             if isinstance(action, Subprocess):
                 yield from self._new_scenarios(subp_paths[str(action)], action)
             else:
@@ -123,7 +124,7 @@ class LinearExtractor(ScenarioExtractor):
 
                         # Now save new paths
                         subp_to_paths[subprocess] = new_paths
-                
+
                     # Check that the dependency is not terminated and self-dependent only
                     new_deps = self.__path_dependencies(subp_to_paths[subprocess])
                     if len(new_deps) == 0 or (len(new_deps) == 1 and subprocess in new_deps):
@@ -137,7 +138,7 @@ class LinearExtractor(ScenarioExtractor):
                             else:
                                 assert path.terminal
                                 terminal_paths.add(path)
-                        
+
                         new_paths = set()
                         for recursive_path in recursion_paths:
                             new_paths.update(self.__do_substitution(recursive_path, terminal_paths))
@@ -179,7 +180,7 @@ class LinearExtractor(ScenarioExtractor):
     def __choose_subprocess_paths(self, action: Behaviour, prev_paths: list):
         """
         Collect unique paths till to jumps to subprocesses. Example:
-        p := <a>.(<b>.{c} | {d}) | <f> 
+        p := <a>.(<b>.{c} | {d}) | <f>
         The function should return the following paths:
         [a, b, c], [a, d], [f]
         """
