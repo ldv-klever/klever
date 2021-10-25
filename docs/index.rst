@@ -26,9 +26,11 @@ Contents
    deploy
    tutorial
    cli
+   dev_decomposition_conf
    dev_common_api_models
    dev_req_specs
    dev_env_model_specs
+   dev_verifier_profiles
    dev
    glossary
 
