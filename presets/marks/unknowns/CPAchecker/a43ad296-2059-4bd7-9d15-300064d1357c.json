@@ -1,9 +1,9 @@
 {
   "attrs": [],
-  "description": "",
   "function": "Unsupported feature (recursion)",
-  "is_modifiable": true,
   "is_regexp": false,
   "link": "",
-  "problem_pattern": "recursion"
+  "problem_pattern": "Recursion",
+  "production": true,
+  "is_modifiable": false
 }
