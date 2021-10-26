@@ -1,7 +1,7 @@
 .. _dev_decomposition_conf:
 
-Development of Program Decomposition Specifications
-===================================================
+Configuring Program Decomposition
+=================================
 
 The section presents a tutorial for program decomposition in Klever.
 Thorough verification is poorly scalable.
