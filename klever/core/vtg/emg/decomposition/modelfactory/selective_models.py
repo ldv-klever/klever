@@ -273,6 +273,45 @@ class SimplifiedFileSystemModel(FileSystemModel):
     }
 
 
+class FileSystemModelWithRequirements(FileSystemModel):
+    environment_models = {
+        "c/p1": {
+            "comment": "",
+            "labels": {},
+            "process": "(!register_p1).<init>.(<exit> | <init_failed>)",
+            "actions": {
+                "register_p1": {
+                    "parameters": [],
+                    "savepoints": {
+                        'sp1': {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c/p3": False, "c/p4": False}
+                            }
+                        },
+                        'sp2': {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c/p2": True, "c/p3": True, "c/p4": True},
+                                "actions": {
+                                    "c/p2": [["success"]],
+                                    "c/p3": [["register_p4", "success", "create"]]
+                                }
+                            }
+                        }
+                    }
+                },
+                "init": {"comment": ""},
+                "exit": {"comment": ""},
+                "init_failed": {"comment": ""}
+            }
+        },
+        "c/p2": FileSystemModel.environment_models["c/p2"],
+        "c/p3": FileSystemModel.environment_models["c/p3"],
+        "c/p4": FileSystemModel.environment_models["c/p4"]
+    }
+
+
 class DoubleInitModel(DeviceDriverModel):
     entry = None,
     environment_models = {
@@ -339,6 +378,85 @@ class DoubleInitModel(DeviceDriverModel):
     }
 
 
+class DoubleInitModelWithSavepoints(DoubleInitModel):
+    environment_models = {
+        "c1/p1": {
+            "comment": "Category 1, process 1.",
+            "process": "(!register_c1p1).<init>.(<ok>.[register_c2p2].[deregister_c2p2] | <fail>)",
+            "actions": {
+                "register_c1p1": {
+                    "parameters": [],
+                    "savepoints": {
+                        "s1": {"statements": []},
+                        "s2": {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c2/p1": True, "c2p2": False}
+                            }
+                        },
+                        "s3": {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c2/p1": True, "c2p2": True}
+                            }
+                        },
+                        "s4": {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c2/p1": True, "c2p2": True},
+                                "actions": {
+                                    "c2/p2": [{"v1"}]
+                                }
+                            }
+                        }
+                    }
+                },
+                "register_c2p2": {"parameters": []},
+                "deregister_c2p2": {"parameters": []},
+                "init": {"coment": ""},
+                "ok": {"coment": ""},
+                "fail": {"coment": ""}
+            }
+        },
+        "c1/p2": DoubleInitModel.environment_models["c1/p2"],
+        "c2/p1": {
+            "comment": "Category 2, process 1.",
+            "process": "(!register_p1).<probe>.(deregister_p1)",
+            "labels": {"container": {"declaration": "struct validation *var"}},
+            "actions": {
+                "register_p1": {
+                    "parameters": ["%container%"],
+                    "require": {
+                        "c1/p1": {"include": ["ok"]},
+                        "c1/p2": {"include": ["ok"]}
+                    },
+                    "savepoints": {
+                        "s5": {
+                            "statements": []
+                        }
+                    }
+                },
+                "deregister_p1": {"parameters": ["%container%"]},
+                "probe": {"comment": ""},
+            }
+        },
+        "c2/p2": {
+            "comment": "Category 2, process 2.",
+            "process": "(!register_c2p2).(<v1>.(<v3> | <v4>) | <v2>).(deregister_c2p2)",
+            "actions": {
+                "register_c2p2": {
+                    "parameters": [], "require": {"c2/p1": {"include": ["probe"]}}
+                },
+                "deregister_c2p2": {"parameters": []},
+                "v1": {"comment": ""},
+                "v2": {"comment": ""},
+                "v3": {"comment": ""},
+                "v4": {"comment": ""}
+            }
+        }
+    }
+
+
 def driver_model():
     return _model_factory(DeviceDriverModel)
 
@@ -347,12 +465,20 @@ def driver_double_init():
     return _model_factory(DoubleInitModel)
 
 
+def driver_double_init_with_deps():
+    return _model_factory(DoubleInitModelWithSavepoints)
+
+
 def fs_model():
     return _model_factory(FileSystemModel)
 
 
 def fs_with_unique_process():
     return _model_factory(ExtendedFileSystemModel)
+
+
+def fs_savepoint_deps():
+    return _model_factory(FileSystemModelWithRequirements)
 
 
 def fs_simplified():
