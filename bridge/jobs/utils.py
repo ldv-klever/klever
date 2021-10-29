@@ -231,12 +231,16 @@ class JobAccess:
         return True
 
     @cached_property
+    def is_operator(self):
+        return self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]}
+
+    @cached_property
     def can_decide(self):
-        return self.user.is_manager or self.is_author or self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]}
+        return self.user.is_manager or self.user.is_expert or self.is_author or self.is_operator
 
     @cached_property
     def can_view(self):
-        return self.user.is_manager or self.is_author or self.user.is_expert or self._job_role != JOB_ROLES[0][0]
+        return self.user.is_manager or self.user.is_expert or self.is_author or self._job_role != JOB_ROLES[0][0]
 
     @cached_property
     def can_edit(self):
@@ -268,8 +272,13 @@ class DecisionAccess:
                (self.decision.operator == self.user or self.user.is_manager)
 
     @cached_property
+    def can_copy(self):
+        return self.job_access.can_decide
+
+    @cached_property
     def can_restart(self):
-        return self.job_access.can_decide and self.decision.is_finished
+        return (self.user.is_manager or self.job_access.is_author or self.job_access.is_operator) \
+               and self.decision.is_finished
 
     @cached_property
     def can_download(self):
