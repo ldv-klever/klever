@@ -93,6 +93,143 @@ def specific_model():
     return collection
 
 
+@pytest.fixture()
+def model_with_savepoint_requirements():
+    c1p1 = {
+        "comment": "",
+        "process": "(!register).({x} | <c>).{y}",
+        "actions": {
+            "x": {
+                "comment": "",
+                "process": "<a>.(<d> | <c>).{y}"
+            },
+            "y": {
+                "comment": "",
+                "process": "<b>.<c> | <e>"
+            },
+            "a": {"comment": "", "statements": []},
+            "b": {"comment": "", "statements": []},
+            "c": {"comment": "", "statements": []},
+            "d": {"comment": "", "statements": []},
+            "e": {"comment": "", "statements": []},
+            "register": {
+                "parameters": [],
+                "savepoints": {
+                    "s1": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p2": [["a", "d", "b"]]}
+                        }
+                    },
+                    "s2": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p2": [["e"]]}
+                        }
+                    },
+                    "s3": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p2": [["a"]]}
+                        }
+                    }
+                }
+            }
+        }
+    }
+    c1p3 = {
+        "comment": "",
+        "process": "(register).({level_one} | (unregister)",
+        "actions": {
+            "level_one": {"comment": "", "process": "<probe>.(<success>.{level_two} | <fail>).<remove>.(unregister)"},
+            "level_two": {"comment": "", "process": "(<read | <write>).{level_two} | <remove>.{level_one}"},
+            "register": {
+                "parameters": [],
+                "savepoints": {
+                    "s7": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "unregister"]]}
+                        }
+                    },
+                    "s8": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "read", "unregister"]]}
+                        }
+                    },
+                    "s9": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "success", "probe", "unregister"]]}
+                        }
+                    }
+                }
+            },
+            "unregister": {"parameters": []},
+            "probe": {"comment": "", "statements": []},
+            "success": {"comment": "", "statements": []},
+            "fail": {"comment": "", "statements": []},
+            "read": {"comment": "", "statements": []},
+            "write": {"comment": "", "statements": []}
+        }
+    }
+    c1p2 = {
+        "comment": "",
+        "process": "(!register).(<a>.(<d> | <c>) | <c>).(<b>.<c> | <e>)",
+        "actions": {
+            "x": {
+                "comment": "",
+                "process": ""
+            },
+            "y": {
+                "comment": "",
+                "process": ""
+            },
+            "a": {"comment": "", "statements": []},
+            "b": {"comment": "", "statements": []},
+            "c": {"comment": "", "statements": []},
+            "d": {"comment": "", "statements": []},
+            "e": {"comment": "", "statements": []},
+            "register": {
+                "parameters": [],
+                "savepoints": {
+                    "s4": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p1": [["a", "d", "b"]]}
+                        }
+                    },
+                    "s5": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p1": [["e"]]}
+                        }
+                    },
+                    "s6": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p1": [["a"]]}
+                        }
+                    }
+                }
+            }
+        }
+    }
+    spec = {
+        "functions models": {},
+        "environment processes": {
+            "c1/p1": c1p1,
+            "c1/p2": c1p2,
+            "c1/p3": c1p3
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
+
+
 def test_default_scenario_extraction(model, default_separator):
     c1p1 = model.environment['c1/p1']
     c1p2 = model.environment['c1/p2']
