@@ -150,13 +150,13 @@
       "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking lightweight": {
-      "CPAchecker": {"CPALockator-combat-mode:38211": {"inherit": "CPALockator lightweight"}}
+      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:38211": {"inherit": "CPALockator thread-modular"}}
+      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator thread-modular"}}
     },
     "race checking rcu": {
-      "CPAchecker": {"CPALockator-combat-mode:38211": {"inherit": "CPALockator rcu"}}
+      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
       "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker SMG memory checking"}}
