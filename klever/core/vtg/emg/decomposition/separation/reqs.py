@@ -30,8 +30,24 @@ class ReqsExtractor(ScenarioExtractor):
     The factory creates scenarios according to requirements in savepoints.
     """
 
-    def _process_choice(self, scenario: Scenario, beh: Choice, operator: Operator = None):
-        pass
+    def _process_choice(self, scenario: Scenario, behaviour: Choice, operator: Operator = None):
+        assert isinstance(behaviour, Operator), type(behaviour).__name__
+        parent = scenario.add_action_copy(behaviour, operator)
+
+        # Collect all first actions
+        all_first_actions = set()
+        options = []
+        for child in behaviour:
+            next_actions = self._actions.first_actions(root=child, enter_subprocesses=True)
+            all_first_actions.update(next_actions)
+            options.append((child, next_actions))
+
+        requirements = scenario.savepoint.required_actions()
+
+        # Check which of them are relevant
+        self._fill_top_down(scenario, child, parent)
+
+        return parent
 
 
 class ReqsStrategy(SeparationStrategy):
