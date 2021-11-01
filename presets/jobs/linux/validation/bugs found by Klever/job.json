@@ -117,7 +117,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found (4 unsafes). Non-target bug. The overall verdict is unknown (timeout)."
+        "comment": "Non-target bug is found. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
@@ -128,7 +128,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Non-target bug. 4 false alarms due to \"EMG - Specs - Missed trigger\" (cancel_work_sync() should disable execution of the timeout work (pxa168_eth_tx_timeout_task)). The overall verdict is unknown (timeout)."
+        "comment": "Non-target bug is found. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
