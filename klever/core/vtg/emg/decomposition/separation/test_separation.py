@@ -20,9 +20,9 @@ import pytest
 import logging
 
 from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
-from klever.core.vtg.emg.decomposition.separation.reqs import ReqsExtractor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset, source_preset
@@ -45,7 +45,7 @@ def linear_separator():
 
 @pytest.fixture
 def requirements_driven_separator():
-    return ReqsExtractor(logging.Logger('default'), dict())
+    return ReqsStrategy(logging.Logger('default'), dict())
 
 
 @pytest.fixture()
@@ -182,7 +182,7 @@ def model_with_savepoint_requirements():
         "process": "(!register).({level_one} | (unregister))",
         "actions": {
             "level_one": {"comment": "", "process": "<probe>.(<success>.{level_two} | <fail>).<remove>.(unregister)"},
-            "level_two": {"comment": "", "process": "(<read | <write>).{level_two} | <remove>.{level_one}"},
+            "level_two": {"comment": "", "process": "(<read> | <write>).{level_two} | <remove>.{level_one}"},
             "register": {
                 "parameters": [],
                 "savepoints": {
@@ -434,14 +434,14 @@ def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separato
     c1p1 = model_with_savepoint_requirements.environment['c1/p1']
     scenarios = requirements_driven_separator(c1p1)
     # TODO: Implement assertions
-    pass
+    raise ValueError
 
 
-def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
+def test_reqs_p2(model_with_savepoint_requirements, requirements_driven_separator):
     # TODO: Implement assertions
     pass
 
 
-def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
+def test_reqs_p3(model_with_savepoint_requirements, requirements_driven_separator):
     # TODO: Implement assertions
     pass

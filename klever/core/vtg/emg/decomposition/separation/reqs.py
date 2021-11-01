@@ -15,8 +15,12 @@
 # limitations under the License.
 #
 
+import logging
+
+from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.decomposition.separation import ScenarioExtractor
+from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Action, Behaviour, Subprocess, \
     Block
 
@@ -28,3 +32,12 @@ class ReqsExtractor(ScenarioExtractor):
 
     def _process_choice(self, scenario: Scenario, beh: Choice, operator: Operator = None):
         pass
+
+
+class ReqsStrategy(SeparationStrategy):
+    """
+    Strategy that creates Scenario instances for a provided Process instance. Each scenario is used to replace an origin
+    process in environment model variants.
+    """
+
+    strategy = ReqsExtractor
