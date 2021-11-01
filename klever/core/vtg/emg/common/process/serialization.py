@@ -383,19 +383,19 @@ class CollectionDecoder:
             setattr(act, attname, dic[att])
 
         if 'savepoints' in dic:
-            for name, sp_dic in dic['savepoints'].items():
-                savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
+            for sp_name, sp_dic in dic['savepoints'].items():
+                savepoint = Savepoint(sp_name, name, sp_dic.get('statements', []), sp_dic.get('comment'))
 
                 # Add requirements
                 if 'require' in sp_dic:
                     # Add required processes
-                    for name, flag in sp_dic['require'].get('processes', dict()).items():
-                        savepoint.require_process(name, require_process=flag)
+                    for pr_name, flag in sp_dic['require'].get('processes', dict()).items():
+                        savepoint.require_process(pr_name, require_process=flag)
 
                     # Add required actions
-                    for name, actions in sp_dic['require'].get('actions').items():
+                    for pr_name, actions in sp_dic['require'].get('actions').items():
                         for actions_set in actions:
-                            savepoint.require_process(name, actions=actions_set, append=True)
+                            savepoint.require_process(pr_name, actions=actions_set, append=True)
 
                 act.savepoints.add(savepoint)
 

@@ -24,10 +24,11 @@ class Savepoint:
     The class represents a savepoint - description of an initialization used if there is no receiver for a process.
     """
 
-    def __init__(self, name, statements, comment=None):
+    def __init__(self, name, parent, statements, comment=None):
         self._name = name
         self.comment = comment if comment else name.capitalize()
         self.statements = list(statements)
+        self.parent = parent
         self._required_actions = dict()
         self._required_processes = dict()
 
