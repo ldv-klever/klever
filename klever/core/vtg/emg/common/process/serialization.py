@@ -77,6 +77,13 @@ class CollectionEncoder(json.JSONEncoder):
             sp["statements"] = point.statements
         if point.comment:
             sp["comment"] = point.comment
+        if point.required_processes:
+            sp['require'] = {'actions': dict(), 'processes': dict()}
+
+            sp['require']["processes"] = point.required_processes
+            for name in (n for n, f in point.required_processes.items() if f):
+                sp['require']["processes"][name] = point.required_actions(name)
+
         return sp
 
     def _serialize_action(self, action):
@@ -245,6 +252,20 @@ class CollectionDecoder:
                         raise ValueError(f'Savepoints cannot be used twice: {intr}')
                     else:
                         savepoints.update(sp)
+
+                    for savepoint in action.savepoints:
+                        for name in savepoint.required_processes:
+                            if name not in collection.environment:
+                                raise ValueError(f"Savepoint '{str(savepoint)}' requires unknown process '{name}'")
+
+                            required_actions = savepoint.required_actions(name)
+                            for i, actions_list in enumerate(required_actions):
+                                for act in actions_list:
+                                    if act not in collection.environment[name].actions:
+                                        raise ValueError(
+                                            f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
+                                            f"process '{name}' in list {i}")
+
                 if action.require:
                     for name in action.require:
                         if collection.entry and name == str(collection.entry):
@@ -364,6 +385,18 @@ class CollectionDecoder:
         if 'savepoints' in dic:
             for name, sp_dic in dic['savepoints'].items():
                 savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
+
+                # Add requirements
+                if 'require' in sp_dic:
+                    # Add required processes
+                    for name, flag in sp_dic['require'].get('processes', dict()).items():
+                        savepoint.require_process(name, require_process=flag)
+
+                    # Add required actions
+                    for name, actions in sp_dic['require'].get('actions').items():
+                        for actions_set in actions:
+                            savepoint.require_process(name, actions=actions_set, append=True)
+
                 act.savepoints.add(savepoint)
 
         if 'require' in dic:

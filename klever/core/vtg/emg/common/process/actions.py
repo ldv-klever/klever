@@ -28,12 +28,42 @@ class Savepoint:
         self._name = name
         self.comment = comment if comment else name.capitalize()
         self.statements = list(statements)
+        self._required_actions = dict()
+        self._required_processes = dict()
 
     def __str__(self):
         return str(self._name)
 
     def __hash__(self):
         return hash(str(self))
+
+    def require_process(self, name, require_process=True, actions=None, append=True):
+        self._required_processes[name] = require_process
+
+        if require_process and actions:
+            if append:
+                self._required_actions.setdefault(name, list())
+                self._required_actions[name].append(actions)
+            else:
+                self._required_actions[name] = [actions]
+
+    def remove_requirement(self, name):
+        assert name in self._required_processes
+        del self._required_processes[name]
+
+        if name in self._required_actions:
+            del self._required_actions[name]
+
+    @property
+    def required_processes(self):
+        return dict(self._required_processes)
+
+    def required_actions(self, process):
+        assert process in self._required_processes
+        actions = self._required_actions.get(process, list())
+
+        # It is important to return copies
+        return [list(l) for l in actions]
 
 
 class OperatorDescriptor:

@@ -45,7 +45,13 @@ c1p1 = {
         "register_c1p1": {
             "parameters": ['%container%'],
             "savepoints": {
-                'p1s1': {"statements": ["$ALLOC(%container%);"]},
+                'p1s1': {
+                    "statements": ["$ALLOC(%container%);"],
+                    "require": {
+                        "actions": {"c1/p1": [["register_c1p2", "deregister_c1p1"]]},
+                        "processes": {"c1/p1": True, "c1/p2": True}
+                    }
+                },
                 'p1s2': {"statements": ["$ALLOC(%container%);"]}
             }
         },
