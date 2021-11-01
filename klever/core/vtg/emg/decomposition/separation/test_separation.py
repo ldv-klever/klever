@@ -22,6 +22,7 @@ import logging
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsExtractor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset, source_preset
@@ -40,6 +41,11 @@ def default_separator():
 @pytest.fixture
 def linear_separator():
     return LinearStrategy(logging.Logger('default'), dict())
+
+
+@pytest.fixture
+def requirements_driven_separator():
+    return ReqsExtractor(logging.Logger('default'), dict())
 
 
 @pytest.fixture()
@@ -137,55 +143,10 @@ def model_with_savepoint_requirements():
             }
         }
     }
-    c1p3 = {
-        "comment": "",
-        "process": "(register).({level_one} | (unregister)",
-        "actions": {
-            "level_one": {"comment": "", "process": "<probe>.(<success>.{level_two} | <fail>).<remove>.(unregister)"},
-            "level_two": {"comment": "", "process": "(<read | <write>).{level_two} | <remove>.{level_one}"},
-            "register": {
-                "parameters": [],
-                "savepoints": {
-                    "s7": {
-                        "statements": [],
-                        "require": {
-                            "actions": {"c1/p3": [["probe", "unregister"]]}
-                        }
-                    },
-                    "s8": {
-                        "statements": [],
-                        "require": {
-                            "actions": {"c1/p3": [["probe", "read", "unregister"]]}
-                        }
-                    },
-                    "s9": {
-                        "statements": [],
-                        "require": {
-                            "actions": {"c1/p3": [["probe", "success", "probe", "unregister"]]}
-                        }
-                    }
-                }
-            },
-            "unregister": {"parameters": []},
-            "probe": {"comment": "", "statements": []},
-            "success": {"comment": "", "statements": []},
-            "fail": {"comment": "", "statements": []},
-            "read": {"comment": "", "statements": []},
-            "write": {"comment": "", "statements": []}
-        }
-    }
     c1p2 = {
         "comment": "",
         "process": "(!register).(<a>.(<d> | <c>) | <c>).(<b>.<c> | <e>)",
         "actions": {
-            "x": {
-                "comment": "",
-                "process": ""
-            },
-            "y": {
-                "comment": "",
-                "process": ""
-            },
             "a": {"comment": "", "statements": []},
             "b": {"comment": "", "statements": []},
             "c": {"comment": "", "statements": []},
@@ -214,6 +175,44 @@ def model_with_savepoint_requirements():
                     }
                 }
             }
+        }
+    }
+    c1p3 = {
+        "comment": "",
+        "process": "(!register).({level_one} | (unregister))",
+        "actions": {
+            "level_one": {"comment": "", "process": "<probe>.(<success>.{level_two} | <fail>).<remove>.(unregister)"},
+            "level_two": {"comment": "", "process": "(<read | <write>).{level_two} | <remove>.{level_one}"},
+            "register": {
+                "parameters": [],
+                "savepoints": {
+                    "s7": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "unregister"]]}
+                        }
+                    },
+                    "s8": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "read", "unregister"]]}
+                        }
+                    },
+                    "s9": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"c1/p3": [["probe", "success", "probe", "unregister"]]}
+                        }
+                    }
+                }
+            },
+            "unregister": {"parameters": []},
+            "probe": {"comment": "", "statements": []},
+            "remove": {"comment": "", "statements": []},
+            "success": {"comment": "", "statements": []},
+            "fail": {"comment": "", "statements": []},
+            "read": {"comment": "", "statements": []},
+            "write": {"comment": "", "statements": []}
         }
     }
     spec = {
@@ -429,3 +428,20 @@ def _check_linear_actions(scenarios, actions):
     for scenario in scenarios:
         for action in scenario.actions.filter(include={Block}):
             assert not action.condition, "Blocks must be moved to statements as assumptions"
+
+
+def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
+    c1p1 = model_with_savepoint_requirements.environment['c1/p1']
+    scenarios = requirements_driven_separator(c1p1)
+    # TODO: Implement assertions
+    pass
+
+
+def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
+    # TODO: Implement assertions
+    pass
+
+
+def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
+    # TODO: Implement assertions
+    pass
