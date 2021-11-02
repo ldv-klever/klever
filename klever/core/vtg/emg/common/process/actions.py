@@ -19,54 +19,6 @@ import copy
 import collections
 
 
-class Savepoint:
-    """
-    The class represents a savepoint - description of an initialization used if there is no receiver for a process.
-    """
-
-    def __init__(self, name, parent, statements, comment=None):
-        self._name = name
-        self.comment = comment if comment else name.capitalize()
-        self.statements = list(statements)
-        self.parent = parent
-        self._required_actions = dict()
-        self._required_processes = dict()
-
-    def __str__(self):
-        return str(self._name)
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def require_process(self, name, require_process=True, actions=None, append=True):
-        self._required_processes[name] = require_process
-
-        if require_process and actions:
-            if append:
-                self._required_actions.setdefault(name, list())
-                self._required_actions[name].append(actions)
-            else:
-                self._required_actions[name] = [actions]
-
-    def remove_requirement(self, name):
-        assert name in self._required_processes
-        del self._required_processes[name]
-
-        if name in self._required_actions:
-            del self._required_actions[name]
-
-    @property
-    def required_processes(self):
-        return dict(self._required_processes)
-
-    def required_actions(self, process):
-        assert process in self._required_processes
-        actions = self._required_actions.get(process, list())
-
-        # It is important to return copies
-        return [list(l) for l in actions]
-
-
 class OperatorDescriptor:
     """
     The descriptor guards the work with operators. It is error prone to directly clean and set dependencies between
@@ -317,7 +269,7 @@ class Action:
         self.trace_relevant = False
         self.savepoints = set()
         self.comment = ''
-        self._require = dict()
+        self._require = Requirements()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
@@ -336,19 +288,14 @@ class Action:
         return str(self) < str(other)
 
     @property
-    def require(self):
-        return copy.deepcopy(self._require)
+    def requirements(self):
+        return self._require
 
-    def add_required_process(self, process_name: str, actions: set):
-        assert isinstance(process_name, str)
-        assert isinstance(actions, set)
-        for name in actions:
-            assert isinstance(name, str)
-
-        self._require.setdefault(process_name, dict())
-        if actions:
-            self._require[process_name].setdefault('include', set())
-            self._require[process_name]['include'].update(set(actions))
+    def clone(self):
+        new = copy.copy(self)
+        new.savepoints = {s.clone() for s in self.savepoints}
+        new._require = self.requirements.clone()
+        return new
 
 
 class Subprocess(Action):
@@ -531,7 +478,7 @@ class Actions(collections.UserDict):
         # Clone actions
         new.data = copy.copy(self.data)
         for action in self.data:
-            new.data[action] = copy.copy(self.data[action])
+            new.data[action] = self.data[action].clone()
 
         # Copy BehActions
         actions_map = dict()
@@ -654,3 +601,125 @@ class Actions(collections.UserDict):
         :return: set of Behaviour actions.
         """
         return set(filter(lambda x: not isinstance(x, Operator), self.behaviour()))
+
+
+class Requirements:
+    """The class represent requirement of a process, scenario or savepoint."""
+
+    def __init__(self):
+        self._required_actions = dict()
+        self._required_processes = dict()
+
+    def require_process(self, name: str, require: bool = True):
+        assert require or name not in self._required_actions, \
+            f"Cannot add a requirement for process '{name}' as there are already contradicting requirements to " \
+            f"its actions"
+        self._required_processes[name] = require
+
+    def remove_requirement(self, name: str):
+        assert name in self._required_processes
+        del self._required_processes[name]
+
+        if name in self._required_actions:
+            del self._required_actions[name]
+
+    def require_actions(self, name: str, actions: set, replace: bool = False):
+        assert name in self._required_processes, f"First add the process requirement for process '{name}'"
+
+        if replace:
+            self._required_actions[name] = [actions]
+        else:
+            self._required_actions.setdefault(name, list())
+            self._required_actions[name].append(actions)
+
+    @property
+    def required_processes(self):
+        return {name for name, flag in self._required_processes.items() if flag}
+
+    @property
+    def forbidden_processes(self):
+        return {name for name, flag in self._required_processes.items() if not flag}
+
+    @property
+    def relevant_processes(self):
+        return set(self._required_processes.keys())
+
+    def required_actions(self, name: str):
+        assert name in self._required_processes
+
+        return self._required_actions.get(name, set())
+
+    def compatible(self, name: str, actions: Actions):
+        if name in self.required_processes and name in self._required_actions:
+            return set(actions.keys()).issubset(self.required_actions(name))
+        elif name in self.required_processes:
+            return True
+        elif name in self.forbidden_processes:
+            return False
+        else:
+            return True
+
+    def clone(self):
+        new = Requirements()
+        new._required_actions = copy.deepcopy(self._required_actions)
+        new._required_processes = copy.copy(self._required_processes)
+        return new
+
+    def __iter__(self):
+        yield "processes", dict(self._required_processes)
+        yield "actions", {name: list(actions) for name, actions in self._required_actions.items()}
+
+    @classmethod
+    def from_dict(cls, desc: dict):
+        assert isinstance(desc, dict)
+
+        new = Requirements()
+
+        for name, flag in desc.get('processes', dict()).items():
+            if not isinstance(flag, bool):
+                ValueError(f"Expect bool value instead of '{type(flag).__name__}' for member '{name}'")
+
+            new._required_processes[name] = flag
+
+        for name, actions in desc.get('actions', dict()).items():
+            if not isinstance(actions, list):
+                raise ValueError(f"Expect list of actions but got '{type(actions).__name__}' for member '{name}'")
+            assert new._required_processes.get(name), \
+                f"Set process requirement for '{name}' besides adding requirements for actions"
+
+            new._required_actions.setdefault(name, set())
+            for action in actions:
+                if not isinstance(action, str):
+                    raise ValueError(f"Expect names of actions, bug got '{type(action).__name__}' for member '{name}'")
+
+                new._required_actions[name].add(action)
+
+        return new
+
+
+class Savepoint:
+    """
+    The class represents a savepoint - description of an initialization used if there is no receiver for a process.
+    """
+
+    def __init__(self, name, parent, statements, comment=None):
+        self._name = name
+        self.comment = comment
+        self.statements = list(statements)
+        self.parent = parent
+        self._require = Requirements()
+
+    def __str__(self):
+        return str(self._name)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    @property
+    def requirements(self):
+        return self._require
+
+    def clone(self):
+        new = Savepoint(str(self), self.parent, self.statements, self.comment)
+        new._require = self._require.clone()
+        return new

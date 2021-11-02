@@ -24,7 +24,8 @@ from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
-from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal
+from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal,\
+    Requirements
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -77,12 +78,8 @@ class CollectionEncoder(json.JSONEncoder):
             sp["statements"] = point.statements
         if point.comment:
             sp["comment"] = point.comment
-        if point.required_processes:
-            sp['require'] = {'actions': dict(), 'processes': dict()}
-
-            sp['require']["processes"] = point.required_processes
-            for name in (n for n, f in point.required_processes.items() if f):
-                sp['require']["processes"][name] = point.required_actions(name)
+        if point.requirements:
+            sp['require'] = dict(point.requirements)
 
         return sp
 
@@ -97,9 +94,8 @@ class CollectionEncoder(json.JSONEncoder):
         if action.savepoints:
             ict_action['savepoints'] = {
                 str(point): self.default(point) for point in action.savepoints}
-        if action.require:
-            ict_action['require'] = {
-                name: self.default(value) for name, value in action.require.items()}
+        if action.requirements:
+            ict_action['require'] = dict(action.requirements)
         if isinstance(action, Subprocess):
             if action.action:
                 ict_action['process'] = repr(action.action)
@@ -254,34 +250,32 @@ class CollectionDecoder:
                         savepoints.update(sp)
 
                     for savepoint in action.savepoints:
-                        for name in savepoint.required_processes:
+                        for name in savepoint.requirements.required_processes:
                             if name not in collection.environment:
                                 raise ValueError(f"Savepoint '{str(savepoint)}' requires unknown process '{name}'")
 
-                            required_actions = savepoint.required_actions(name)
-                            for i, actions_list in enumerate(required_actions):
-                                for act in actions_list:
-                                    if act not in collection.environment[name].actions:
-                                        raise ValueError(
-                                            f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
-                                            f"process '{name}' in list {i}")
+                            required_actions = savepoint.requirements.required_actions(name)
+                            for act in required_actions:
+                                if act not in collection.environment[name].actions:
+                                    raise ValueError(
+                                        f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
+                                        f"process '{name}'")
 
-                if action.require:
-                    for name in action.require:
-                        if collection.entry and name == str(collection.entry):
-                            required = collection.entry
-                        elif name in collection.models.keys():
-                            required = collection.models[name]
-                        elif name in map(str, collection.environment.values()):
-                            required = collection.environment[name]
-                        else:
-                            raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
-                                             f" action '{str(action)}'")
+                for name in action.requirements.required_processes:
+                    if collection.entry and name == str(collection.entry):
+                        required = collection.entry
+                    elif name in collection.models.keys():
+                        required = collection.models[name]
+                    elif name in map(str, collection.environment.values()):
+                        required = collection.environment[name]
+                    else:
+                        raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
+                                         f" action '{str(action)}'")
 
-                        for action_name in action.require[name].get('include', set()):
-                            if action_name not in required.actions:
-                                raise ValueError(f"Process '{str(process)}' in action '{str(action)}' requires action "
-                                                 f"'{action_name}' which is missing in process '{name}'")
+                    for action_name in action.requirements.required_actions(name):
+                        if action_name not in required.actions:
+                            raise ValueError(f"Process '{str(process)}' in action '{str(action)}' requires action "
+                                             f"'{action_name}' which is missing in process '{name}'")
 
         self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
         self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
@@ -388,20 +382,18 @@ class CollectionDecoder:
 
                 # Add requirements
                 if 'require' in sp_dic:
-                    # Add required processes
-                    for pr_name, flag in sp_dic['require'].get('processes', dict()).items():
-                        savepoint.require_process(pr_name, require_process=flag)
-
-                    # Add required actions
-                    for pr_name, actions in sp_dic['require'].get('actions').items():
-                        for actions_set in actions:
-                            savepoint.require_process(pr_name, actions=actions_set, append=True)
+                    try:
+                        savepoint._require = Requirements.from_dict(sp_dic['require'])
+                    except (ValueError, AssertionError) as err:
+                        raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}")
 
                 act.savepoints.add(savepoint)
 
         if 'require' in dic:
-            for process_name in dic['require']:
-                act.add_required_process(process_name, set(dic['require'][process_name].get('include', set())))
+            try:
+                act._require = Requirements.from_dict(dic['require'])
+            except (ValueError, AssertionError) as err:
+                raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}")
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)

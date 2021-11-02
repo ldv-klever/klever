@@ -124,19 +124,19 @@ def model_with_savepoint_requirements():
                     "s1": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": [["a", "d", "b"]]}
+                            "actions": {"c1/p2": ["a", "d", "b"]}
                         }
                     },
                     "s2": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": [["e"]]}
+                            "actions": {"c1/p2": ["e"]}
                         }
                     },
                     "s3": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": [["a"]]}
+                            "actions": {"c1/p2": ["a"]}
                         }
                     }
                 }
@@ -158,19 +158,19 @@ def model_with_savepoint_requirements():
                     "s4": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": [["a", "d", "b"]]}
+                            "actions": {"c1/p1": ["a", "d", "b"]}
                         }
                     },
                     "s5": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": [["e"]]}
+                            "actions": {"c1/p1": ["e"]}
                         }
                     },
                     "s6": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": [["a"]]}
+                            "actions": {"c1/p1": ["a"]}
                         }
                     }
                 }
@@ -189,19 +189,19 @@ def model_with_savepoint_requirements():
                     "s7": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p3": [["probe", "unregister"]]}
+                            "actions": {"c1/p3": ["probe", "unregister"]}
                         }
                     },
                     "s8": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p3": [["probe", "read", "unregister"]]}
+                            "actions": {"c1/p3": ["probe", "read", "unregister"]}
                         }
                     },
                     "s9": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p3": [["probe", "success", "probe", "unregister"]]}
+                            "actions": {"c1/p3": ["probe", "success", "probe", "unregister"]}
                         }
                     }
                 }

@@ -48,7 +48,7 @@ c1p1 = {
                 'p1s1': {
                     "statements": ["$ALLOC(%container%);"],
                     "require": {
-                        "actions": {"c1/p1": [["register_c1p2", "deregister_c1p1"]]},
+                        "actions": {"c1/p1": ["register_c1p2", "deregister_c1p1"]},
                         "processes": {"c1/p1": True, "c1/p2": True}
                     }
                 },
@@ -101,7 +101,7 @@ c1p2 = {
                 'p2s1': {"statements": ["$ALLOC(%container%);"]},
                 'p2s2': {"statements": ["$ALLOC(%container%);"]}
             },
-            "require": {"c1/p1": {}}
+            "require": {"processes": {"c1/p1": True}}
         },
         "alloc": {
             "comment": "Alloc memory for the container.",
