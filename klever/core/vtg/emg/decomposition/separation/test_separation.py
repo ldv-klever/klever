@@ -124,19 +124,22 @@ def model_with_savepoint_requirements():
                     "s1": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": ["a", "d", "b"]}
+                            "processes": {"c1/p1": True},
+                            "actions": {"c1/p1": ["a", "d", "b"]}
                         }
                     },
                     "s2": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": ["e"]}
+                            "processes": {"c1/p1": True},
+                            "actions": {"c1/p1": ["e"]}
                         }
                     },
                     "s3": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p2": ["a"]}
+                            "processes": {"c1/p1": True},
+                            "actions": {"c1/p1": ["a"]}
                         }
                     }
                 }
@@ -158,19 +161,22 @@ def model_with_savepoint_requirements():
                     "s4": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": ["a", "d", "b"]}
+                            "processes": {"c1/p2": True},
+                            "actions": {"c1/p2": ["a", "d", "b"]}
                         }
                     },
                     "s5": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": ["e"]}
+                            "processes": {"c1/p2": True},
+                            "actions": {"c1/p2": ["e"]}
                         }
                     },
                     "s6": {
                         "statements": [],
                         "require": {
-                            "actions": {"c1/p1": ["a"]}
+                            "processes": {"c1/p2": True},
+                            "actions": {"c1/p2": ["a"]}
                         }
                     }
                 }
@@ -189,18 +195,21 @@ def model_with_savepoint_requirements():
                     "s7": {
                         "statements": [],
                         "require": {
+                            "processes": {"c1/p3": True},
                             "actions": {"c1/p3": ["probe", "unregister"]}
                         }
                     },
                     "s8": {
                         "statements": [],
                         "require": {
+                            "processes": {"c1/p3": True},
                             "actions": {"c1/p3": ["probe", "read", "unregister"]}
                         }
                     },
                     "s9": {
                         "statements": [],
                         "require": {
+                            "processes": {"c1/p3": True},
                             "actions": {"c1/p3": ["probe", "success", "probe", "unregister"]}
                         }
                     }
@@ -434,14 +443,14 @@ def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separato
     c1p1 = model_with_savepoint_requirements.environment['c1/p1']
     scenarios = requirements_driven_separator(c1p1)
     # TODO: Implement assertions
-    raise ValueError
+    raise NotImplementedError
 
 
 def test_reqs_p2(model_with_savepoint_requirements, requirements_driven_separator):
     # TODO: Implement assertions
-    pass
+    raise NotImplementedError
 
 
 def test_reqs_p3(model_with_savepoint_requirements, requirements_driven_separator):
     # TODO: Implement assertions
-    pass
+    raise NotImplementedError
