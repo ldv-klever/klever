@@ -22,7 +22,7 @@ from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.decomposition.separation import ScenarioExtractor
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Action, Behaviour, Subprocess, \
-    Block
+    Block, BaseAction
 
 
 class ReqsExtractor(ScenarioExtractor):
@@ -32,22 +32,46 @@ class ReqsExtractor(ScenarioExtractor):
 
     def _process_choice(self, scenario: Scenario, behaviour: Choice, operator: Operator = None):
         assert isinstance(behaviour, Operator), type(behaviour).__name__
-        parent = scenario.add_action_copy(behaviour, operator)
 
-        # Collect all first actions
-        all_first_actions = set()
-        options = []
-        for child in behaviour:
-            next_actions = self._actions.first_actions(root=child, enter_subprocesses=True)
-            all_first_actions.update(next_actions)
-            options.append((child, next_actions))
+        if scenario.savepoint.parent in scenario.savepoint.requirements.relevant_processes and \
+                scenario.savepoint.parent in scenario.savepoint.requirements.required_processes:
+            # Collect all first actions
+            all_first_actions = set()
+            options = []
+            for child in behaviour:
+                next_actions = self._actions.first_actions(root=child, enter_subprocesses=True)
+                all_first_actions.update(next_actions)
+                options.append((child, next_actions))
 
-        requirements = scenario.savepoint.required_actions()
+            # Check which of them are relevant
+            selected = []
+            if all_first_actions.intersection(scenario.savepoint.requirements.required_actions(scenario.savepoint.parent)):
+                # We have something to filter there
+                for child, actions in options:
+                    if actions.intersection(scenario.savepoint.requirements.required_actions(scenario.savepoint.parent)):
+                        selected.append(child)
+            else:
+                selected = [o[0] for o in options]
 
-        # Check which of them are relevant
-        self._fill_top_down(scenario, child, parent)
+            # Determine the operator
+            if len(selected) == 0:
+                raise ValueError(f"Cannot generate scenario for savepoint '{scenario.name}' as requirements are too strong "
+                                 f"and do not allow finding a suitable path to a terminal action.")
+            elif len(selected) == 1:
+                # We use a sequential combination here
+                parent = Concatenation()
+                scenario.actions.add_process_action(parent)
+                operator.append(parent)
+            else:
+                # We can leave choice here
+                parent = scenario.add_action_copy(behaviour, operator)
 
-        return parent
+            for child in selected:
+                self._fill_top_down(scenario, child, parent)
+
+            return parent
+        else:
+            return super()._process_choice(scenario, behaviour, operator)
 
 
 class ReqsStrategy(SeparationStrategy):
