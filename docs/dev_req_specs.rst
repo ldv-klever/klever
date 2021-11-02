@@ -281,6 +281,22 @@ Unless you are using options "weave in model aspect" and "weave in all aspects",
 within model functions.
 Otherwise, you will have recursion due to those original function calls will be also woven in.
 
+Sometimes it may be quite hard to get function declarations to be used in the aspect file.
+For instance, it is forbidden to use macros in aspect files while macros may be used in sources.
+Also, there may be different declarations for the same function depending on configurations.
+If you will see that your model does not work (e.g. code coverage reports can demonstrate this), you can investigate
+Weaver's logs to find valid function declarations.
+There may be warnings like these::
+
+    These functions were matched by name but have different signatures:
+      source function declaration: void iounmap (void volatile *)
+      aspect function declaration: void iounmap (int *)
+
+Obviously you need to use at least valid function names.
+Otherwise, you will not see any warnings.
+Also, you should take into account that CIF does not issue these warnings for composite pointcuts unless there will be
+mismatches of original function declarations with their last primitive pointcuts.
+
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
