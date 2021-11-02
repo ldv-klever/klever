@@ -378,7 +378,7 @@ class CollectionDecoder:
 
         if 'savepoints' in dic:
             for sp_name, sp_dic in dic['savepoints'].items():
-                savepoint = Savepoint(sp_name, name, sp_dic.get('statements', []), sp_dic.get('comment'))
+                savepoint = Savepoint(sp_name, str(process), sp_dic.get('statements', []), sp_dic.get('comment'))
 
                 # Add requirements
                 if 'require' in sp_dic:
