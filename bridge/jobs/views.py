@@ -190,8 +190,8 @@ class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         return Decision.objects.select_related('job')
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.job).can_decide:
-            raise BridgeException(_("You don't have an access to create job version"))
+        if not DecisionAccess(self.request.user, self.object).can_copy:
+            raise BridgeException(_("You don't have an access to copy job version"))
         context = super(DecisionCopyFormPage, self).get_context_data(**kwargs)
         decision_files = json.dumps(JSTreeConverter().make_tree(
             list(FileSystem.objects.filter(decision=self.object).values_list('name', 'file__hash_sum'))
