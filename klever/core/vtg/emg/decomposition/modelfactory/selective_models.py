@@ -104,7 +104,7 @@ class DeviceDriverModel:
                 "register_p2": {
                     "parameters": ['%container%'],
                     "savepoints": {'s2': {"statements": []}},
-                    "require": {"c/p1": {"include": ["probe", "success"]}}
+                    "require": {"processes": {"c/p1": True}, "actions": {"c/p1": ["probe", "success"]}}
                 },
                 "read": {"comment": "", "statements": []},
                 "write": {"comment": "Do write.", "statements": []}
@@ -158,7 +158,10 @@ class FileSystemModel:
                 "register_p2": {
                     "parameters": [],
                     "require": {
-                        "c/p1": {"include": ["init", "exit"]}
+                        "processes": {"c/p1": True},
+                        "actions": {
+                            "c/p1": ["init", "exit"]
+                        }
                     }
                 },
                 "deregister_p2": {"parameters": []},
@@ -181,7 +184,8 @@ class FileSystemModel:
                         'sp_init_p3': {"statements": [], "comment": "test comment"}
                     },
                     "require": {
-                        "c/p2": {"include": ["register_p3", "deregister_p3"]}
+                        "processes": {"c/p2": True},
+                        "actions": {"c/p2": ["register_p3", "deregister_p3"]}
                     }
                 },
                 "deregister_p3": {"parameters": []},
@@ -215,7 +219,8 @@ class FileSystemModel:
                 "register_p4": {
                     "parameters": [],
                     "require": {
-                        "c/p3": {"include": ["register_p4"]}
+                        "actions": {"c/p3": ["register_p4"]},
+                        "processes": {"c/p3": True}
                     }
                 },
                 "deregister_p4": {"parameters": []},
@@ -294,8 +299,8 @@ class FileSystemModelWithRequirements(FileSystemModel):
                             "require": {
                                 "processes": {"c/p2": True, "c/p3": True, "c/p4": True},
                                 "actions": {
-                                    "c/p2": [["success"]],
-                                    "c/p3": [["register_p4", "success", "create"]]
+                                    "c/p2": ["success"],
+                                    "c/p3": ["register_p4", "success", "create"]
                                 }
                             }
                         }
@@ -355,8 +360,11 @@ class DoubleInitModel(DeviceDriverModel):
                 "register_p1": {
                     "parameters": ["%container%"],
                     "require": {
-                        "c1/p1": {"include": ["ok"]},
-                        "c1/p2": {"include": ["ok"]}
+                        "processes": {"c1/p1": True, "c1/p2": True},
+                        "actions": {
+                            "c1/p1": ["ok"],
+                            "c1/p2": ["ok"]
+                        }
                     }
                 },
                 "deregister_p1": {"parameters": ["%container%"]},
@@ -368,7 +376,11 @@ class DoubleInitModel(DeviceDriverModel):
             "process": "(!register_c2p2).(<v1> | <v2>).(deregister_c2p2)",
             "actions": {
                 "register_c2p2": {
-                    "parameters": [], "require": {"c2/p1": {"include": ["probe"]}}
+                    "parameters": [],
+                    "require": {
+                        "processes": {"c2/p1": True},
+                        "actions": {"c2/p1": ["probe"]}
+                    }
                 },
                 "deregister_c2p2": {"parameters": []},
                 "v1": {"comment": ""},
@@ -405,7 +417,7 @@ class DoubleInitModelWithSavepoints(DoubleInitModel):
                             "require": {
                                 "processes": {"c2/p1": True, "c2p2": True},
                                 "actions": {
-                                    "c2/p2": [{"v1"}]
+                                    "c2/p2": ["v1"]
                                 }
                             }
                         }
@@ -445,7 +457,11 @@ class DoubleInitModelWithSavepoints(DoubleInitModel):
             "process": "(!register_c2p2).(<v1>.(<v3> | <v4>) | <v2>).(deregister_c2p2)",
             "actions": {
                 "register_c2p2": {
-                    "parameters": [], "require": {"c2/p1": {"include": ["probe"]}}
+                    "parameters": [],
+                    "require": {
+                        "processes": {"c2/p1": True},
+                        "actions": {"c2/p1": ["probe"]}
+                    }
                 },
                 "deregister_c2p2": {"parameters": []},
                 "v1": {"comment": ""},

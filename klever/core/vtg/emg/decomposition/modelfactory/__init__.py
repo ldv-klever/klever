@@ -151,9 +151,10 @@ def process_dependencies(process):
     :param process: Process.
     :return: {p: {actions}}
     """
+    raise NotImplementedError
     dependencies_map = dict()
-    for action in (a for a in process.actions.values() if a.require):
-        for name, v in action.require.items():
+    for action in (a for a in process.actions.values() if a.requirements.relevant_processes):
+        for name, v in action.requirements.items():
             dependencies_map.setdefault(name, set())
             dependencies_map[name].update(v.get('include', set()))
 
