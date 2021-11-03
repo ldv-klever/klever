@@ -29,6 +29,9 @@ class ReqsExtractor(ScenarioExtractor):
     """
     The factory creates scenarios according to requirements in savepoints.
     """
+    # todo: Implement cross dependencies for savepoints from other processes
+    # todo: Implement cutting of sequences of subprocesses by checking terminal actions for an operator
+    # todo: Remove redundant parentheses
 
     def _process_choice(self, scenario: Scenario, behaviour: Choice, operator: Operator = None):
         assert isinstance(behaviour, Operator), type(behaviour).__name__
