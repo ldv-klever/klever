@@ -647,11 +647,11 @@ class Requirements:
     def required_actions(self, name: str):
         assert name in self._required_processes
 
-        return self._required_actions.get(name, set())
+        return self._required_actions.get(name, list())
 
     def compatible(self, name: str, actions: Actions):
         if name in self.required_processes and name in self._required_actions:
-            return set(actions.keys()).issubset(self.required_actions(name))
+            return set(actions.keys()).issubset(set(self.required_actions(name)))
         elif name in self.required_processes:
             return True
         elif name in self.forbidden_processes:
@@ -687,12 +687,12 @@ class Requirements:
             assert new._required_processes.get(name), \
                 f"Set process requirement for '{name}' besides adding requirements for actions"
 
-            new._required_actions.setdefault(name, set())
+            new._required_actions.setdefault(name, list())
             for action in actions:
                 if not isinstance(action, str):
                     raise ValueError(f"Expect names of actions, bug got '{type(action).__name__}' for member '{name}'")
 
-                new._required_actions[name].add(action)
+                new._required_actions[name].append(action)
 
         return new
 

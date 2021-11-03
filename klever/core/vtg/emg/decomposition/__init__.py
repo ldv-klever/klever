@@ -18,6 +18,7 @@
 from logging import Logger
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
@@ -51,6 +52,9 @@ def _choose_separator(logger, conf):
     if conf.get('scenario separation') == 'linear':
         logger.info("Split processes into linear sequences of actions")
         return LinearStrategy(logger, conf)
+    elif conf.get('scenario separation') == 'savepoint_requirements':
+        logger.info("Split processes into scenarios according to requirements in savepoints")
+        return ReqsStrategy(logger, conf)
     else:
         logger.info("Do not split processes at separation stage of model decomposition")
         return SeparationStrategy(logger, conf)
@@ -84,7 +88,7 @@ class Decomposition:
         processes_to_scenarios = dict()
         self.logger.info("Generating models ...")
         for process in self.model.environment.values():
-            scenarios = list(self.separator(process))
+            scenarios = list(self.separator(process, self.model))
             self.logger.debug(f"Generated {len(scenarios)} scenarios for the process '{str(process)}'")
             processes_to_scenarios[str(process)] = scenarios
 

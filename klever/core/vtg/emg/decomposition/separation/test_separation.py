@@ -103,21 +103,23 @@ def specific_model():
 def model_with_savepoint_requirements():
     c1p1 = {
         "comment": "",
-        "process": "(!register).({x} | <c>).{y}",
+        "process": "(!register).({x} | <a>).{y}",
         "actions": {
             "x": {
                 "comment": "",
-                "process": "<a>.(<d> | <c>).{y}"
+                "process": "<b>.(<c> | <d>).{y}"
             },
             "y": {
                 "comment": "",
-                "process": "<b>.<c> | <e>"
+                "process": "<e>.<f> | <g>"
             },
             "a": {"comment": "", "statements": []},
             "b": {"comment": "", "statements": []},
             "c": {"comment": "", "statements": []},
             "d": {"comment": "", "statements": []},
             "e": {"comment": "", "statements": []},
+            "f": {"comment": "", "statements": []},
+            "g": {"comment": "", "statements": []},
             "register": {
                 "parameters": [],
                 "savepoints": {
@@ -125,7 +127,7 @@ def model_with_savepoint_requirements():
                         "statements": [],
                         "require": {
                             "processes": {"c1/p1": True},
-                            "actions": {"c1/p1": ["a", "d", "b"]}
+                            "actions": {"c1/p1": ["b", "c", "g"]}
                         }
                     },
                     "s2": {
@@ -148,13 +150,15 @@ def model_with_savepoint_requirements():
     }
     c1p2 = {
         "comment": "",
-        "process": "(!register).(<a>.(<d> | <c>) | <c>).(<b>.<c> | <e>)",
+        "process": "(!register).(<b>.(<c> | <d>) | <a>).(<e>.<f> | <g>)",
         "actions": {
             "a": {"comment": "", "statements": []},
             "b": {"comment": "", "statements": []},
             "c": {"comment": "", "statements": []},
             "d": {"comment": "", "statements": []},
             "e": {"comment": "", "statements": []},
+            "f": {"comment": "", "statements": []},
+            "g": {"comment": "", "statements": []},
             "register": {
                 "parameters": [],
                 "savepoints": {
@@ -162,7 +166,7 @@ def model_with_savepoint_requirements():
                         "statements": [],
                         "require": {
                             "processes": {"c1/p2": True},
-                            "actions": {"c1/p2": ["a", "d", "b"]}
+                            "actions": {"c1/p2": ["b", "c", "g"]}
                         }
                     },
                     "s5": {
@@ -196,21 +200,24 @@ def model_with_savepoint_requirements():
                         "statements": [],
                         "require": {
                             "processes": {"c1/p3": True},
-                            "actions": {"c1/p3": ["probe", "unregister"]}
+                            "actions": {"c1/p3": ["probe"]}
                         }
                     },
                     "s8": {
                         "statements": [],
                         "require": {
                             "processes": {"c1/p3": True},
-                            "actions": {"c1/p3": ["probe", "read", "unregister"]}
+                            "actions": {"c1/p3": ["probe", "remove", "read"]}
                         }
                     },
                     "s9": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p3": True},
-                            "actions": {"c1/p3": ["probe", "success", "probe", "unregister"]}
+                            "processes": {"c1/p3": True, "c1/p1": True},
+                            "actions": {
+                                "c1/p3": ["probe", "fail"],
+                                "c1/p1": ["b", "c", "g"]
+                            }
                         }
                     }
                 }
@@ -243,17 +250,17 @@ def test_default_scenario_extraction(model, default_separator):
     c1p2 = model.environment['c1/p2']
     c2p1 = model.environment['c2/p1']
 
-    s1 = default_separator(c1p1)
+    s1 = default_separator(c1p1, model)
     assert len(s1) == 2
     _compare_scenario_with_actions(s1, c1p1.actions)
     assert len([s for s in s1 if s.savepoint]) == 2
 
-    s2 = default_separator(c1p2)
+    s2 = default_separator(c1p2, model)
     assert len(s2) == 2
     _compare_scenario_with_actions(s2, c1p2.actions)
     assert len([s for s in s2 if s.savepoint]) == 2
 
-    s3 = default_separator(c2p1)
+    s3 = default_separator(c2p1, model)
     assert len(s3) == 1
 
 
@@ -277,7 +284,7 @@ def _compare_scenario_with_actions(scenarios, actions):
 
 def test_linear_strategy_c1p1(model, linear_separator):
     c1p1 = model.environment['c1/p1']
-    scenarios = linear_separator(c1p1)
+    scenarios = linear_separator(c1p1, model)
     _check_linear_actions(scenarios, c1p1.actions)
 
     # Test the number of scenarios
@@ -305,7 +312,7 @@ def test_linear_strategy_c1p1(model, linear_separator):
 
 def test_linear_strategy_c1p2(model, linear_separator):
     c1p2 = model.environment['c1/p2']
-    scenarios = linear_separator(c1p2)
+    scenarios = linear_separator(c1p2, model)
     _check_linear_actions(scenarios, c1p2.actions)
 
     # Test the number of scenarios
@@ -347,7 +354,7 @@ def test_linear_strategy_c1p2(model, linear_separator):
 
 def test_linear_strategy_c2p1(model, linear_separator):
     c2p1 = model.environment['c2/p1']
-    scenarios = linear_separator(c2p1)
+    scenarios = linear_separator(c2p1, model)
     _check_linear_actions(scenarios, c2p1.actions)
 
     # Test the number of scenarios
@@ -359,7 +366,7 @@ def test_linear_strategy_c2p1(model, linear_separator):
 
 def test_linear_plain_process(specific_model, linear_separator):
     c1p1 = specific_model.environment['c1/p1']
-    scenarios = linear_separator(c1p1)
+    scenarios = linear_separator(c1p1, specific_model)
     _check_linear_actions(scenarios, c1p1.actions)
 
     assert len(scenarios) == 1
@@ -368,7 +375,7 @@ def test_linear_plain_process(specific_model, linear_separator):
 
 def test_linear_deep_subprocesses(specific_model, linear_separator):
     c1p2 = specific_model.environment['c1/p2']
-    scenarios = linear_separator(c1p2)
+    scenarios = linear_separator(c1p2, specific_model)
     _check_linear_actions(scenarios, c1p2.actions)
 
     assert len(scenarios) == 4, f'The number of scenarios is {len(scenarios)}: ' + \
@@ -387,7 +394,7 @@ def test_linear_deep_subprocesses(specific_model, linear_separator):
 
 def test_linear_c2_p1(specific_model, linear_separator):
     c2p1 = specific_model.environment['c2/p1']
-    scenarios = linear_separator(c2p1)
+    scenarios = linear_separator(c2p1, specific_model)
     _check_linear_actions(scenarios, c2p1.actions)
 
     assert len(scenarios) == 1, f'The number of scenarios is {len(scenarios)}: ' + \
@@ -441,17 +448,69 @@ def _check_linear_actions(scenarios, actions):
 
 def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
     c1p1 = model_with_savepoint_requirements.environment['c1/p1']
-    scenarios = requirements_driven_separator(c1p1)
-    # TODO: Implement assertions
-    raise NotImplementedError
+    scenarios = requirements_driven_separator(c1p1, model_with_savepoint_requirements)
+
+    # There should be an extra scenario which is created for savepoint 9
+    assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 1
+
+    scenario_dict = {s.name: s for s in scenarios}
+    s1 = scenario_dict['s1']
+    s2 = scenario_dict['s2']
+    s3 = scenario_dict['s3']
+    s4 = list(set(scenarios).difference({s1, s2, s3})).pop()
+
+    s1_removed = {'a', 'd', 'e', 'f'}
+    _check_removed_actions(set(c1p1.actions.keys()).difference(s1_removed), s1_removed, s1)
+    s2_removed = {'g'}
+    _check_removed_actions(set(c1p1.actions.keys()).difference(s2_removed), s2_removed, s2)
+    s3_removed = {'b', 'c', 'd', 'x'}
+    _check_removed_actions(set(c1p1.actions.keys()).difference(s3_removed), s3_removed, s3)
+
+    assert not s4.savepoint
+    _check_removed_actions(set(c1p1.actions.keys()).difference(s1_removed), s1_removed, s4)
 
 
 def test_reqs_p2(model_with_savepoint_requirements, requirements_driven_separator):
-    # TODO: Implement assertions
-    raise NotImplementedError
+    c1p2 = model_with_savepoint_requirements.environment['c1/p2']
+    scenarios = requirements_driven_separator(c1p2, model_with_savepoint_requirements)
+
+    assert len(scenarios) == len(c1p2.actions['register'].savepoints)
+
+    scenario_dict = {s.name: s for s in scenarios}
+    s1 = scenario_dict['s4']
+    s2 = scenario_dict['s5']
+    s3 = scenario_dict['s6']
+
+    s1_removed = {'a', 'd', 'e', 'f'}
+    _check_removed_actions(set(c1p2.actions.keys()).difference(s1_removed), s1_removed, s1)
+    s2_removed = {'g'}
+    _check_removed_actions(set(c1p2.actions.keys()).difference(s2_removed), s2_removed, s2)
+    s3_removed = {'b', 'c', 'd'}
+    _check_removed_actions(set(c1p2.actions.keys()).difference(s3_removed), s3_removed, s3)
 
 
 def test_reqs_p3(model_with_savepoint_requirements, requirements_driven_separator):
-    # TODO: Implement assertions
-    # TODO: Do not forget to test crossdependencies
-    raise NotImplementedError
+    c1p3 = model_with_savepoint_requirements.environment['c1/p3']
+    scenarios = requirements_driven_separator(c1p3, model_with_savepoint_requirements)
+
+    assert len(scenarios) == len(c1p3.actions['register'].savepoints)
+
+    scenario_dict = {s.name: s for s in scenarios}
+    s1 = scenario_dict['s7']
+    s2 = scenario_dict['s8']
+    s3 = scenario_dict['s9']
+
+    s1_removed = {}
+    _check_removed_actions(set(c1p3.actions.keys()).difference(s1_removed), s1_removed, s1)
+    assert len(s1.actions.behaviour('unregister')) == 1
+    s2_removed = {'write'}
+    _check_removed_actions(set(c1p3.actions.keys()).difference(s2_removed), s2_removed, s2)
+    s3_removed = {'success', 'read', 'write', 'level_two'}
+    _check_removed_actions(set(c1p3.actions.keys()).difference(s3_removed), s3_removed, s3)
+
+
+def _check_removed_actions(required, removed, scenario):
+    for action in required:
+        assert action in scenario.actions
+    for action in removed:
+        assert action not in scenario.actions
