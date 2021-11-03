@@ -33,7 +33,8 @@ def model():
 def test_default_models(model):
     separation = ModelFactory(logging.Logger('default'), {})
     scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
-    processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
+    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+                              for process in model.environment.values()}
     models = list(separation(processes_to_scenarios, model))
 
     cnt = 1  # Original model
