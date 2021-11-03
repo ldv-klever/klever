@@ -15,21 +15,26 @@
  * limitations under the License.
  */
 
- #include <linux/fs.h>
+#ifndef __LDV_LINUX_FS_H
+#define __LDV_LINUX_FS_H
 
- /* Internal parameter that defines the max number of inodes in the model */
- #define MAX_INODES 3
+#include <linux/fs.h>
 
- /* Simple model for the inodes tree */
- extern unsigned long ldv_created_cnt;
- extern struct inode *ldv_inodes[MAX_INODES];
+/* Internal parameter that defines the max number of inodes in the model */
+#define MAX_INODES 3
 
- /* VFS functions */
- struct inode *ldv_alloc_inode(struct super_block *);
- void ldv_inode_init_once(struct inode *);
- void ldv_clear_inode(struct inode *);
- struct inode *ldv_iget_locked(struct super_block *, unsigned long);
+/* Simple model for the inodes tree */
+extern unsigned long ldv_created_cnt;
+extern struct inode *ldv_inodes[MAX_INODES];
 
- /* Aux functions */
- struct inode *ldv_get_root_inode(void);
- void ldv_init_list_head(struct list_head *list);
+/* VFS functions */
+struct inode *ldv_alloc_inode(struct super_block *);
+void ldv_inode_init_once(struct inode *);
+void ldv_clear_inode(struct inode *);
+struct inode *ldv_iget_locked(struct super_block *, unsigned long);
+
+/* Aux functions */
+struct inode *ldv_get_root_inode(void);
+void ldv_init_list_head(struct list_head *list);
+
+#endif /* __LDV_LINUX_FS_H */
