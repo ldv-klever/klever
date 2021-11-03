@@ -22,12 +22,9 @@
 /* Pointers greater then this number correspond to errors. */
 #define LDV_PTR_MAX ((unsigned long)-MAX_ERRNO)
 
-long ldv_is_err(const void *ptr)
+bool ldv_is_err(const void *ptr)
 {
-	if ((unsigned long)ptr >= LDV_PTR_MAX)
-		return 1;
-	else
-		return 0;
+	return ((unsigned long)ptr >= LDV_PTR_MAX);
 }
 
 void *ldv_err_ptr(long error)
@@ -54,7 +51,7 @@ long ldv_ptr_err(const void *ptr)
 	return result;
 }
 
-long ldv_is_err_or_null(const void *ptr)
+bool ldv_is_err_or_null(const void *ptr)
 {
 	return !ptr || ldv_is_err((unsigned long)ptr);
 }
