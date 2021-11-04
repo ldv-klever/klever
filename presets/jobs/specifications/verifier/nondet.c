@@ -135,7 +135,7 @@ void *ldv_undef_ptr_non_null(void)
 {
 	void *ret = ldv_undef_ptr();
 
-	ldv_assume(ret);
+	ldv_assume(ret != (void *)0);
 
 	return ret;
 }
