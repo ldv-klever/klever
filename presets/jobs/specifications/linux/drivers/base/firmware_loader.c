@@ -46,6 +46,6 @@ void ldv_release_firmware(const struct firmware *fw)
 	if (fw)
     {
 		ldv_free(fw->data);
-		ldv_free(fw);
+		ldv_free((void *)fw);
     }
 }
