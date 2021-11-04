@@ -64,8 +64,3 @@ void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t flags)
 
 	return res;
 }
-
-void ldv_devm_kfree(const void *p)
-{
-	ldv_free(p);
-}
