@@ -53,5 +53,5 @@ long ldv_ptr_err(const void *ptr)
 
 bool ldv_is_err_or_null(const void *ptr)
 {
-	return !ptr || ldv_is_err((unsigned long)ptr);
+	return !ptr || ldv_is_err(ptr);
 }
