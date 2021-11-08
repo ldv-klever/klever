@@ -69,10 +69,10 @@ def test_export_model(source, model):
 
 def test_requirements_field(source, raw_model):
     test_raw_model = copy.deepcopy(raw_model)
-    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']
+    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']
 
     # Incorrect process
-    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']['c5/p4'] = \
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']['c5/p4'] =\
         dict()
     with pytest.raises(ValueError):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
@@ -80,8 +80,8 @@ def test_requirements_field(source, raw_model):
 
     # Missing action
     test_raw_model = copy.deepcopy(raw_model)
-    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['actions']['c1/p1'] = \
-        ['goaway']
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['actions'] = \
+        {'c1/p1': ['goaway']}
     with pytest.raises(ValueError):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
                                                                      ProcessCollection())
