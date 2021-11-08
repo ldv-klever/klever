@@ -542,7 +542,7 @@ class SelectiveSelector(Selector):
                 deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
                 model.environment[process_name] = None
                 for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment and
-                                 r in process_dependencies(self.model.environment[process_name])):
+                                 self.model.environment[process_name].relevant_requirements(r)):
                     if required in model.environment and model.environment[required]:
                         possible_actions = set(model.environment[required].actions.keys())
                     elif required in model.environment:
@@ -587,7 +587,7 @@ class SelectiveSelector(Selector):
                     if deps:
                         for asker, required in ((a, r) for a, r in deps.items() if a != savepoint):
                             if savepoint in required and \
-                                    process_name not in process_dependencies(self.model.environment[asker]):
+                                    not self.model.environment[asker].relevant_requirements(process_name):
                                 broken.add(asker)
                             elif process_name in required and \
                                     not required[process_name].issubset(set(scenario.actions.keys())):
