@@ -24,7 +24,7 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
 from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
-    Signal, Behaviour, Parentheses, Choice, Concatenation
+    Signal, Behaviour, Parentheses, Choice, Concatenation, Requirements
 
 
 """Represent a signal peer."""
