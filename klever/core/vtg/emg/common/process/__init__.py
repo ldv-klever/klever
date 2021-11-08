@@ -457,6 +457,46 @@ class ProcessCollection:
 
         return peers
 
+    def remove_unused_processes(self):
+        # We need more iterations to detect all processes that can be deleted
+        iterate = True
+        deleted = set()
+        while iterate:
+            iterate = False
+            for key, process in self.environment.items():
+                receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
+                all_peers = {a for acts in process.peers.values() for a in acts}
+
+                if not receives.intersection(all_peers) or \
+                        not process.meet_model(self):
+                    self.copy_declarations_to_init(self.environment[key])
+                    self.remove_process(key)
+                    deleted.add(key)
+                    iterate = True
+
+            if iterate:
+                self.establish_peers()
+
+        return deleted
+
+    def extend_model_name(self, process_name, attribute):
+        assert isinstance(process_name, str)
+        assert isinstance(attribute, str) or attribute is None
+        self.attributes[process_name] = attribute
+
+    def remove_process(self, process_name):
+        assert process_name and process_name in self.environment
+        del self.environment[process_name]
+        self.extend_model_name(process_name, 'Removed')
+
+    def copy_declarations_to_init(self, process: Process):
+        """Copy declarations and definitions from a given process to the entry one."""
+        assert process
+        for attr in ('declarations', 'definitions'):
+            for file in getattr(process, attr):
+                getattr(self.entry, attr).setdefault(file, dict())
+                getattr(self.entry, attr)[file].update(getattr(process, attr)[file])
+
     def establish_peers(self):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function

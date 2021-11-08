@@ -138,7 +138,7 @@ class Selector:
         if scenario:
             assert scenario.name
             assert len(tuple(s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint)) <= 1
-            extend_model_name(batch, process_name, scenario.name)
+            batch.extend_model_name(process_name, scenario.name)
         elif batch.attributes.get(process_name):
             del batch.attributes[process_name]
         self.logger.info(f"The new model name is '{batch.attributed_name}'")
@@ -400,7 +400,7 @@ class ModelFactory:
                 added_attributes = []
                 if process_name not in new.attributes:
                     added_attributes.append(process_name)
-                    extend_model_name(new, process_name, 'base')
+                    new.extend_model_name(process_name, 'base')
                 added_attributes = ', '.join(added_attributes)
                 self.logger.debug(
                     f"Add to model '{new.attributed_name}' the following attributes: '{added_attributes}'")
