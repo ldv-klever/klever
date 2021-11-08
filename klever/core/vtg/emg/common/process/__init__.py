@@ -620,3 +620,32 @@ class ProcessCollection:
             # Save to dg_file
             graph.save(dg_file)
             graph.render()
+
+    def transitive_is_required(self, processes, process_name):
+        """
+        Check that given process is required by anybody in the given set of processes.
+
+        :param processes: Process iterable.
+        :param process_name: Process name.
+        :return: Bool
+        """
+        for process in processes:
+            for requirement in process.requirements:
+                if process_name in requirement.required_processes:
+                    return True
+        return False
+
+    @property
+    def dependency_order(self):
+        dep_order = []
+        todo = set(self.environment.keys())
+        while todo:
+            free = []
+            for entry in sorted(todo):
+                if not self.transitive_is_required(todo, entry):
+                    free.append(entry)
+            for selected in free:
+                dep_order.append(selected)
+                todo.remove(selected)
+
+        return dep_order

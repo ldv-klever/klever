@@ -20,7 +20,7 @@ from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, \
-    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps
+    transitive_restricted_deps, satisfy_deps, transitive_deps
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -332,17 +332,7 @@ class SelectiveSelector(Selector):
                 raise ValueError(f"Cannot cover '{process_name}' as it is given in 'must not contain' configuration "
                                  f"and required by other configurations")
 
-        dep_order = []
-        deps = all_transitive_dependencies(set(self.model.environment.values()))
-        while todo and deps:
-            free = []
-            for entry in sorted(todo):
-                if not is_required(deps, self.model.environment[entry]):
-                    free.append(entry)
-            for selected in free:
-                dep_order.append(selected)
-                todo.remove(selected)
-                del deps[selected]
+        dep_order = self.model.dependency_order
 
         # These processes will be deleted from models at all
         deleted_processes = set()
