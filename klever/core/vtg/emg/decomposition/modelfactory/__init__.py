@@ -23,31 +23,14 @@ from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
 
 
-def extend_model_name(model, process_name, attribute):
-    assert model
-    assert isinstance(model, (ProcessCollection, ScenarioCollection))
-    assert isinstance(process_name, str)
-    assert isinstance(attribute, str) or attribute is None
-    model.attributes[process_name] = attribute
-
-
-def remove_process(model, process_name):
-    assert process_name and process_name in model.environment
-    del model.environment[process_name]
-    extend_model_name(model, process_name, 'Removed')
-
-
-class ScenarioCollection:
+class ScenarioCollection(ProcessCollection):
     """
     This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
     process have a key in the collection but the value is None, then the factory will use the origin process. Otherwise,
     it will use a provided scenario.
     """
 
-    def __hash__(self):
-        return hash(str(self.attributed_name))
-
-    def __init__(self, name, entry=None, models=None, environment=None):
+    def __init__(self, name='base', entry=None, models=None, environment=None):
         assert isinstance(name, str)
         self.name = name
         self.entry = entry
@@ -55,7 +38,8 @@ class ScenarioCollection:
         self.environment = environment if isinstance(environment, dict) else dict()
         self.attributes = dict()
 
-    attributed_name = ProcessCollection.attributed_name
+    def __hash__(self):
+        return hash(str(self.attributed_name))
 
     def clone(self, new_name: str):
         """
@@ -151,7 +135,6 @@ def process_dependencies(process):
     :param process: Process.
     :return: {p: {actions}}
     """
-    raise NotImplementedError
     dependencies_map = dict()
     for action in (a for a in process.actions.values() if a.requirements.relevant_processes):
         for name, v in action.requirements.items():
@@ -360,7 +343,7 @@ class ModelFactory:
 
                 # Move declarations and definitions
                 if model.entry:
-                    self._copy_declarations_to_init(model.entry, new.entry)
+                    new.copy_declarations_to_init(model.entry)
             elif batch.entry:
                 # The entry process has a scenario
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
@@ -387,7 +370,7 @@ class ModelFactory:
                             collection[key] = self._process_copy(getattr(model, attr)[key])
                     else:
                         self.logger.debug(f"Skip process '{key}' in '{new.attributed_name}'")
-                        self._copy_declarations_to_init(getattr(model, attr)[key], new.entry)
+                        new.copy_declarations_to_init(getattr(model, attr)[key])
 
             new.establish_peers()
             self._remove_unused_processes(new)
@@ -433,7 +416,7 @@ class ModelFactory:
         if scenario.savepoint:
             self.logger.debug(f"Replace the first action in the process '{str(process)}' by the savepoint"
                               f" '{str(scenario.savepoint)}'")
-            new = new_process.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
+            new = new_process.actions.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
                                             scenario.savepoint.comment if scenario.savepoint.comment else
                                             f"Save point '{str(scenario.savepoint)}'")
             new.trace_relevant = True
@@ -441,45 +424,17 @@ class ModelFactory:
             firsts = scenario.actions.first_actions()
             for name in firsts:
                 if isinstance(scenario.actions[name], Receive):
-                    new_process.replace_action(new_process.actions[name], new)
+                    new_process.actions.replace_action(new_process.actions[name], new)
                 else:
-                    new_process.insert_action(new, new_process.actions[name], before=True)
+                    new_process.actions.insert_action(new, new_process.actions[name], before=True)
         else:
             self.logger.debug(
                 f"Keep the process '{str(process)}' created for the scenario '{str(scenario.name)}' as is")
 
         return new_process
 
-    def _remove_unused_processes(self, model: ProcessCollection):\
-        # We need more iterations to detect all processes that can be deleted
-        iterate = True
-        while iterate:
-            iterate = False
-            for key, process in model.environment.items():
-                receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
-                all_peers = {a for acts in process.peers.values() for a in acts}
-
-                if not receives.intersection(all_peers) or \
-                        not check_process_deps_aginst_model(model, process):
-                    self.logger.info(f"Delete process '{key}' from the model '{model.attributed_name}' as it has no"
-                                     f" peers")
-                    self._copy_declarations_to_init(model.environment[key], model.entry)
-                    remove_process(model, key)
-
-                    iterate = True
-                else:
-                    names = ', '.join(sorted(receives.intersection(all_peers)))
-                    self.logger.info(
-                        f"Process '{key}' from the model '{model.attributed_name}' has peers for '{names}'")
-
-            if iterate:
-                model.establish_peers()
-        self.logger.info(f"New attributes of the model: '{model.attributed_name}'")
-
-    def _copy_declarations_to_init(self, process: Process, init: Process):
-        assert process
-
-        for attr in ('declarations', 'definitions'):
-            for file in getattr(process, attr):
-                getattr(init, attr).setdefault(file, dict())
-                getattr(init, attr)[file].update(getattr(process, attr)[file])
+    def _remove_unused_processes(self, model: ProcessCollection):
+        deleted = model.remove_unused_processes()
+        deleted_names = ', '.join(map(str, deleted))
+        self.logger.info(f"The following processes were deleted from the model '{model.attributed_name}':"
+                         f" {deleted_names}")

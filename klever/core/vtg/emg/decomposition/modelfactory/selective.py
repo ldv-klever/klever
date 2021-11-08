@@ -63,12 +63,12 @@ class SelectiveSelector(Selector):
         self.logger.info("Order of process iteration is: " + ', '.join(order))
 
         # Check controversial requirements
-        self._check_controversial_requirements(deleted_processes, must_contain, must_not_contain, coverage, order)
+        self._check_controversial_requirements(deleted_processes, must_contain, coverage)
 
         # Prepare the initial base models
         first_model = self._make_base_model()
         for process_name in deleted_processes:
-            remove_process(first_model, process_name)
+            first_model.remove_process(process_name)
 
         # Iterate over processes
         model_pool = set()
@@ -264,7 +264,7 @@ class SelectiveSelector(Selector):
                         self.logger.debug(f"Add requirement '{peer}': '{dispatch}' to process '{str(process)}'")
                         process.actions[dispatch].add_required_process(peer, {dispatch})
 
-    def _check_controversial_requirements(self, deleted_processes, must_contain, must_not_contain, coverage, order):
+    def _check_controversial_requirements(self, deleted_processes, must_contain, coverage):
         # todo: We may need to implement more checks for complicated cases
         for deleted in deleted_processes:
             if deleted in must_contain or deleted in coverage:
@@ -688,7 +688,7 @@ class SelectiveSelector(Selector):
             broken.add(reassign)
         if broken:
             for entry in broken:
-                remove_process(new, entry)
+                new.remove_process(entry)
 
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
@@ -717,7 +717,7 @@ class SelectiveSelector(Selector):
 
         # Now delete processes
         for p in selected_items:
-            remove_process(model, p)
+            model.remove_process(p)
 
 
 class SelectiveFactory(ModelFactory):
