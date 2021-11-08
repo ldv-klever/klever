@@ -74,6 +74,7 @@ class CollectionEncoder(json.JSONEncoder):
 
     def _serialize_savepoint(self, point):
         sp = sortedcontainers.SortedDict()
+        sp.setdefault("statements", list())
         if point.statements:
             sp["statements"] = point.statements
         if point.comment:
@@ -261,7 +262,7 @@ class CollectionDecoder:
                                         f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
                                         f"process '{name}'")
 
-                for name in action.requirements.required_processes:
+                for name in action.requirements.relevant_processes:
                     if collection.entry and name == str(collection.entry):
                         required = collection.entry
                     elif name in collection.models.keys():
