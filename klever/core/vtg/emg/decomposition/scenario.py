@@ -17,6 +17,7 @@
 
 import collections
 
+from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess
 
 
@@ -104,7 +105,8 @@ class Path(collections.UserList):
 class Scenario:
     """Main data structure that implements an order of actions without any extra details and descriptions."""
 
-    def __init__(self, savepoint: Savepoint = None, name: str = None):
+    def __init__(self, parent, savepoint: Savepoint = None, name: str = None):
+        assert isinstance(parent, Process)
         assert isinstance(name, str) or name is None
         assert isinstance(savepoint, Savepoint) or savepoint is None,\
             f"Receive incorrect object of type '{type(savepoint).__name__}'"
@@ -116,6 +118,7 @@ class Scenario:
             self.name = str(savepoint)
         else:
             self.name = None
+        self.process = parent
         self.actions = Actions()
         self.__initial_action = None
 

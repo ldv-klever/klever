@@ -83,7 +83,7 @@ class ScenarioExtractor:
                 yield new
 
     def _new_scenario(self, root: Operator, savepoint: Savepoint = None):
-        nsc = Scenario(savepoint)
+        nsc = Scenario(self._process, savepoint)
         nsc.initial_action = root
         for child in root:
             self._fill_top_down(nsc, child, nsc.initial_action)
