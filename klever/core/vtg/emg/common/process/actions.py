@@ -735,14 +735,14 @@ class Requirements:
         if name in self._required_actions:
             del self._required_actions[name]
 
-    def require_actions(self, name: str, actions: set, replace: bool = False):
+    def require_actions(self, name: str, actions: list, replace: bool = False):
         assert name in self._required_processes, f"First add the process requirement for process '{name}'"
 
         if replace:
-            self._required_actions[name] = [actions]
+            self._required_actions[name] = list(actions)
         else:
             self._required_actions.setdefault(name, list())
-            self._required_actions[name].append(actions)
+            self._required_actions[name].extend(actions)
 
     @property
     def required_processes(self):
