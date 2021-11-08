@@ -121,7 +121,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             caller_func.body.append(indented_line(tab, "{}".format(expr)))
             cnt += 1
 
-        ep.add_condition('function_calls', [], ["{}();".format(caller_func.name)],
+        ep.actions.add_condition('function_calls', [], ["{}();".format(caller_func.name)],
                          'Call all initialization functions in asc order of level.')
         ep.process = "<function_calls>"
         ep.add_definition("environment model", caller_func.name, caller_func.define() + ["\n"])

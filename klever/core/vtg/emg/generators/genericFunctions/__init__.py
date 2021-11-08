@@ -243,7 +243,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             code.append("}")
             tab -= 1
 
-        ep.add_condition('function_calls', [], code, 'Call all functions independently.')
+        ep.actions.add_condition('function_calls', [], code, 'Call all functions independently.')
         ep.process = "<function_calls>"
         parse_process(ep, ep.process)
         ep.actions.populate_with_empty_descriptions()

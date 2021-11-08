@@ -602,6 +602,118 @@ class Actions(collections.UserDict):
         """
         return set(filter(lambda x: not isinstance(x, Operator), self.behaviour()))
 
+    def add_condition(self, name, condition, statements, comment):
+        """
+        Add new Condition action. Later you can add it to a particular place to execute using an another method.
+
+        :param name: Action name.
+        :param condition: List of conditional expressions.
+        :param statements: List with statements to execute.
+        :param comment: A comment for the action (A short sentence).
+        :return: A new Condition object.
+        """
+        new = Block(name)
+        self.data[name] = new
+
+        new.condition = condition
+        new.statements = statements
+        new.comment = comment
+        return new
+
+    def replace_action(self, old, new, purge=True):
+        """
+        Replace in actions graph the given action.
+
+        :param old: BaseAction object.
+        :param new: BaseAction object.
+        :param purge: Delete an object from collection.
+        :return: None
+        """
+        assert isinstance(old, Action), f"Expect strictly an Action to replace but got '{repr(old)}'"
+        assert isinstance(new, Action), f"Expect strictly an Action to replace with '{repr(new)}'"
+        self.data[str(new)] = new
+
+        for entry in self.behaviour(str(old)):
+            new_entry = Behaviour(str(new), type(new))
+            self.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            operator.replace(entry, new_entry)
+            self.remove_process_action(entry)
+
+        if purge:
+            del self.data[str(old)]
+
+    def insert_action(self, new, target, before=False):
+        """
+        Insert an existing action before or after the given target action.
+
+        :param new: Action object.
+        :param target: Action object.
+        :param before: True if append left ot append to  the right end.
+        """
+        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
+        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
+        if str(new) not in self.data:
+            self.data[str(new)] = new
+
+        for entry in self.behaviour(str(target)):
+            new_entry = Behaviour(str(new), type(new))
+            self.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            if isinstance(operator, Choice):
+                new_conc = Concatenation()
+                operator.replace(entry, new_conc)
+                if before:
+                    new_conc.append(new_entry)
+                    new_conc.append(entry)
+                else:
+                    new_conc.append(entry)
+                    new_conc.append(new_entry)
+            elif isinstance(operator, Concatenation):
+                position = operator.index(entry)
+                if not before:
+                    position += 1
+                operator.insert(position, new_entry)
+            else:
+                raise NotImplementedError
+
+    def insert_alternative_action(self, new, target):
+        """
+        Insert an existing action as an alternative choice for a given one.
+
+        :param new: Action object.
+        :param target: Action object.
+        """
+        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
+        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
+        if str(new) not in self:
+            self.data[str(new)] = new
+
+        for entry in self.behaviour(str(target)):
+            operator = entry.my_operator
+            newb = Behaviour(str(new), type(new))
+            self.add_process_action(newb, str(new))
+
+            if isinstance(operator, Concatenation) and isinstance(operator.my_operator, Choice) and operator[0] is entry:
+                operator = operator.my_operator
+                operator.append(newb)
+            elif isinstance(operator, Concatenation):
+                new_par = Parentheses()
+                operator.replace(entry, new_par)
+                choice = Choice()
+                new_par.append(choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Parentheses):
+                choice = Choice()
+                operator.replace(entry, choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Choice):
+                operator.append(newb)
+            else:
+                raise ValueError("Unknown operator {!r}".format(type(operator).__name__))
+
 
 class Requirements:
     """The class represent requirement of a process, scenario or savepoint."""
