@@ -104,7 +104,7 @@ class Process:
                 collection[item] = copy.copy(collection[item])
 
         # Copy labels
-        inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
+        inst.labels = {lbl.name: copy.copy(lbl) for lbl in self.labels.values()}
 
         # Recalculate accesses
         inst.accesses(refresh=True)
@@ -270,28 +270,28 @@ class Process:
         :return: List with Access objects.
         """
         if isinstance(access, Label):
-            string = repr(access)
+            name = repr(access)
         elif isinstance(access, str):
-            string = access
+            name = access
         else:
             raise TypeError('Unsupported access token')
-        return self._accesses[string]
+        return self._accesses[name]
 
-    def add_declaration(self, file, name, string):
+    def add_declaration(self, file, name, declaration):
         """
         Add a C declaration which should be added to the environment model as a global variable alongside with the code
         generated for this process.
 
         :param file: File to add ("environment model" if it is not a particular program file).
         :param name: Variable or function name to add.
-        :param string: String with the declaration.
+        :param declaration: String with the declaration.
         :return: None.
         """
         if file not in self.declarations:
             self.declarations[file] = sortedcontainers.SortedDict()
 
         if name not in self.declarations[file]:
-            self.declarations[file][name] = string
+            self.declarations[file][name] = declaration
 
     def add_definition(self, file, name, strings):
         """
@@ -322,16 +322,16 @@ class Process:
         :param value: Value string or None.
         :return: New Label object.
         """
-        lb = Label(name)
-        lb.declaration = declaration
+        label = Label(name)
+        label.declaration = declaration
         if value:
-            lb.value = value
-        self.labels[name] = lb
+            label.value = value
+        self.labels[name] = label
         acc = Access('%{}%'.format(name))
-        acc.label = lb
-        acc.list_access = [lb._name]
+        acc.label = label
+        acc.list_access = [label._name]
         self._accesses[acc.expression] = acc
-        return lb
+        return label
 
     def add_condition(self, name, condition, statements, comment):
         """
