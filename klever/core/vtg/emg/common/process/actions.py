@@ -763,13 +763,28 @@ class Requirements:
 
     def compatible(self, name: str, actions: Actions):
         if name in self.required_processes and name in self._required_actions:
-            return set(actions.keys()).issubset(set(self.required_actions(name)))
+            return set(self.required_actions(name)).issubset(set(actions.keys()))
         elif name in self.required_processes:
             return True
         elif name in self.forbidden_processes:
             return False
         else:
             return True
+
+    def compatible_with_model(self, model):
+        # todo: We miss checking compatibility of the process with others. We just check what this process requires
+        processes = {str(p): p for p in model.processes}
+
+        # Check actions
+        for name, actions in ((name, process.actions) for name, process in processes.items()):
+            if not self.compatible(name, actions):
+                return False
+
+        missing_processes = self.required_processes.difference(set(processes.keys()))
+        if missing_processes:
+            return False
+
+        return True
 
     def clone(self):
         new = Requirements()

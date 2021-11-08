@@ -333,6 +333,52 @@ class Process:
         self._accesses[acc.expression] = acc
         return label
 
+    @property
+    def peers_as_requirements(self):
+        """
+        Represent peers as a Requirements object.
+
+        :return: Requirements object
+        """
+        new = Requirements()
+        for peer, signal_actions in self.peers.items():
+            new.require_process(peer)
+            new.require_actions(peer, sorted(list(signal_actions)))
+        return new
+
+    @property
+    def requirements(self):
+        """
+        Collect and yield all requirements of the process.
+
+        :return: An iterator over requirements.
+        """
+        for action in self.actions.values():
+            if action.requirements:
+                yield action.requirements
+        yield self.peers_as_requirements
+
+    def relevant_requirements(self, name):
+        """
+        Return a set of Requirement object which ask to add the process with a given name.
+
+        :param name: Process name.
+        :return: Set of Requirements objects
+        """
+        return {r for r in self.requirements if name in r.required_processes}
+
+    def meet_model(self, model):
+        """
+        Check that the model contains all necessary for this process
+
+        :param model: ProcessCollection.
+        :return: Bool
+        """
+        for requirement in self.requirements:
+            if not requirement.compatible_with_model(model):
+                return False
+        return True
+
 
 class ProcessDescriptor:
     """The descriptor forbids to set non-Process values."""

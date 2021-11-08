@@ -19,9 +19,8 @@ import copy
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
-from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
-    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps, \
-    process_dependencies
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, \
+    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, transitive_deps
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
