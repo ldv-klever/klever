@@ -57,7 +57,8 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/nondet/*"
       ],
       "requirement specifications": ["test:memory safety"]
     }

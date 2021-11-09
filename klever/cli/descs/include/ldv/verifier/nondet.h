@@ -21,7 +21,6 @@
 
 /* Special nondeterministic functions. */
 extern int ldv_undef_int(void);
-extern int ldv_random_int(int begin, int end);
 extern long ldv_undef_long(void);
 extern unsigned int ldv_undef_uint(void);
 extern unsigned long ldv_undef_ulong(void);
@@ -39,5 +38,18 @@ extern int ldv_undef_int_nonpositive(void);
 
 /* Return nondeterministic non-null pointer. */
 extern void *ldv_undef_ptr_non_null(void);
+
+/* Return nondeterministic integer number from range [begin; end]. */
+#ifdef LDV_MEMORY_SAFETY
+/* CPAchecker SMG does not support complex predicates, so we have to use alternative implementation based on
+   nondeterministic break from the loop. */
+#define ldv_undef_int_range(begin, end) __ldv_undef_int_range2(begin, end)
+#else
+#define ldv_undef_int_range(begin, end) __ldv_undef_int_range(begin, end)
+#endif
+/* Restrict nondeterministic values from both sides using ldv_assume(). */
+extern int __ldv_undef_int_range(int begin, int end);
+/* Iterate from "begin" to "end" in the loop and break nondeterministically. */
+extern int __ldv_undef_int_range2(int begin, int end);
 
 #endif /* __LDV_VERIFIER_NONDET_H */
