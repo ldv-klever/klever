@@ -18,7 +18,8 @@
 import collections
 
 from klever.core.vtg.emg.common.process import Process
-from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess
+from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess,\
+    Requirements, Receive
 
 
 class Path(collections.UserList):
@@ -122,6 +123,10 @@ class Scenario:
         self.actions = Actions()
         self.__initial_action = None
 
+    def __str__(self):
+        """Be very accurate with it! It returns the name of the parent process to make requirements working smoothly."""
+        return str(self.process)
+
     @property
     def initial_action(self):
         return self.__initial_action
@@ -152,6 +157,43 @@ class Scenario:
         new.actions = self.actions.clone()
         new.__initial_action = new.actions.initial_action
         return new
+
+    @property
+    def peers_as_requirements(self):
+        """
+        Represent peers as a Requirements object.
+
+        :return: Requirements object
+        """
+        new = Requirements()
+        for peer, signal_actions in self.process.incoming_peers.items():
+            if signal_actions.intersection(set(self.actions.keys())):
+                new.add_requirement(peer)
+                new.add_actions_requirement(peer, sorted(list(signal_actions)))
+        return new
+
+    @property
+    def requirements(self):
+        """
+        Collect and yield all requirements of the process.
+
+        :return: An iterator over requirements.
+        """
+        for action in self.actions.values():
+            if action.requirements:
+                if isinstance(action, Receive) and action.replicative and self.savepoint:
+                    # Skip the signal receiving if there is a savepoint
+                    continue
+                else:
+                    yield action.requirements
+        if self.savepoint:
+            yield self.savepoint.requirements
+        else:
+            yield self.peers_as_requirements
+
+    relevant_requirements = Process.relevant_requirements
+
+    compatible_with_model = Process.compatible_with_model
 
     def _add_action_copy(self, behaviour: BaseAction):
         assert isinstance(behaviour, BaseAction), \
