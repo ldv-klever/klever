@@ -30,10 +30,11 @@ class ScenarioCollection(ProcessCollection):
     it will use a provided scenario.
     """
 
-    def __init__(self, name='base', entry=None, models=None, environment=None):
+    def __init__(self, original_model, name='base', entry=None, models=None, environment=None):
         assert isinstance(name, str)
         self.name = name
         self.entry = entry
+        self.original_model = original_model
         self.models = models if isinstance(models, dict) else dict()
         self.environment = environment if isinstance(environment, dict) else dict()
         self.attributes = dict()
@@ -48,7 +49,7 @@ class ScenarioCollection(ProcessCollection):
         :param new_name: Name string.
         :return: ScenarioCollection instance.
         """
-        new = ScenarioCollection(new_name)
+        new = ScenarioCollection(self.original_model, new_name)
         new.attributes = dict(self.attributes)
         new.entry = self.entry.clone() if self.entry else None
         for collection in ('models', 'environment'):
@@ -62,6 +63,83 @@ class ScenarioCollection(ProcessCollection):
     @property
     def defined_processes(self):
         return {name for name, val in self.environment.items() if val}
+
+    @property
+    def processes(self):
+        """Returns a sorted list of all processes from the model."""
+        return sorted(list(self.models.values())) + \
+                sorted([p if p else self.original_model[n] for n, p in self.environment.items()]) + \
+                ([self.entry] if self.entry else [])
+
+    @property
+    def savepoint(self):
+        """If there is a scenario with a savepoint, find it."""
+        for s in self.processes:
+            if isinstance(s, Scenario) and s.savepoint:
+                return s.savepoint
+        else:
+            return None
+
+    def delete_with_deps(self, process_name, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = self.savepoint
+
+        # Edit deps order
+        requiring_processes = self.requiring_processes(process_name, processed)
+        if not requiring_processes:
+            selected_items = {process_name}
+        else:
+            selected_items = requiring_processes
+            if savepoint:
+                saved_order = dep_order[:dep_order.index(savepoint)+1]
+                for p in saved_order:
+                    if p in selected_items:
+                        selected_items.remove(p)
+            selected_items.add(process_name)
+
+        # Now delete processes
+        for p in selected_items:
+            self.remove_process(p)
+
+    def broken_dependencies_by_adding_scenario(self, process_name, scenario, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = None if not self.savepoint else str(self.savepoint.parent)
+
+        if process_name in dep_order:
+            if savepoint and savepoint not in dep_order:
+                broken = {savepoint}
+            elif savepoint and isinstance(scenario, Scenario) and scenario.savepoint:
+                # We remove the savepoint and add the scenario, just need to be sure about all broken things
+                broken = {savepoint}
+                requiring_pr = self.requiring_processes(process_name, processed)
+                requiring_sp = self.requiring_processes(savepoint, processed)
+                broken_by_savepoint = requiring_sp.diffenrence(requiring_pr)
+                broken.update(broken_by_savepoint)
+            else:
+                broken = set()
+
+            # Now check if some actions are broken
+            processed = set(processed)
+            if process_name in processed:
+                processed.remove(process_name)
+            broken.update(self.broken_processes(process_name, scenario, processed))
+            return broken
+        elif savepoint and savepoint in dep_order:
+            requiring_sp = self.requiring_processes(savepoint, processed)
+            if requiring_sp:
+                broken = {savepoint}
+                for child in (p for p in dep_order[:dep_order.index(savepoint)]
+                              if p in requiring_sp):
+                    broken.add(child)
+                return broken
+            else:
+                return set()
+        elif savepoint:
+            # Only savepoint is broken
+            return {savepoint}
+        else:
+            # Nothing is broken
+            return set()
 
 
 class Selector:
@@ -85,7 +163,7 @@ class Selector:
             yield self._make_base_model(), None
         if include_savepoints:
             for scenario, related_process in self._scenarios_with_savepoint.items():
-                new = ScenarioCollection(scenario.name)
+                new = ScenarioCollection(self.model, scenario.name)
                 for process in self.model.environment:
                     new.environment[str(process)] = None
                     if scenario in self.processes_to_scenarios[process]:
@@ -101,7 +179,7 @@ class Selector:
         return {s: p for s, p in self._scenarios.items() if s.savepoint}
 
     def _make_base_model(self):
-        new = ScenarioCollection('base')
+        new = ScenarioCollection(self.model, 'base')
         for model in self.model.models:
             new.models[str(model)] = None
         for process in self.model.environment:
@@ -135,6 +213,7 @@ def process_dependencies(process):
     :param process: Process.
     :return: {p: {actions}}
     """
+    # TODO: Remove it
     dependencies_map = dict()
     for action in (a for a in process.actions.values() if a.requirements.relevant_processes):
         for name, v in action.requirements.items():
@@ -153,6 +232,7 @@ def check_process_deps_aginst_model(model, process):
     :param process: Process object.
     :return: Bool
     """
+    # TODO: Remove it
     dependencies = process_dependencies(process)
     processes = {str(p): (model.environment[p] if p in model.environment else model.entry)
                  for p, v in model.attributes.items()
@@ -165,84 +245,6 @@ def check_process_deps_aginst_model(model, process):
             return True
     else:
         return False
-
-
-def transitive_deps(model: ProcessCollection, batch: ScenarioCollection, observe_processes: list):
-    """
-    Found transitive dependencies for processes in dep_order.
-
-    :param model: Origin model.
-    :param batch: Collection with some scenarios.
-    :param observe_processes: List of process names for which collect dependencies.
-    :return: {asking: {required: {required_actions}}}
-    """
-    ret_deps = dict()
-    for process_name in (name for name in observe_processes if name in batch.environment):
-        if batch.environment[process_name]:
-            required = batch.environment[process_name]
-        else:
-            required = model.environment[process_name]
-        required_deps = process_dependencies(required)
-
-        # Add already known deps
-        for entry in ret_deps:
-            if process_name in ret_deps[entry]:
-                for name, deps in required_deps.items():
-                    ret_deps[entry].setdefault(name, set())
-                    ret_deps[entry][name].update(deps)
-
-        # Save
-        if required_deps:
-            ret_deps[process_name] = required_deps
-
-    return ret_deps
-
-
-def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list,
-                               processed: set):
-    """
-    Found transitive dependencies for processes in dep_order.
-
-    :param model: Origin model.
-    :param batch: Collection with some scenarios.
-    :param process: Collect dependencies upt to this process.
-    :param dep_order: List of processes where at the end are not required and at the beginning are the most required
-                      ones.
-    :param processed: A set with process names that are in model.
-    :return: {asking: {required: {required_actions}}}
-    """
-    assert str(process) in dep_order
-    processed = {p for p in processed if p in model.environment}
-    observe_processes = dep_order[:dep_order.index(str(process))]
-    first_defined_index = None
-    for i, name in enumerate(observe_processes):
-        if name in processed:
-            first_defined_index = i
-            break
-    if isinstance(first_defined_index, int):
-        observe_processes = observe_processes[first_defined_index:]
-    else:
-        return dict()
-
-    return transitive_deps(model, batch, observe_processes)
-
-
-def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
-    """
-    Check that particular process or even its scenario meets all dependencies in dependencies.
-
-    :param dependencies: Dict created by functions defined above.
-    :param process: Process.
-    :param scenario: Scenario object.
-    :return: bool.
-    """
-    if not dependencies:
-        return True
-
-    for required_actions in (deps[str(process)] for deps in dependencies.values() if str(process) in deps):
-        if not required_actions.issubset(set(scenario.actions.keys())):
-            return False
-    return True
 
 
 class ModelFactory:

@@ -19,8 +19,7 @@ import copy
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
-from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, \
-    transitive_restricted_deps, satisfy_deps, transitive_deps
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -140,7 +139,7 @@ class SelectiveSelector(Selector):
                 if not scenarios_items_for_model and process_name not in must_contain:
                     self.logger.warning(f"Cannot find any suitable scenarios of process '{process_name}' suitable for "
                                         f"model '{model.attributed_name}', deleting it")
-                    self.delete_with_deps(model, process_name, dep_order, processed)
+                    model.delete_with_deps(process_name, dep_order, processed)
                     next_model_pool.add(model)
                     continue
                 elif not scenarios_items_for_model and process_name in must_contain:
@@ -172,7 +171,7 @@ class SelectiveSelector(Selector):
                                   dep_order.index(p_with_sp) < dep_order.index(process_name)) or scenario.savepoint):
                             self.logger.info(f"Save model '{model.attributed_name}' before reassigning savepoint")
                             short = model.clone(model.name)
-                            self.delete_with_deps(short, process_name, dep_order, processed)
+                            short.delete_with_deps(process_name, dep_order, processed)
                             local_model_pool.add(short)
                             reassign = p_with_sp
                             added += 1
@@ -192,7 +191,7 @@ class SelectiveSelector(Selector):
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} that give extra'
                                         f' coverage for model {model.attributed_name}, deleting it but keep a model')
                     new = model.clone(model.name)
-                    self.delete_with_deps(model, process_name, dep_order, processed)
+                    model.delete_with_deps(process_name, dep_order, processed)
                     local_model_pool.add(new)
 
                 next_model_pool.update(local_model_pool)
@@ -502,19 +501,19 @@ class SelectiveSelector(Selector):
                 break
 
         # Edit deps order
-        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order, processed)
-
-        # Check must contain dependencies
-        if in_coverage:
-            mc_required = [p for p in dep_order if p in processed and p in must_contain]
-            if mc_required:
-                self.logger.debug(f"Consider dependencies up to '{mc_required[0]}'")
-                removing_deps = dep_order[:dep_order.index(mc_required[0])]
-                for pname in (p for p in removing_deps if p in deps):
-                    del deps[pname]
-            else:
-                self.logger.debug(f"Do not consider dependencies to increase the coverage")
-                deps = dict()
+        # todo: Do we realy need this?
+        # deps = set(processed)
+        #
+        # # Check must contain dependencies
+        # if in_coverage:
+        #     mc_required = [p for p in dep_order if p in processed and p in must_contain]
+        #     if mc_required:
+        #         self.logger.debug(f"Consider dependencies up to '{mc_required[0]}'")
+        #         removing_deps = dep_order[:dep_order.index(mc_required[0])]
+        #         deps.difference_update(removing_deps)
+        #     else:
+        #         self.logger.debug(f"Do not consider dependencies to increase the coverage")
+        #         deps = None
 
         if exists_savepoint and not in_coverage:
             new_scenarios_items = {s for s in scenarios_items if isinstance(s, Process) or not s.savepoint}
@@ -523,101 +522,17 @@ class SelectiveSelector(Selector):
 
         selected_items = set()
         for scenario in new_scenarios_items:
-            if satisfy_deps(deps, self.model.environment[process_name], scenario):
-                self.logger.debug(f"Scenario '{scenario.name}' meets model '{model.attributed_name}'")
+            if scenario.compatible_with_model(model, processed):
+                self.logger.debug(f"Model '{model.attributed_name}' meets the scenario '{scenario.name}' expectations")
 
                 # Now check that model is compatible with the scenario
-                model.environment[process_name] = scenario
-                deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
-                model.environment[process_name] = None
-                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment and
-                                 self.model.environment[process_name].relevant_requirements(r)):
-                    if required in model.environment and model.environment[required]:
-                        possible_actions = set(model.environment[required].actions.keys())
-                    elif required in model.environment:
-                        possible_actions = set(self.model.environment[required].actions.keys())
-                    else:
-                        possible_actions = set()
-
-                    if not deps2[process_name][required].issubset(possible_actions):
-                        acts = ', '.join(deps2[process_name][required])
-                        self.logger.debug(f"Model '{model.attributed_name}' do not have actions "
-                                          f"({acts}) of '{required}' required by '{process_name}'")
-                        break
-                    else:
-                        selected_items.add(scenario)
-                else:
+                if model.compatible(scenario, processed):
+                    self.logger.debug(f"Scenario '{scenario.name}' meets model '{model.attributed_name}' expectations")
                     selected_items.add(scenario)
             else:
                 self.logger.debug(f"Scenario '{scenario.name}' don't meet model '{model.attributed_name}'")
         new_scenarios_items = selected_items
         return new_scenarios_items
-
-    def detect_broken_dependencies(self, model, process_name, scenario, dep_order, processed):
-        # Check that there is a savepoint in the model and required by must contain
-        savepoint = None
-        for name, s in model.environment.items():
-            if isinstance(s, Scenario) and s.savepoint and name in dep_order:
-                savepoint = name
-                break
-
-        if process_name in dep_order:
-            if savepoint:
-                if savepoint not in dep_order:
-                    broken = {savepoint}
-                elif dep_order.index(savepoint) > dep_order.index(savepoint):
-                    # Just collect dependencies and forget about the SP
-                    broken = set()
-                elif isinstance(scenario, Scenario) and scenario.savepoint:
-                    # We remove the savepoint and add the scenario, just need to be sure about all broken things
-                    broken = {savepoint}
-                    deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name],
-                                                      dep_order, processed)
-                    if deps:
-                        for asker, required in ((a, r) for a, r in deps.items() if a != savepoint):
-                            if savepoint in required and \
-                                    not self.model.environment[asker].relevant_requirements(process_name):
-                                broken.add(asker)
-                            elif process_name in required and \
-                                    not required[process_name].issubset(set(scenario.actions.keys())):
-                                broken.add(asker)
-                        return broken
-                    else:
-                        return set()
-                else:
-                    broken = set()
-            else:
-                broken = set()
-
-            processed = set(processed)
-            if process_name in processed:
-                processed.remove(process_name)
-            deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order,
-                                              processed)
-            if deps:
-                for asker, required_actions in ((a, d[process_name]) for a, d in deps.items() if process_name in d):
-                    if not required_actions.issubset(set(scenario.actions.keys())):
-                        broken.add(asker)
-                return broken
-            else:
-                return set()
-        elif savepoint and savepoint in dep_order:
-            # Savepoint will be deleted, so it may broke dependencies.
-            deps = transitive_restricted_deps(self.model, model, self.model.environment[savepoint], dep_order,
-                                              processed)
-            if deps:
-                broken = {savepoint}
-                for child in (p for p in dep_order[:dep_order.index(savepoint)]
-                              if p in deps and savepoint in deps[p]):
-                    broken.add(child)
-            else:
-                return set()
-        elif savepoint:
-            # Only savepoint is broken
-            return {savepoint}
-        else:
-            # Nothing is broken
-            return set()
 
     def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
         new_scenario_list = [s for s in scenarios_set if isinstance(s, Scenario)]
@@ -672,7 +587,7 @@ class SelectiveSelector(Selector):
         new = model.clone(model.name)
 
         # Check dependencies
-        broken = self.detect_broken_dependencies(new, process_name, scenario, dep_order, processed)
+        broken = new.broken_dependencies_by_adding_scenario(process_name, scenario, dep_order, processed)
         if reassign:
             broken.add(reassign)
         if broken:
@@ -682,31 +597,6 @@ class SelectiveSelector(Selector):
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
         return new
-
-    def delete_with_deps(self, model, process_name, dep_order, processed):
-        # Check that there is a savepoint in the model and required by must contain
-        savepoint = None
-        for name, s in model.environment.items():
-            if isinstance(s, Scenario) and s.savepoint and name in dep_order:
-                savepoint = name
-                break
-
-        # Edit deps order
-        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order, processed)
-        if not deps:
-            selected_items = {process_name}
-        else:
-            selected_items = {name for name in deps.items() if process_name in deps}
-            if savepoint:
-                saved_order = dep_order[:dep_order.index(savepoint)+1]
-                for p in saved_order:
-                    if p in selected_items:
-                        selected_items.remove(p)
-            selected_items.add(process_name)
-
-        # Now delete processes
-        for p in selected_items:
-            model.remove_process(p)
 
 
 class SelectiveFactory(ModelFactory):
