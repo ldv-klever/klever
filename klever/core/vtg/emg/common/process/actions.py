@@ -722,76 +722,6 @@ class Requirements:
         self._required_actions = dict()
         self._required_processes = dict()
 
-    def require_process(self, name: str, require: bool = True):
-        assert require or name not in self._required_actions, \
-            f"Cannot add a requirement for process '{name}' as there are already contradicting requirements to " \
-            f"its actions"
-        self._required_processes[name] = require
-
-    def remove_requirement(self, name: str):
-        assert name in self._required_processes
-        del self._required_processes[name]
-
-        if name in self._required_actions:
-            del self._required_actions[name]
-
-    def require_actions(self, name: str, actions: list, replace: bool = False):
-        assert name in self._required_processes, f"First add the process requirement for process '{name}'"
-
-        if replace:
-            self._required_actions[name] = list(actions)
-        else:
-            self._required_actions.setdefault(name, list())
-            self._required_actions[name].extend(actions)
-
-    @property
-    def required_processes(self):
-        return {name for name, flag in self._required_processes.items() if flag}
-
-    @property
-    def forbidden_processes(self):
-        return {name for name, flag in self._required_processes.items() if not flag}
-
-    @property
-    def relevant_processes(self):
-        return set(self._required_processes.keys())
-
-    def required_actions(self, name: str):
-        assert name in self._required_processes
-
-        return self._required_actions.get(name, list())
-
-    def compatible(self, name: str, actions: Actions):
-        if name in self.required_processes and name in self._required_actions:
-            return set(self.required_actions(name)).issubset(set(actions.keys()))
-        elif name in self.required_processes:
-            return True
-        elif name in self.forbidden_processes:
-            return False
-        else:
-            return True
-
-    def compatible_with_model(self, model):
-        # todo: We miss checking compatibility of the process with others. We just check what this process requires
-        processes = {str(p): p for p in model.processes}
-
-        # Check actions
-        for name, actions in ((name, process.actions) for name, process in processes.items()):
-            if not self.compatible(name, actions):
-                return False
-
-        missing_processes = self.required_processes.difference(set(processes.keys()))
-        if missing_processes:
-            return False
-
-        return True
-
-    def clone(self):
-        new = Requirements()
-        new._required_actions = copy.deepcopy(self._required_actions)
-        new._required_processes = copy.copy(self._required_processes)
-        return new
-
     def __iter__(self):
         yield "processes", dict(self._required_processes)
         yield "actions", {name: list(actions) for name, actions in self._required_actions.items()}
@@ -822,6 +752,121 @@ class Requirements:
                 new._required_actions[name].append(action)
 
         return new
+
+    @property
+    def required_processes(self):
+        """Set of required processes"""
+        return {name for name, flag in self._required_processes.items() if flag}
+
+    @property
+    def forbidden_processes(self):
+        """Set of forbidden processes"""
+        return {name for name, flag in self._required_processes.items() if not flag}
+
+    @property
+    def relevant_processes(self):
+        """Joint set of all required or forbidden processes."""
+        return set(self._required_processes.keys())
+
+    def clone(self):
+        new = Requirements()
+        new._required_actions = copy.deepcopy(self._required_actions)
+        new._required_processes = copy.copy(self._required_processes)
+        return new
+
+    def add_requirement(self, name: str, require: bool = True):
+        """
+        Add the requirement to include or exclude a process with the given name.
+
+        :param name: Process name.
+        :param require: True/False
+        :return: None
+        """
+        assert require or name not in self._required_actions, \
+            f"Cannot add a requirement for process '{name}' as there are already contradicting requirements to " \
+            f"its actions"
+        self._required_processes[name] = require
+
+    def remove_requirement(self, name: str):
+        """
+        Remove the requirement for a certain process.
+
+        :param name: Process name.
+        :return: None
+        """
+        assert name in self._required_processes
+        del self._required_processes[name]
+
+        if name in self._required_actions:
+            del self._required_actions[name]
+
+    def add_actions_requirement(self, name: str, actions: list, replace: bool = False):
+        """
+        Add the requirement regarding actions of a process to include.
+
+        :param name: Process name.
+        :param actions: A list of actions.
+        :param replace: Replace the existing requirement or extend the list of required actions.
+        :return: None
+        """
+        assert isinstance(actions, list)
+        assert name in self._required_processes, f"First add the process requirement for process '{name}'"
+
+        if replace:
+            self._required_actions[name] = list(actions)
+        else:
+            self._required_actions.setdefault(name, list())
+            self._required_actions[name].extend(actions)
+
+    def required_actions(self, name: str):
+        """Provide a list of required actions for the given process name."""
+        assert name in self._required_processes
+        return self._required_actions.get(name, list())
+
+    def compatible(self, name: str, actions: Actions):
+        """
+        Check that the given process with provided actions is compatible with this one. The provided process should
+        contain all necessary actions required by this process and should not be forbidden.
+
+        :param name: Process name.
+        :param actions: Actions obj.
+        :return: Bool
+        """
+        if name in self.required_processes and name in self._required_actions:
+            return set(self.required_actions(name)).issubset(set(actions.keys()))
+        elif name in self.required_processes:
+            return True
+        elif name in self.forbidden_processes:
+            return False
+        else:
+            return True
+
+    def compatible_with_model(self, model, restrict_to=None):
+        """
+        Check that all processes of the model are compatible with the given model. The second parameter can limit which
+        processes to check, since the model can be incomplete by the moment of the check.
+
+        :param model: ProcessCollection.
+        :param restrict_to: Set of Process names.
+        :return: Bool
+        """
+        assert restrict_to is None or isinstance(restrict_to, set)
+        processes = {str(p): p for p in model.processes if not restrict_to or str(p) in restrict_to}
+
+        # Check actions
+        for name, actions in ((name, process.actions) for name, process in processes.items()):
+            if not self.compatible(name, actions):
+                return False
+
+        # Check missing processes
+        if restrict_to is None:
+            required_processes = self.required_processes
+        else:
+            required_processes = self.required_processes.difference(restrict_to)
+        missing_processes = required_processes.difference(set(processes.keys()))
+        if missing_processes:
+            return False
+        return True
 
 
 class Savepoint:

@@ -262,6 +262,13 @@ class Process:
                         p1.peers.setdefault(str(p2), set())
                         p1.peers[str(p2)].add(str(action))
 
+    @property
+    def incoming_peers(self):
+        """Get only peers that can activate the process."""
+        registrations = {a for a in self.actions.filter(include={Signal}) if a.replicative}
+        return {peer: registrations.intersection(signals) for peer, signals in self.peers.items()
+                if registrations.intersection(signals)}
+
     def resolve_access(self, access):
         """
         Get a string access and return a matching list of Access objects.
@@ -341,9 +348,9 @@ class Process:
         :return: Requirements object
         """
         new = Requirements()
-        for peer, signal_actions in self.peers.items():
-            new.require_process(peer)
-            new.require_actions(peer, sorted(list(signal_actions)))
+        for peer, signal_actions in self.incoming_peers.items():
+            new.add_requirement(peer)
+            new.add_actions_requirement(peer, sorted(list(signal_actions)))
         return new
 
     @property
@@ -367,15 +374,17 @@ class Process:
         """
         return {r for r in self.requirements if name in r.required_processes}
 
-    def meet_model(self, model):
+    def compatible_with_model(self, model, restrict_to=None):
         """
-        Check that the model contains all necessary for this process
+        Check that the model contains all necessary for this process. Do not check that the process has all necessary
+        for the model.
 
         :param model: ProcessCollection.
+        :param restrict_to: None or set of Process names.
         :return: Bool
         """
         for requirement in self.requirements:
-            if not requirement.compatible_with_model(model):
+            if not requirement.compatible_with_model(model, restrict_to):
                 return False
         return True
 
@@ -514,7 +523,7 @@ class ProcessCollection:
                 all_peers = {a for acts in process.peers.values() for a in acts}
 
                 if not receives.intersection(all_peers) or \
-                        not process.meet_model(self):
+                        not process.compatible_with_model(self):
                     self.copy_declarations_to_init(self.environment[key])
                     self.remove_process(key)
                     deleted.add(key)
@@ -621,31 +630,68 @@ class ProcessCollection:
             graph.save(dg_file)
             graph.render()
 
-    def transitive_is_required(self, processes, process_name):
-        """
-        Check that given process is required by anybody in the given set of processes.
+    def requiring_processes(self, name, restrict_to=None):
+        """Provide the set of process names for processes that require this one recursively."""
+        raise NotImplementedError
 
-        :param processes: Process iterable.
-        :param process_name: Process name.
+    def broken_processes(self, name, process_actions, restrict_to=None):
+        """Check which processes would have unmet dependencies because of the process recursively."""
+        raise NotImplementedError
+
+    def compatible(self, name, process_actions, restrict_to=None):
+        """
+        Check that the given process can be added to the model. All requirements should be met by this process. The
+        method does not check that model meets expectations of the process.
+
+        :param name: Process name.
+        :param process_actions: Process actions.
+        :param restrict_to: Process iterable.
         :return: Bool
         """
-        for process in processes:
-            for requirement in process.requirements:
-                if process_name in requirement.required_processes:
-                    return True
-        return False
+        for process in (p for p in self.processes if str(p) in restrict_to):
+            for requirement in process.requirments:
+                if not requirement.compatible(name, process_actions):
+                    return False
+        return True
 
     @property
     def dependency_order(self):
+        """
+        Try to get the order of environment processes with respect to their dependencies. First processes should depend
+        on others that do not require preceding processes. Note, that it is not always strictly possible to obtain
+        a good order. There can be independent connected processes in the model. Do not rely to much on it and it is
+        better to get rid of using this function.
+
+        :return:
+        """
         dep_order = []
         todo = set(self.environment.keys())
         while todo:
             free = []
             for entry in sorted(todo):
-                if not self.transitive_is_required(todo, entry):
+                if not self._transitive_is_required(todo, entry):
                     free.append(entry)
             for selected in free:
                 dep_order.append(selected)
                 todo.remove(selected)
 
         return dep_order
+
+    def _transitive_is_required(self, process_name, restrict_to=None):
+        """
+        Check that given process is required by anybody in the given set of processes.
+
+        :param process_name: Process name.
+        :param restrict_to: Process iterable.
+        :return: Bool
+        """
+        if restrict_to:
+            processes = set(restrict_to).intersection(set(map(str, self.processes)))
+        else:
+            processes = set(map(str, self.processes))
+
+        for process in (p for p in self.processes if str(p) in processes):
+            for requirement in process.requirements:
+                if process_name in requirement.required_processes:
+                    return True
+        return False
