@@ -33,6 +33,9 @@ extern int ldv_undef_int_positive(void);
 /* Return nondeterministic negative integer number. */
 extern int ldv_undef_int_negative(void);
 
+/* Return nondeterministic nonnegative integer number. */
+extern int ldv_undef_int_nonnegative(void);
+
 /* Return nondeterministic nonpositive integer number. */
 extern int ldv_undef_int_nonpositive(void);
 

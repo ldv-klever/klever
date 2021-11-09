@@ -20,52 +20,13 @@
 
 static int __init ldv_init(void)
 {
-	int var1;
-	long var2;
-	unsigned int var3;
-	unsigned long var4;
-	unsigned long long var5;
-	void *var6;
-
-	var1 = ldv_undef_int();
-	var2 = ldv_undef_long();
-	var3 = ldv_undef_uint();
-	var4 = ldv_undef_ulong();
-	var5 = ldv_undef_ulonglong();
-	var6 = ldv_undef_ptr();
-
-	var1 = ldv_undef_int_positive();
-
-	if (var1 <= 0)
-		ldv_unexpected_error();
-
-	var1 = ldv_undef_int_negative();
-
-	if (var1 >= 0)
-		ldv_unexpected_error();
-
-	var1 = ldv_undef_int_nonnegative();
-
-	if (var1 < 0)
-		ldv_unexpected_error();
-
-	var1 = ldv_undef_int_nonpositive();
-
-	if (var1 > 0)
-		ldv_unexpected_error();
-
-	var1 = ldv_undef_int_range(-2, 3);
-
-	if (var1 < -2)
-		ldv_unexpected_error();
-
-	if (var1 > 3)
-		ldv_unexpected_error();
-
-	var6 = ldv_undef_ptr_non_null();
-
-	if (var6 == NULL)
-		ldv_unexpected_error();
+	if (ldv_undef_int_nonnegative() == 0 &&
+	    ldv_undef_int_nonnegative() == 1 &&
+	    ldv_undef_int_nonnegative() == 2 &&
+	    ldv_undef_int_nonnegative() == 5 &&
+	    ldv_undef_int_nonnegative() == 10 &&
+	    ldv_undef_int_nonnegative() == INT_MAX)
+	    ldv_expected_error();
 
 	return 0;
 }
