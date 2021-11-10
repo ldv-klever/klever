@@ -85,7 +85,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Timeout."
+        "comment": "False alarm due to \"Verifier - CPAchecker SMG - Predicate analysis\"."
       }],
       "data": {"bug identifier": "9b719c7119e7~"}
     },

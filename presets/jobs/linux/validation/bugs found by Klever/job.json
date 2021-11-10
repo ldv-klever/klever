@@ -641,7 +641,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker AssertionError."
+        "comment": "Non-target bug is found."
       }],
       "data": {"bug identifier": "8ce8668bfb64~"}
     },
