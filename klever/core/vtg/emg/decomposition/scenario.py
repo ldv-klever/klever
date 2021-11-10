@@ -153,7 +153,7 @@ class Scenario:
         return new_copy
 
     def clone(self):
-        new = Scenario(self.savepoint, self.name)
+        new = Scenario(self.process, self.savepoint, self.name)
         new.actions = self.actions.clone()
         new.__initial_action = new.actions.initial_action
         return new
@@ -180,7 +180,7 @@ class Scenario:
         :return: An iterator over requirements.
         """
         for action in self.actions.values():
-            if action.requirements:
+            if action.requirements and not action.requirements.is_empty:
                 if isinstance(action, Receive) and action.replicative and self.savepoint:
                     # Skip the signal receiving if there is a savepoint
                     continue

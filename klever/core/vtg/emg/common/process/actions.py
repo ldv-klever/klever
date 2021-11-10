@@ -768,6 +768,10 @@ class Requirements:
         """Joint set of all required or forbidden processes."""
         return set(self._required_processes.keys())
 
+    @property
+    def is_empty(self):
+        return not self._required_processes
+
     def clone(self):
         new = Requirements()
         new._required_actions = copy.deepcopy(self._required_actions)
@@ -821,6 +825,7 @@ class Requirements:
     def required_actions(self, name: str):
         """Provide a list of required actions for the given process name."""
         assert name in self._required_processes
+
         return self._required_actions.get(name, list())
 
     def compatible(self, name: str, actions: Actions):
@@ -832,6 +837,9 @@ class Requirements:
         :param actions: Actions obj.
         :return: Bool
         """
+        assert isinstance(name, str)
+        assert isinstance(actions, Actions)
+
         if name in self.required_processes and name in self._required_actions:
             return set(self.required_actions(name)).issubset(set(actions.keys()))
         elif name in self.required_processes:
@@ -851,7 +859,8 @@ class Requirements:
         :return: Bool
         """
         assert restrict_to is None or isinstance(restrict_to, set)
-        processes = {str(p): p for p in model.processes if not restrict_to or str(p) in restrict_to}
+
+        processes = {str(p): p for p in model.processes if restrict_to is None or str(p) in restrict_to}
 
         # Check actions
         for name, actions in ((name, process.actions) for name, process in processes.items()):
@@ -862,8 +871,9 @@ class Requirements:
         if restrict_to is None:
             required_processes = self.required_processes
         else:
-            required_processes = self.required_processes.difference(restrict_to)
-        missing_processes = required_processes.difference(set(processes.keys()))
+            required_processes = self.required_processes.intersection(restrict_to)
+        missing_processes = required_processes.difference(
+            set(processes.keys()).union({n for n, v in model.attributes.items() if v != 'Removed'}))
         if missing_processes:
             return False
         return True

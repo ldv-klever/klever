@@ -265,7 +265,7 @@ class Process:
     @property
     def incoming_peers(self):
         """Get only peers that can activate the process."""
-        registrations = {a for a in self.actions.filter(include={Signal}) if a.replicative}
+        registrations = {a for a in self.actions.filter(include={Receive}) if a.replicative}
         return {peer: registrations.intersection(signals) for peer, signals in self.peers.items()
                 if registrations.intersection(signals)}
 
@@ -361,7 +361,7 @@ class Process:
         :return: An iterator over requirements.
         """
         for action in self.actions.values():
-            if action.requirements:
+            if action.requirements and not action.requirements.is_empty:
                 yield action.requirements
         yield self.peers_as_requirements
 
@@ -372,6 +372,8 @@ class Process:
         :param name: Process name.
         :return: Set of Requirements objects
         """
+        assert isinstance(name, str)
+
         return {r for r in self.requirements if name in r.required_processes}
 
     def compatible_with_model(self, model, restrict_to=None):
@@ -383,6 +385,9 @@ class Process:
         :param restrict_to: None or set of Process names.
         :return: Bool
         """
+        assert isinstance(model, ProcessCollection)
+        assert restrict_to is None or isinstance(restrict_to, set)
+
         for requirement in self.requirements:
             if not requirement.compatible_with_model(model, restrict_to):
                 return False
@@ -631,28 +636,83 @@ class ProcessCollection:
             graph.render()
 
     def requiring_processes(self, name, restrict_to=None):
-        """Provide the set of process names for processes that require this one recursively."""
-        raise NotImplementedError
-
-    def broken_processes(self, name, process_actions, restrict_to=None):
-        """Check which processes would have unmet dependencies because of the process recursively."""
-        raise NotImplementedError
-
-    def compatible(self, name, process_actions, restrict_to=None):
         """
-        Check that the given process can be added to the model. All requirements should be met by this process. The
-        method does not check that model meets expectations of the process.
+        Provide the set of process names for processes that require this one recursively.
 
         :param name: Process name.
-        :param process_actions: Process actions.
-        :param restrict_to: Process iterable.
-        :return: Bool
+        :param restrict_to: Processes that are considred as possible dependencies.
+        :return: Set of Process names.
         """
-        for process in (p for p in self.processes if str(p) in restrict_to):
-            for requirement in process.requirments:
+        assert isinstance(name, str)
+        assert restrict_to is None or isinstance(restrict_to, set)
+
+        requiring = {name}
+        continue_iteration = True
+        while continue_iteration:
+            continue_iteration = False
+
+            # Collect processes that requires collected
+            iterate_over = [p for p in self.processes
+                            if (restrict_to is None or str(p) in restrict_to) and str(p) not in requiring]
+            for process in iterate_over:
+                for requirement in process.requirements:
+                    if requirement.required_processes.intersection(requiring):
+                        requiring.add(str(process))
+                        continue_iteration = True
+                        break
+
+        requiring.remove(name)
+        return requiring
+
+    def broken_processes(self, name, process_actions):
+        """
+        Check which processes would have unmet dependencies because of the process recursively.
+
+        :param name: Process name.
+        :param process_actions: Actions obj.
+        :return: Set of Process names.
+        """
+        # todo: Fix commented code
+        assert isinstance(name, str)
+        assert isinstance(process_actions, Actions)
+        # assert restrict_to is None or isinstance(restrict_to, set)
+
+        # First collect processes that are incompatible with this one
+        broken = set()
+        # for process in (p for p in self.processes if (restrict_to is None or str(p) in restrict_to) and str(p) != name):
+        for process in (p for p in self.processes if str(p) != name):
+            for requirement in process.requirements:
                 if not requirement.compatible(name, process_actions):
-                    return False
-        return True
+                    broken.add(str(process))
+                    break
+
+        # Then iteratively check other dependencies.
+        for broken_process in sorted(broken):
+            more_broken = self.requiring_processes(broken_process)
+            broken.update(more_broken)
+
+        return broken
+
+    # todo: Maybe it is not required
+    # def compatible(self, name, process_actions, restrict_to=None):
+    #     """
+    #     Check that the given process can be added to the model. All requirements should be met by this process. The
+    #     method does not check that model meets expectations of the process.
+    #
+    #     :param name: Process name.
+    #     :param process_actions: Process actions.
+    #     :param restrict_to: Process iterable.
+    #     :return: Bool
+    #     """
+    #     assert isinstance(name, str)
+    #     assert isinstance(process_actions, Actions)
+    #     assert restrict_to is None or isinstance(restrict_to, set)
+    #
+    #     for process in (p for p in self.processes if restrict_to is None or str(p) in restrict_to):
+    #         for requirement in process.requirements:
+    #             if not requirement.compatible(name, process_actions):
+    #                 return False
+    #     return True
 
     @property
     def dependency_order(self):
@@ -669,7 +729,7 @@ class ProcessCollection:
         while todo:
             free = []
             for entry in sorted(todo):
-                if not self._transitive_is_required(todo, entry):
+                if not self._transitive_is_required(entry, set(todo)):
                     free.append(entry)
             for selected in free:
                 dep_order.append(selected)
@@ -685,12 +745,15 @@ class ProcessCollection:
         :param restrict_to: Process iterable.
         :return: Bool
         """
+        assert isinstance(process_name, str)
+        assert restrict_to is None or isinstance(restrict_to, set)
+
         if restrict_to:
             processes = set(restrict_to).intersection(set(map(str, self.processes)))
         else:
             processes = set(map(str, self.processes))
 
-        for process in (p for p in self.processes if str(p) in processes):
+        for process in (p for p in self.processes if str(p) in processes and str(p) != process_name):
             for requirement in process.requirements:
                 if process_name in requirement.required_processes:
                     return True

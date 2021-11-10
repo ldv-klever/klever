@@ -51,7 +51,6 @@ class SelectiveSelector(Selector):
         self._sanity_check_must_not_contain(must_not_contain)
 
         self.logger.info("Collect dependencies between processes")
-        self._add_peers_as_requirements(self.model)
 
         # Prepare coverage
         self.logger.info("Prepare detailed coverage descriptions per process")
@@ -251,17 +250,6 @@ class SelectiveSelector(Selector):
 
         return [m for m in models_list if m[0].attributed_name in selected]
 
-    def _add_peers_as_requirements(self, model):
-        model.establish_peers()
-        for process in model.environment.values():
-            receives = set(map(str, process.actions.filter(include={Receive})))
-
-            for peer, dispatches in process.peers.items():
-                if peer in model.environment and dispatches.issubset(receives):
-                    for dispatch in dispatches:
-                        self.logger.debug(f"Add requirement '{peer}': '{dispatch}' to process '{str(process)}'")
-                        process.actions[dispatch].add_required_process(peer, {dispatch})
-
     def _check_controversial_requirements(self, deleted_processes, must_contain, coverage):
         # todo: We may need to implement more checks for complicated cases
         for deleted in deleted_processes:
@@ -332,6 +320,8 @@ class SelectiveSelector(Selector):
                                  f"and required by other configurations")
 
         dep_order = self.model.dependency_order
+        for process in dep_order:
+            todo.remove(process)
 
         # These processes will be deleted from models at all
         deleted_processes = set()
@@ -475,7 +465,7 @@ class SelectiveSelector(Selector):
             return scenarios_items
 
     def _filter_must_not_contain_savepoints(self, process_name, scenarios_items, must_not_contain):
-        if process_name in must_not_contain and must_not_contain[process_name].get('savepoints'):
+        if process_name in must_not_contain and 'savepoints' in must_not_contain[process_name]:
             new_scenarios_items = set()
 
             for suitable in scenarios_items:
@@ -493,27 +483,7 @@ class SelectiveSelector(Selector):
 
     def _filter_by_model(self, model, process_name, scenarios_items, dep_order, must_contain, processed,  in_coverage):
         # Check that there is a savepoint in the model and required by must contain
-        exists_savepoint = False
-        for scenario in model.environment.values():
-            if isinstance(scenario, Scenario) and scenario.savepoint:
-                exists_savepoint = True
-                self.logger.debug(f"Model '{model.attributed_name}' has a savepoint already")
-                break
-
-        # Edit deps order
-        # todo: Do we realy need this?
-        # deps = set(processed)
-        #
-        # # Check must contain dependencies
-        # if in_coverage:
-        #     mc_required = [p for p in dep_order if p in processed and p in must_contain]
-        #     if mc_required:
-        #         self.logger.debug(f"Consider dependencies up to '{mc_required[0]}'")
-        #         removing_deps = dep_order[:dep_order.index(mc_required[0])]
-        #         deps.difference_update(removing_deps)
-        #     else:
-        #         self.logger.debug(f"Do not consider dependencies to increase the coverage")
-        #         deps = None
+        exists_savepoint = model.savepoint
 
         if exists_savepoint and not in_coverage:
             new_scenarios_items = {s for s in scenarios_items if isinstance(s, Process) or not s.savepoint}
@@ -522,11 +492,19 @@ class SelectiveSelector(Selector):
 
         selected_items = set()
         for scenario in new_scenarios_items:
-            if scenario.compatible_with_model(model, processed):
+            if scenario.compatible_with_model(model):
                 self.logger.debug(f"Model '{model.attributed_name}' meets the scenario '{scenario.name}' expectations")
 
                 # Now check that model is compatible with the scenario
-                if model.compatible(scenario, processed):
+                broken_deps = model.broken_processes(str(scenario), scenario.actions)
+                if broken_deps:
+                    self.logger.debug(f"Scenario '{scenario.name}' does not meets model '{model.attributed_name}'"
+                                      f" expectations")
+                    mc_required = {p for p in dep_order if p in processed and p in must_contain and p != str(scenario)}
+                    if in_coverage and not broken_deps.intersection(mc_required):
+                        self.logger.debug(f"Still add '{scenario.name}' to increase coverage possibly")
+                        selected_items.add(scenario)
+                else:
                     self.logger.debug(f"Scenario '{scenario.name}' meets model '{model.attributed_name}' expectations")
                     selected_items.add(scenario)
             else:

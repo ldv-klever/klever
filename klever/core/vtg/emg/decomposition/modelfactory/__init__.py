@@ -67,9 +67,10 @@ class ScenarioCollection(ProcessCollection):
     @property
     def processes(self):
         """Returns a sorted list of all processes from the model."""
-        return sorted(list(self.models.values())) + \
-                sorted([p if p else self.original_model[n] for n, p in self.environment.items()]) + \
-                ([self.entry] if self.entry else [])
+        return [self.original_model.models[i] for i in sorted(self.models.keys())] + \
+               [self.environment[i] if self.environment[i] else self.original_model.environment[i]
+                for i in sorted(self.environment.keys())] + \
+               ([self.entry] if self.entry else [])
 
     @property
     def savepoint(self):
@@ -82,7 +83,7 @@ class ScenarioCollection(ProcessCollection):
 
     def delete_with_deps(self, process_name, dep_order, processed):
         # Check that there is a savepoint in the model and required by must contain
-        savepoint = self.savepoint
+        savepoint = str(self.savepoint.parent) if self.savepoint else None
 
         # Edit deps order
         requiring_processes = self.requiring_processes(process_name, processed)
@@ -113,7 +114,7 @@ class ScenarioCollection(ProcessCollection):
                 broken = {savepoint}
                 requiring_pr = self.requiring_processes(process_name, processed)
                 requiring_sp = self.requiring_processes(savepoint, processed)
-                broken_by_savepoint = requiring_sp.diffenrence(requiring_pr)
+                broken_by_savepoint = requiring_sp.difference(requiring_pr)
                 broken.update(broken_by_savepoint)
             else:
                 broken = set()
@@ -122,7 +123,7 @@ class ScenarioCollection(ProcessCollection):
             processed = set(processed)
             if process_name in processed:
                 processed.remove(process_name)
-            broken.update(self.broken_processes(process_name, scenario, processed))
+            broken.update(self.broken_processes(process_name, scenario.actions))
             return broken
         elif savepoint and savepoint in dep_order:
             requiring_sp = self.requiring_processes(savepoint, processed)

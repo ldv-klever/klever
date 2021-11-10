@@ -195,22 +195,25 @@ def test_complex_restrictions(logger, model):
     assert all([True if p1_withsavepoint.actions != m.entry.actions else False for m in models])
 
 
-def test_controversial_conditions(logger, model):
+def test_controversial_conditions1(logger, model):
     spec = {
         "must contain": {"c/p2": {}},
         "must not contain": {"c/p1": {}},
         "cover scenarios": {"c/p1": {}}
     }
     with pytest.raises(ValueError):
-        _obtain_linear_model(logger, model, spec)
+        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
+
+def test_controversial_conditions2(logger, model):
     spec = {
         "must contain": {"c/p2": {}},
-        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": []}},
+        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": ["s2"]}},
         "cover scenarios": {"c/p2": {}}
     }
     with pytest.raises(ValueError):
-        _obtain_linear_model(logger, model, spec)
+        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+        pass
 
 
 def test_complex_exclusion(logger, model):
