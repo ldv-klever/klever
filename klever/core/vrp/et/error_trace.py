@@ -379,7 +379,7 @@ class ErrorTrace:
 
     def add_file(self, file_name):
         if file_name not in self._files:
-            if not os.path.isfile(file_name):
+            if not file_name.endswith(".aux") and not os.path.isfile(file_name):
                 raise FileNotFoundError("There is no file {!r}".format(file_name))
             self._files.append(file_name)
             return self.resolve_file_id(file_name)
