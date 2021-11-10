@@ -525,10 +525,7 @@
       "targets": ["drivers/video/fbdev/neofb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Timeout after updating CPAchecker to https://github.com/sosy-lab/cpachecker/commit/66ec09899287."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "edcb3895a751~"}
     },
     {
