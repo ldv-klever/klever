@@ -359,7 +359,7 @@ class DoubleInitModel(DeviceDriverModel):
             "actions": {
                 "register_p1": {
                     "parameters": ["%container%"],
-                    "require": {
+                    "weak require": {
                         "processes": {"c1/p1": True, "c1/p2": True},
                         "actions": {
                             "c1/p1": ["ok"],
