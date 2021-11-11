@@ -19,7 +19,7 @@ import collections
 
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess,\
-    Requirements, Receive
+    WeakRequirements, Receive
 
 
 class Path(collections.UserList):
@@ -165,7 +165,7 @@ class Scenario:
 
         :return: Requirements object
         """
-        new = Requirements()
+        new = WeakRequirements()
         for peer, signal_actions in self.process.incoming_peers.items():
             if signal_actions.intersection(set(self.actions.keys())):
                 new.add_requirement(peer)
@@ -180,12 +180,15 @@ class Scenario:
         :return: An iterator over requirements.
         """
         for action in self.actions.values():
-            if action.requirements and not action.requirements.is_empty:
-                if isinstance(action, Receive) and action.replicative and self.savepoint:
-                    # Skip the signal receiving if there is a savepoint
-                    continue
-                else:
+            if isinstance(action, Receive) and action.replicative and self.savepoint:
+                # Skip the signal receiving if there is a savepoint
+                continue
+            else:
+                if action.requirements and not action.requirements.is_empty:
                     yield action.requirements
+                if action.weak_requirements and not action.weak_requirements.is_empty:
+                    yield action.weak_requirements
+
         if self.savepoint:
             yield self.savepoint.requirements
         else:
