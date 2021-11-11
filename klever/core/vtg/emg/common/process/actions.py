@@ -270,6 +270,7 @@ class Action:
         self.savepoints = set()
         self.comment = ''
         self._require = Requirements()
+        self._weak_require = WeakRequirements()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
@@ -291,10 +292,15 @@ class Action:
     def requirements(self):
         return self._require
 
+    @property
+    def weak_requirements(self):
+        return self._weak_require
+
     def clone(self):
         new = copy.copy(self)
         new.savepoints = {s.clone() for s in self.savepoints}
         new._require = self.requirements.clone()
+        new._weak_require = self.weak_requirements.clone()
         return new
 
 
@@ -730,7 +736,7 @@ class Requirements:
     def from_dict(cls, desc: dict):
         assert isinstance(desc, dict)
 
-        new = Requirements()
+        new = cls()
 
         for name, flag in desc.get('processes', dict()).items():
             if not isinstance(flag, bool):
@@ -868,15 +874,88 @@ class Requirements:
                 return False
 
         # Check missing processes
+        return self._get_missing_processes(model, processes, restrict_to)
+
+    def _get_missing_processes(self, model, processes_map, restrict_to=None):
+        """
+        Find if the provided processes dict has missing processes required by this object.
+
+        :param model: ProcessCollection obj.
+        :param processes_map: {Process name -> Process obj}.
+        :param restrict_to: Set of Process names.
+        :return: bool
+        """
         if restrict_to is None:
             required_processes = self.required_processes
         else:
             required_processes = self.required_processes.intersection(restrict_to)
         missing_processes = required_processes.difference(
-            set(processes.keys()).union({n for n, v in model.attributes.items() if v != 'Removed'}))
+            set(processes_map.keys()).union({n for n, v in model.attributes.items() if v != 'Removed'}))
         if missing_processes:
             return False
         return True
+
+
+class WeakRequirements(Requirements):
+    """
+    This is a specific class that allows us to define weak requirements. It asks to keep not all processes listed
+    in the requirement but at least one. If there is a requirement to actions that they should be met by the model.
+    """
+
+    def clone(self):
+        new = WeakRequirements()
+        new._required_actions = copy.deepcopy(self._required_actions)
+        new._required_processes = copy.copy(self._required_processes)
+        return new
+
+    def compatible_with_model(self, model, restrict_to=None):
+        """
+        Check that all processes of the model are compatible with the given model. The second parameter can limit which
+        processes to check, since the model can be incomplete by the moment of the check.
+
+        :param model: ProcessCollection.
+        :param restrict_to: Set of Process names.
+        :return: Bool
+        """
+        assert restrict_to is None or isinstance(restrict_to, set)
+
+        processes = {str(p): p for p in model.processes if restrict_to is None or str(p) in restrict_to}
+
+        # Check actions
+        single_suiting = False
+        for name, actions in ((name, process.actions) for name, process in processes.items()):
+            if self.compatible(name, actions):
+                single_suiting = True
+                break
+
+        if single_suiting:
+            # Check missing processes
+            return self._get_missing_processes(model, processes, restrict_to)
+        else:
+            return False
+
+    def _get_missing_processes(self, model, processes_map, restrict_to=None):
+        """
+        Find if the provided processes dict has missing processes required by this object.
+
+        :param model: ProcessCollection obj.
+        :param processes_map: {Process name -> Process obj}.
+        :param restrict_to: Set of Process names.
+        :return: True if no missing processes.
+        """
+        if restrict_to is None:
+            required_processes = self.required_processes
+        else:
+            required_processes = self.required_processes.intersection(restrict_to)
+
+        if not required_processes:
+            return True
+
+        found_processes = required_processes.intersection(
+            set(processes_map.keys()).union({n for n, v in model.attributes.items() if v != 'Removed'}))
+        if found_processes:
+            return True
+        return False
 
 
 class Savepoint:
@@ -890,6 +969,7 @@ class Savepoint:
         self.statements = list(statements)
         self.parent = parent
         self._require = Requirements()
+        self._weak_require = WeakRequirements()
 
     def __str__(self):
         return str(self._name)
@@ -901,7 +981,12 @@ class Savepoint:
     def requirements(self):
         return self._require
 
+    @property
+    def weak_requirements(self):
+        return self._weak_require
+
     def clone(self):
         new = Savepoint(str(self), self.parent, self.statements, self.comment)
         new._require = self._require.clone()
+        new._weak_require = self._weak_require.clone()
         return new

@@ -24,7 +24,7 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
 from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
-    Signal, Behaviour, Parentheses, Choice, Concatenation, Requirements
+    Signal, Behaviour, Parentheses, Choice, Concatenation, Requirements, WeakRequirements
 
 
 """Represent a signal peer."""
@@ -114,8 +114,8 @@ class Process:
     @property
     def name(self):
         """
-        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation that
-        also include a category.
+        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation
+        that also include a category.
 
         :return: Str.
         """
@@ -347,7 +347,7 @@ class Process:
 
         :return: Requirements object
         """
-        new = Requirements()
+        new = WeakRequirements()
         for peer, signal_actions in self.incoming_peers.items():
             new.add_requirement(peer)
             new.add_actions_requirement(peer, sorted(list(signal_actions)))
@@ -363,6 +363,8 @@ class Process:
         for action in self.actions.values():
             if action.requirements and not action.requirements.is_empty:
                 yield action.requirements
+            if action.weak_requirements and not action.weak_requirements.is_empty:
+                yield action.weak_requirements
         yield self.peers_as_requirements
 
     def relevant_requirements(self, name):
@@ -573,7 +575,7 @@ class ProcessCollection:
             for process in list(self.environment.values()) + ([self.entry] if self.entry else []):
                 model.establish_peers(process)
 
-        processes = list(self.environment.values()) + ([self.entry] if self.entry else [])
+        processes = self.processes
         for i, process in enumerate(processes):
             for pair in processes[i+1:]:
                 process.establish_peers(pair)
@@ -672,14 +674,11 @@ class ProcessCollection:
         :param process_actions: Actions obj.
         :return: Set of Process names.
         """
-        # todo: Fix commented code
         assert isinstance(name, str)
         assert isinstance(process_actions, Actions)
-        # assert restrict_to is None or isinstance(restrict_to, set)
 
         # First collect processes that are incompatible with this one
         broken = set()
-        # for process in (p for p in self.processes if (restrict_to is None or str(p) in restrict_to) and str(p) != name):
         for process in (p for p in self.processes if str(p) != name):
             for requirement in process.requirements:
                 if not requirement.compatible(name, process_actions):
@@ -692,27 +691,6 @@ class ProcessCollection:
             broken.update(more_broken)
 
         return broken
-
-    # todo: Maybe it is not required
-    # def compatible(self, name, process_actions, restrict_to=None):
-    #     """
-    #     Check that the given process can be added to the model. All requirements should be met by this process. The
-    #     method does not check that model meets expectations of the process.
-    #
-    #     :param name: Process name.
-    #     :param process_actions: Process actions.
-    #     :param restrict_to: Process iterable.
-    #     :return: Bool
-    #     """
-    #     assert isinstance(name, str)
-    #     assert isinstance(process_actions, Actions)
-    #     assert restrict_to is None or isinstance(restrict_to, set)
-    #
-    #     for process in (p for p in self.processes if restrict_to is None or str(p) in restrict_to):
-    #         for requirement in process.requirements:
-    #             if not requirement.compatible(name, process_actions):
-    #                 return False
-    #     return True
 
     @property
     def dependency_order(self):

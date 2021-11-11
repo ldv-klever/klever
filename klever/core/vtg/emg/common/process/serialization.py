@@ -25,7 +25,7 @@ from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
 from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal,\
-    Requirements
+    Requirements, WeakRequirements
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -81,6 +81,8 @@ class CollectionEncoder(json.JSONEncoder):
             sp["comment"] = point.comment
         if point.requirements:
             sp['require'] = dict(point.requirements)
+        if point.weak_requirements:
+            sp['weak require'] = dict(point.weak_requirements)
 
         return sp
 
@@ -97,6 +99,8 @@ class CollectionEncoder(json.JSONEncoder):
                 str(point): self.default(point) for point in action.savepoints}
         if action.requirements:
             ict_action['require'] = dict(action.requirements)
+        if action.weak_requirements:
+            ict_action['weak require'] = dict(action.weak_requirements)
         if isinstance(action, Subprocess):
             if action.action:
                 ict_action['process'] = repr(action.action)
@@ -388,6 +392,12 @@ class CollectionDecoder:
                     except (ValueError, AssertionError) as err:
                         raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}")
 
+                if 'weak require' in sp_dic:
+                    try:
+                        savepoint._weak_require = WeakRequirements.from_dict(sp_dic['weak require'])
+                    except (ValueError, AssertionError) as err:
+                        raise ValueError(f"Cannot parse weak requirements of savepoint '{sp_name}': {str(err)}")
+
                 act.savepoints.add(savepoint)
 
         if 'require' in dic:
@@ -395,6 +405,12 @@ class CollectionDecoder:
                 act._require = Requirements.from_dict(dic['require'])
             except (ValueError, AssertionError) as err:
                 raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}")
+
+        if 'weak require' in dic:
+            try:
+                act._weak_require = WeakRequirements.from_dict(dic['weak require'])
+            except (ValueError, AssertionError) as err:
+                raise ValueError(f"Cannot parse weak requirements of '{name}' in '{str(process)}': {str(err)}")
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)
