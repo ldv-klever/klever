@@ -617,7 +617,7 @@ def test_double_sender_model(logger, double_init_model):
     processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
     expected = [
         {'c2/p2': 'Removed', 'c1/p1': 'Removed', 'c2/p1': 'Removed', 'c1/p2': 'basic with fail'},
-        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
         {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
         {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'},
         {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'}
