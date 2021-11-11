@@ -286,8 +286,14 @@ class WeaverWorker(klever.core.components.Component):
                 self.__get_cross_refs(infile, opts, outfile_unique, cwd)
         # For non-generated models use results cache in addition.
         else:
-            cache_dir = os.path.join(self.conf['cache directory'],
-                                     klever.core.utils.get_file_name_checksum(infile))
+            cache_name = klever.core.utils.get_file_name_checksum(infile)[:32]
+
+            # Different requirement specifications can bring different sets of aspects and they can affect models when
+            # one requests for weaving in them with aspects. Let's distinguish cache directories for different aspects.
+            if aspect:
+                cache_name += klever.core.utils.get_file_checksum(aspect)[:32]
+
+            cache_dir = os.path.join(self.conf['cache directory'], cache_name)
             with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                 if os.path.exists(cache_dir):
                     self.logger.info('Get woven in C file from cache')
