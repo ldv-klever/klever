@@ -24,7 +24,12 @@
 
 bool ldv_is_err(const void *ptr)
 {
-	return ((unsigned long)ptr >= LDV_PTR_MAX);
+	/* This long form is necessary for CPAchecker SMG. Please, do not change it to, say,
+	   "return (unsigned long)ptr >= LDV_PTR_MAX". */
+	if ((unsigned long)ptr >= LDV_PTR_MAX)
+		return 1;
+	else
+		return 0;
 }
 
 void *ldv_err_ptr(long error)
