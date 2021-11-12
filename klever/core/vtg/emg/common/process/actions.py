@@ -733,7 +733,7 @@ class Requirements:
         yield "actions", {name: list(actions) for name, actions in self._required_actions.items()}
 
     @classmethod
-    def from_dict(cls, desc: dict):
+    def from_dict(cls, desc: dict, me: str):
         assert isinstance(desc, dict)
 
         new = cls()
@@ -743,6 +743,9 @@ class Requirements:
                 ValueError(f"Expect bool value instead of '{type(flag).__name__}' for member '{name}'")
 
             new._required_processes[name] = flag
+
+        if me not in new._required_processes:
+            new._required_processes[me] = True
 
         for name, actions in desc.get('actions', dict()).items():
             if not isinstance(actions, list):
@@ -875,6 +878,14 @@ class Requirements:
 
         # Check missing processes
         return self._get_missing_processes(model, processes, restrict_to)
+
+    def rename_notion(self, previous: str, new: str):
+        if previous in self._required_processes:
+            self._required_processes[new] = self._required_processes[previous]
+            del self._required_processes[previous]
+        if previous in self._required_actions:
+            self._required_actions[new] = self._required_actions[previous]
+            del self._required_actions[previous]
 
     def _get_missing_processes(self, model, processes_map, restrict_to=None):
         """

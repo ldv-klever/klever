@@ -17,9 +17,131 @@
 
 import collections
 
-from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process import Process, ProcessCollection
 from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess,\
     WeakRequirements, Receive
+
+
+class ScenarioCollection(ProcessCollection):
+    """
+    This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
+    process have a key in the collection but the value is None, then the factory will use the origin process. Otherwise,
+    it will use a provided scenario.
+    """
+
+    def __init__(self, original_model, name='base', entry=None, models=None, environment=None):
+        assert isinstance(name, str)
+        self.name = name
+        self.entry = entry
+        self.original_model = original_model
+        self.models = models if isinstance(models, dict) else dict()
+        self.environment = environment if isinstance(environment, dict) else dict()
+        self.attributes = dict()
+
+    def __hash__(self):
+        return hash(str(self.attributed_name))
+
+    def clone(self, new_name: str):
+        """
+        Copy the collection with a new name.
+
+        :param new_name: Name string.
+        :return: ScenarioCollection instance.
+        """
+        new = ScenarioCollection(self.original_model, new_name)
+        new.attributes = dict(self.attributes)
+        new.entry = self.entry.clone() if self.entry else None
+        for collection in ('models', 'environment'):
+            for key in getattr(self, collection):
+                if getattr(self, collection)[key]:
+                    getattr(new, collection)[key] = getattr(self, collection)[key].clone()
+                else:
+                    getattr(new, collection)[key] = None
+        return new
+
+    @property
+    def defined_processes(self):
+        return [self.original_model.models[i] for i in sorted(self.models.keys())] + \
+               [self.environment[i] for i in sorted(self.environment.keys()) if self.environment[i]] + \
+               ([self.entry] if self.entry else [])
+
+    @property
+    def processes(self):
+        """Returns a sorted list of all processes from the model."""
+        return [self.original_model.models[i] for i in sorted(self.models.keys())] + \
+               [self.environment[i] if self.environment[i] else self.original_model.environment[i]
+                for i in sorted(self.environment.keys())] + \
+               ([self.entry] if self.entry else [])
+
+    @property
+    def savepoint(self):
+        """If there is a scenario with a savepoint, find it."""
+        for s in self.processes:
+            if isinstance(s, Scenario) and s.savepoint:
+                return s.savepoint
+        else:
+            return None
+
+    def delete_with_deps(self, process_name, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = str(self.savepoint.parent) if self.savepoint else None
+
+        # Edit deps order
+        requiring_processes = self.requiring_processes(process_name, processed)
+        if not requiring_processes:
+            selected_items = {process_name}
+        else:
+            selected_items = requiring_processes
+            if savepoint:
+                saved_order = dep_order[:dep_order.index(savepoint)+1]
+                for p in saved_order:
+                    if p in selected_items:
+                        selected_items.remove(p)
+            selected_items.add(process_name)
+
+        # Now delete processes
+        for p in selected_items:
+            self.remove_process(p)
+
+    def broken_dependencies_by_adding_scenario(self, process_name, scenario, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = None if not self.savepoint else str(self.savepoint.parent)
+
+        if process_name in dep_order:
+            if savepoint and savepoint not in dep_order:
+                broken = {savepoint}
+            elif savepoint and isinstance(scenario, Scenario) and scenario.savepoint:
+                # We remove the savepoint and add the scenario, just need to be sure about all broken things
+                broken = {savepoint}
+                requiring_pr = self.requiring_processes(process_name, processed)
+                requiring_sp = self.requiring_processes(savepoint, processed)
+                broken_by_savepoint = requiring_sp.difference(requiring_pr)
+                broken.update(broken_by_savepoint)
+            else:
+                broken = set()
+
+            # Now check if some actions are broken
+            processed = set(processed)
+            if process_name in processed:
+                processed.remove(process_name)
+            broken.update(self.broken_processes(process_name, scenario.actions))
+            return broken
+        elif savepoint and savepoint in dep_order:
+            requiring_sp = self.requiring_processes(savepoint, processed)
+            if requiring_sp:
+                broken = {savepoint}
+                for child in (p for p in dep_order[:dep_order.index(savepoint)]
+                              if p in requiring_sp):
+                    broken.add(child)
+                return broken
+            else:
+                return set()
+        elif savepoint:
+            # Only savepoint is broken
+            return {savepoint}
+        else:
+            # Nothing is broken
+            return set()
 
 
 class Path(collections.UserList):
@@ -196,7 +318,32 @@ class Scenario:
 
     relevant_requirements = Process.relevant_requirements
 
-    compatible_with_model = Process.compatible_with_model
+    def compatible_with_model(self, model, restrict_to=None):
+        """
+        Check that the model contains all necessary for this process. Do not check that the process has all necessary
+        for the model.
+
+        :param model: ProcessCollection.
+        :param restrict_to: None or set of Process names.
+        :return: Bool
+        """
+        if isinstance(model, ScenarioCollection):
+            assert restrict_to is None or isinstance(restrict_to, set)
+            processes = {str(p): p for p in model.processes if restrict_to is None or str(p) in restrict_to}
+
+            for requirement in self.requirements:
+                if not requirement.compatible_with_model(model, restrict_to):
+                    # Check defined processes
+                    broken = set()
+                    for name, actions in ((name, process.actions) for name, process in processes.items()):
+                        if not requirement.compatible(name, actions):
+                            broken.add(name)
+
+                    if broken.intersection(model.defined_processes):
+                        return False
+            return True
+        else:
+            return Process.compatible_with_model(self, model, restrict_to)
 
     def _add_action_copy(self, behaviour: BaseAction):
         assert isinstance(behaviour, BaseAction), \

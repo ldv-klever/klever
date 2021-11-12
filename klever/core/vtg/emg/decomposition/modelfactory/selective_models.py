@@ -312,7 +312,64 @@ class FileSystemModelWithRequirements(FileSystemModel):
             }
         },
         "c/p2": FileSystemModel.environment_models["c/p2"],
-        "c/p3": FileSystemModel.environment_models["c/p3"],
+        "c/p3": {
+            "comment": "",
+            "labels": {},
+            "process": "(!register_p3).<init>.{scenario1}",
+            "actions": {
+                "register_p3": {
+                    "parameters": [],
+                    "savepoints": {
+                        "sp3": {
+                            "statements": [],
+                            "comment": "test comment",
+                            "require": {
+                                "processes": {
+                                    "c/p4": True
+                                }
+                            }
+                        },
+                        "sp4": {
+                            "statements": [],
+                            "comment": "test comment",
+                            "require": {
+                                "processes": {
+                                    "c/p4": False
+                                },
+                                "actions": {
+                                    "c/p3": ["register_p4"]
+                                }
+                            }
+                        }
+                    },
+                    "require": {
+                        "processes": {"c/p2": True},
+                        "actions": {"c/p2": ["register_p3", "deregister_p3"]}
+                    }
+                },
+                "deregister_p3": {"parameters": []},
+                "free": {"comment": ""},
+                "terminate": {"comment": "", "process": "<free>.(deregister_p3)"},
+                "init": {"comment": ""},
+                "create": {"comment": ""},
+                "create_fail": {"comment": ""},
+                "create2": {"comment": ""},
+                "create2_fail": {"comment": ""},
+                "success": {"comment": ""},
+                "work1": {"comment": ""},
+                "work2": {"comment": ""},
+                "register_p4": {"parameters": []},
+                "deregister_p4": {"parameters": []},
+                "create_scenario": {
+                    "comment": "",
+                    "process": "<create>.(<success>.({work_scenario} | {p4_scenario}) | <create_fail>.{terminate})"
+                },
+                "create2_scenario": {"comment": "", "process": "<create2>.(<create2_fail> | <success>).{terminate}"},
+                "work_scenario": {"comment": "", "process": "(<work1> | <work2>).{terminate}"},
+                "p4_scenario": {"comment": "", "process": "[register_p4].[deregister_p4].{terminate}"},
+                "scenario1": {"comment": "", "process": "{create_scenario} | {create2_scenario}"}
+            }
+        },
         "c/p4": FileSystemModel.environment_models["c/p4"]
     }
 

@@ -492,11 +492,12 @@ class SelectiveSelector(Selector):
 
         selected_items = set()
         for scenario in new_scenarios_items:
+            # Now check that model is compatible with the scenario
+            broken_deps = model.broken_processes(str(scenario), scenario.actions)
+
             if scenario.compatible_with_model(model):
                 self.logger.debug(f"Model '{model.attributed_name}' meets the scenario '{scenario.name}' expectations")
 
-                # Now check that model is compatible with the scenario
-                broken_deps = model.broken_processes(str(scenario), scenario.actions)
                 if broken_deps:
                     self.logger.debug(f"Scenario '{scenario.name}' does not meets model '{model.attributed_name}'"
                                       f" expectations")
@@ -504,7 +505,7 @@ class SelectiveSelector(Selector):
                     if in_coverage and not broken_deps.intersection(mc_required):
                         self.logger.debug(f"Still add '{scenario.name}' to increase coverage possibly")
                         selected_items.add(scenario)
-                else:
+                elif scenario.requirements:
                     self.logger.debug(f"Scenario '{scenario.name}' meets model '{model.attributed_name}' expectations")
                     selected_items.add(scenario)
             else:

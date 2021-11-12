@@ -17,6 +17,7 @@
 
 import pytest
 import logging
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
@@ -47,6 +48,10 @@ def model_with_independent_process():
 def double_init_model():
     return models.driver_double_init()
 
+@pytest.fixture()
+def fs_deps_model():
+    return models.fs_savepoint_deps()
+
 
 @pytest.fixture()
 def logger():
@@ -70,6 +75,15 @@ def _obtain_model(logger, model, specification):
 def _obtain_linear_model(logger, model, specification, separate_dispatches=False):
     separation = SelectiveFactory(logger, specification)
     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
+                                                {'add scenarios without dispatches': True})
+    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+                              for process in model.environment.values()}
+    return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+
+
+def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
+    separation = SelectiveFactory(logger, specification)
+    scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
                               for process in model.environment.values()}
@@ -643,3 +657,61 @@ def test_double_sender_model_full_list(logger, double_init_model):
         {'c2/p2': 'v2', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'}
     ]
     _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_linear(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    expected = [
+        {"c/p1": "sp1 with exit", "c/p2": "deregister_p2", "c/p3": "Removed", "c/p4": "Removed"},
+        {"c/p1": "sp2 with exit", "c/p2": "success_probe_deregister_p2", "c/p3": "create_scenario_p4_scenario_success", "c/p4": "base"},
+        {"c/p1": "sp1 with init_failed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed"}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_linear_p3(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p3": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    expected = [
+        {'c/p3': 'sp3 with create_scenario_p4_scenario_success', 'c/p4': 'base', 'c/p2': 'Removed', 'c/p1': 'Removed'},
+        {'c/p3': 'sp4 with create_scenario_p4_scenario_success', 'c/p4': 'Removed', 'c/p2': 'Removed',
+         'c/p1': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+# def test_fs_reqs_p1(logger, fs_deps_model):
+#     spec = {
+#         "cover scenarios": {
+#             "c/p1": {"savepoints only": True}
+#         }
+#     }
+#     processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+#     expected = []
+#     _expect_models_with_attrs(models, expected)
+#
+#
+# def test_fs_reqs_p3(logger, fs_deps_model):
+#     spec = {
+#         "cover scenarios": {
+#             "c/p3": {"savepoints only": True}
+#         }
+#     }
+#     processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+#     expected = [
+#         {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with fail'},
+#         {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+#         {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+#         {'c2/p2': 'v1', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'},
+#         {'c2/p2': 'v2', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'}
+#     ]
+#     _expect_models_with_attrs(models, expected)

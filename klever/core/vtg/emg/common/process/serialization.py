@@ -388,13 +388,13 @@ class CollectionDecoder:
                 # Add requirements
                 if 'require' in sp_dic:
                     try:
-                        savepoint._require = Requirements.from_dict(sp_dic['require'])
+                        savepoint._require = Requirements.from_dict(sp_dic['require'], str(process))
                     except (ValueError, AssertionError) as err:
                         raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}")
 
                 if 'weak require' in sp_dic:
                     try:
-                        savepoint._weak_require = WeakRequirements.from_dict(sp_dic['weak require'])
+                        savepoint._weak_require = WeakRequirements.from_dict(sp_dic['weak require'], str(process))
                     except (ValueError, AssertionError) as err:
                         raise ValueError(f"Cannot parse weak requirements of savepoint '{sp_name}': {str(err)}")
 
@@ -402,13 +402,13 @@ class CollectionDecoder:
 
         if 'require' in dic:
             try:
-                act._require = Requirements.from_dict(dic['require'])
+                act._require = Requirements.from_dict(dic['require'], str(process))
             except (ValueError, AssertionError) as err:
                 raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}")
 
         if 'weak require' in dic:
             try:
-                act._weak_require = WeakRequirements.from_dict(dic['weak require'])
+                act._weak_require = WeakRequirements.from_dict(dic['weak require'], str(process))
             except (ValueError, AssertionError) as err:
                 raise ValueError(f"Cannot parse weak requirements of '{name}' in '{str(process)}': {str(err)}")
 

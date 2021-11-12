@@ -417,6 +417,7 @@ class ProcessDict(sortedcontainers.SortedDict):
 
     def __setitem__(self, key, value):
         assert isinstance(value, Process), f"Expect a Process as a value bug got '{type(value).__name__}'"
+
         if value.category and value.category == 'functions models':
             assert key == value.name, f"Function models should be assigned by its name ('{value.name}') but got '{key}'"
         else:
@@ -466,6 +467,10 @@ class ProcessCollection:
         """Returns a sorted list of all processes from the model."""
         return sorted(list(self.models.values())) + sorted(list(self.environment.values())) + \
                ([self.entry] if self.entry else [])
+
+    @property
+    def defined_processes(self):
+        return self.processes
 
     @property
     def process_map(self):
@@ -637,6 +642,15 @@ class ProcessCollection:
             graph.save(dg_file)
             graph.render()
 
+    @property
+    def consistent(self):
+        for process in self.processes:
+            for requirement in process.requirements:
+                if not requirement.compatible_with_model(self):
+                    return False
+        else:
+            return True
+
     def requiring_processes(self, name, restrict_to=None):
         """
         Provide the set of process names for processes that require this one recursively.
@@ -691,6 +705,11 @@ class ProcessCollection:
             broken.update(more_broken)
 
         return broken
+
+    def rename_notion(self, previous: str, new: str):
+        for process in self.processes:
+            for requirement in process.requirements:
+                requirement.rename_notion(previous, new)
 
     @property
     def dependency_order(self):
