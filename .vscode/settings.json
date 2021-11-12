@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "*.aspect": "c"
+    },
+    "files.exclude": {
+        "**/.idea": true,
+        "klever.egg-info": true,
+        "build": true,
+        "**/__pycache__": true,
+        "addons": true,
+        "venv": true,
+        "bridge/media": true,
+        "bridge/static": true,
+        "bridge/logs": true
+    },
+    "search.followSymlinks": false,
+    "search.searchEditor.reusePriorSearchConfiguration": true,
+    "C_Cpp.autoAddFileAssociations": false
+}
