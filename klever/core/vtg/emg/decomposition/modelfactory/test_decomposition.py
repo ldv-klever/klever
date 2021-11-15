@@ -24,11 +24,24 @@ from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
+import klever.core.vtg.emg.decomposition.modelfactory.decomposition_models as models
 
 
 @pytest.fixture
-def model():
+def base_model():
     return model_preset()
+
+
+@pytest.fixture()
+def model():
+    return models.driver_model()
+
+
+@pytest.fixture()
+def logger():
+    logger = logging.getLogger(__name__)
+    return logger
+
 
 def _obtain_model(logger, model, specification):
     separation = CombinatorialFactory(logger, specification)
@@ -56,12 +69,12 @@ def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
-def test_default_models(model):
+def test_default_models(base_model):
     separation = ModelFactory(logging.Logger('default'), {})
     scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
-    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
-    models = list(separation(processes_to_scenarios, model))
+    processes_to_scenarios = {str(process): list(scenario_generator(process, base_model))
+                              for process in base_model.environment.values()}
+    models = list(separation(processes_to_scenarios, base_model))
 
     cnt = 1  # Original model
     for process in model.environment.values():
@@ -89,10 +102,10 @@ def test_default_models(model):
 
                 assert new_model.entry.actions
 
+
 def test_inclusion_p1(logger, model):
     spec = {
-        "must contain": {"c/p1": {}},
-        "cover scenarios": {"c/p1": {}}
+        "must contain": {"c/p1": {}}
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
@@ -113,8 +126,7 @@ def test_inclusion_p1(logger, model):
 
 def test_deletion(logger, model):
     spec = {
-        "must not contain": {"c/p2": {}},
-        "cover scenarios": {"c/p1": {}}
+        "must not contain": {"c/p2": {}}
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 

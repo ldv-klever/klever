@@ -454,9 +454,9 @@ def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separato
     assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 1
 
     scenario_dict = {s.name: s for s in scenarios}
-    s1 = scenario_dict['s1']
-    s2 = scenario_dict['s2']
-    s3 = scenario_dict['s3']
+    s1 = scenario_dict['s1 with b_c_g']
+    s2 = scenario_dict['s2 with e']
+    s3 = scenario_dict['s3 with a']
     s4 = list(set(scenarios).difference({s1, s2, s3})).pop()
 
     s1_removed = {'a', 'd', 'e', 'f'}
@@ -477,9 +477,9 @@ def test_reqs_p2(model_with_savepoint_requirements, requirements_driven_separato
     assert len(scenarios) == len(c1p2.actions['register'].savepoints)
 
     scenario_dict = {s.name: s for s in scenarios}
-    s1 = scenario_dict['s4']
-    s2 = scenario_dict['s5']
-    s3 = scenario_dict['s6']
+    s1 = scenario_dict['s4 with b_c_g']
+    s2 = scenario_dict['s5 with e']
+    s3 = scenario_dict['s6 with a']
 
     s1_removed = {'a', 'd', 'e', 'f'}
     _check_removed_actions(set(c1p2.actions.keys()).difference(s1_removed), s1_removed, s1)
@@ -496,9 +496,9 @@ def test_reqs_p3(model_with_savepoint_requirements, requirements_driven_separato
     assert len(scenarios) == len(c1p3.actions['register'].savepoints)
 
     scenario_dict = {s.name: s for s in scenarios}
-    s1 = scenario_dict['s7']
-    s2 = scenario_dict['s8']
-    s3 = scenario_dict['s9']
+    s1 = scenario_dict['s7 with probe']
+    s2 = scenario_dict['s8 with probe_remove_read']
+    s3 = scenario_dict['s9 with probe_fail']
 
     s1_removed = {}
     _check_removed_actions(set(c1p3.actions.keys()).difference(s1_removed), s1_removed, s1)
