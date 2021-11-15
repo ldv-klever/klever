@@ -24,27 +24,18 @@ gfp_t ldv_flags;
 
 void ldv_check_alloc_flags(gfp_t flags)
 {
-	if (flags != ldv_flags)
-		ldv_unexpected_error();
+	if (flags == ldv_flags)
+		ldv_expected_error();
 }
 
 static int __init ldv_init(void)
 {
-	size_t size = ldv_undef_uint();
-	size_t n = ldv_undef_uint();
 	struct kmem_cache *cachep;
 
-	ldv_flags = ldv_undef_uint();
-
-	kmalloc(size, ldv_flags);
-	kzalloc(size, ldv_flags);
-	kmalloc_array(n, size, ldv_flags);
-	kcalloc(n, size, ldv_flags);
-
+	ldv_flags = GFP_KERNEL;
 	cachep = kmem_cache_create("ldv", sizeof(struct ldv_struct1), 0, 0, NULL);
 	ldv_assume(cachep != NULL);
 	kmem_cache_alloc(cachep, ldv_flags);
-	kmem_cache_zalloc(cachep, ldv_flags);
 
 	return 0;
 }

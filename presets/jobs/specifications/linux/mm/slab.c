@@ -16,6 +16,7 @@
  */
 
 #include <linux/types.h>
+#include <linux/slab.h>
 #include <ldv/linux/common.h>
 #include <ldv/linux/slab.h>
 #include <ldv/verifier/memory.h>
@@ -58,4 +59,39 @@ void *ldv_kcalloc(size_t n, size_t size, gfp_t flags)
 	res = ldv_calloc(n, size);
 
 	return res;
+}
+
+struct kmem_cache *ldv_kmem_cache_create(const char *name, unsigned int size)
+{
+	struct kmem_cache *res;
+
+	res = ldv_zalloc(sizeof(*res));
+
+	if (res) {
+		res->name = name;
+		res->size = size;
+		res->object_size = size;
+	}
+
+	return res;
+}
+
+void *ldv_kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+{
+	return ldv_kmalloc(cachep->size, flags);
+}
+
+void *ldv_kmem_cache_zalloc(struct kmem_cache *cachep, gfp_t flags)
+{
+	return ldv_kzalloc(cachep->size, flags);
+}
+
+void ldv_kmem_cache_free(struct kmem_cache *cachep, void *objp)
+{
+	ldv_free(objp);
+}
+
+void ldv_kmem_cache_destroy(struct kmem_cache *cachep)
+{
+	ldv_free(cachep);
 }

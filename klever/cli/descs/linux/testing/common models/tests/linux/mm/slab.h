@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,27 +15,17 @@
  * limitations under the License.
  */
 
-#include <linux/module.h>
-#include <linux/slab.h>
-#include <ldv/common/test.h>
+struct ldv_struct1 {
+	int field1;
+};
 
-gfp_t ldv_flags;
+struct ldv_struct2 {
+	int field1;
+	int field2;
+};
 
-void ldv_check_alloc_flags(gfp_t flags)
-{
-	if (flags == ldv_flags)
-		ldv_expected_error();
-}
-
-static int __init ldv_init(void)
-{
-	size_t size = ldv_undef_uint();
-	size_t n = ldv_undef_uint();
-
-	ldv_flags = ldv_undef_uint();
-	kmalloc_array(n, size, ldv_flags);
-
-	return 0;
-}
-
-module_init(ldv_init);
+struct ldv_struct3 {
+	int field1;
+	int field2;
+	int field3;
+};
