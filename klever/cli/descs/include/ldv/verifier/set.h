@@ -36,7 +36,7 @@ typedef int ldv_set;
 typedef unsigned int ldv_set;
 # define ldv_set_init(set) (set = 0)
 # define ldv_set_add(set, element) (set++)
-# define ldv_set_remove(set, element) ((set == 0) ?: set--)
+# define ldv_set_remove(set, element) ((set == 0) ? 1 : set--)
 # define ldv_set_contains(set, element) (set != 0)
 # define ldv_set_is_empty(set) (set == 0)
 #else
