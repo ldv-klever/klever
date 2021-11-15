@@ -312,9 +312,12 @@ class Scenario:
                     yield action.weak_requirements
 
         if self.savepoint:
-            yield self.savepoint.requirements
+            new = self.savepoint.requirements
         else:
-            yield self.peers_as_requirements
+            new = self.peers_as_requirements
+
+        if not new.is_empty:
+            yield new
 
     relevant_requirements = Process.relevant_requirements
 
@@ -333,17 +336,24 @@ class Scenario:
 
             for requirement in self.requirements:
                 if not requirement.compatible_with_model(model, restrict_to):
-                    # Check defined processes
-                    broken = set()
-                    for name, actions in ((name, process.actions) for name, process in processes.items()):
-                        if not requirement.compatible(name, actions):
-                            broken.add(name)
+                    if not requirement.get_missing_processes(model, processes, restrict_to):
+                        return False
 
-                    if broken.intersection(model.defined_processes):
+                    # Check defined processes
+                    broken = self._broken_defined_processes(requirement, processes, model)
+
+                    if broken.intersection(set(map(str, model.defined_processes))):
                         return False
             return True
         else:
             return Process.compatible_with_model(self, model, restrict_to)
+
+    def _broken_defined_processes(self, requirement, processes, model):
+        broken = set()
+        for name, actions in ((name, process.actions) for name, process in processes.items()):
+            if not requirement.compatible(name, actions):
+                broken.add(name)
+        return broken
 
     def _add_action_copy(self, behaviour: BaseAction):
         assert isinstance(behaviour, BaseAction), \

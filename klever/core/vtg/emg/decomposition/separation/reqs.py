@@ -15,10 +15,123 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.decomposition.scenario import Scenario
+import copy
+
+from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioCollection
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
-from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Savepoint, BaseAction
+from klever.core.vtg.emg.common.process.actions import Actions, Choice, Operator, Concatenation, BaseAction, \
+    Requirements, Savepoint
+
+
+class ScenarioRequirements(Requirements):
+
+    def __init__(self, relevant_savepoint: str):
+        assert isinstance(relevant_savepoint, str)
+
+        super().__init__()
+        self._relevant_savepoint = relevant_savepoint
+
+    @property
+    def relevant_savepoint(self):
+        return self._relevant_savepoint
+
+    def clone(self):
+        new = ScenarioRequirements(self.relevant_savepoint)
+        new._required_actions = copy.deepcopy(self._required_actions)
+        new._required_processes = copy.copy(self._required_processes)
+        return new
+
+    def compatible_with_model(self, model, restrict_to=None):
+        """
+        Check that all requirements are compatible with the given model. The second parameter can limit which
+        processes to check, since the model can be incomplete by the moment of the check.
+
+        :param model: ProcessCollection.
+        :param restrict_to: Set of Process names.
+        :return: Bool
+        """
+        passes = super().compatible_with_model(model, restrict_to)
+        if isinstance(model, ScenarioCollection) and model.savepoint:
+            if self.relevant_savepoint != str(model.savepoint):
+                return False
+        else:
+            return passes
+
+    def compatible_scenario(self, scenario):
+        """
+        Check that scenario has the same relevant savepoint.
+
+        :param scenario: Process or Scenario.
+        :return: Bool
+        """
+        compatible = super().compatible(str(scenario), scenario.actions)
+        if compatible:
+            if isinstance(scenario, ScenarioWithRelevance):
+                return scenario.relevant_savepoint == self._relevant_savepoint or \
+                       (scenario.savepoint and str(scenario.savepoint) == self._relevant_savepoint)
+            elif isinstance(scenario, Scenario):
+                return (not (str(scenario) in self.relevant_processes)) or \
+                       (scenario.savepoint and str(scenario.savepoint) == self._relevant_savepoint)
+            else:
+                return not (str(scenario) in self.relevant_processes)
+        return compatible
+
+    @classmethod
+    def override_requirement(cls, obj, savepoint):
+        new = ScenarioRequirements(savepoint)
+        new._required_actions = copy.deepcopy(obj._required_actions)
+        new._required_processes = copy.copy(obj._required_processes)
+        return new
+
+    @property
+    def is_empty(self):
+        return False
+
+
+class ScenarioWithRelevance(Scenario):
+
+    def __init__(self, parent, relevant_savepoint: str, scenario_requirement: ScenarioRequirements,
+                 savepoint: Savepoint = None, name: str = None):
+        assert isinstance(relevant_savepoint, str)
+        assert isinstance(scenario_requirement, ScenarioRequirements)
+
+        super().__init__(parent, savepoint, name)
+        if savepoint:
+            assert str(savepoint) == relevant_savepoint
+        self._scenario_requirement = scenario_requirement
+        self._relevant_savepoint = relevant_savepoint
+
+    @property
+    def relevant_savepoint(self):
+        return self._relevant_savepoint
+
+    @property
+    def requirements(self):
+        """
+        Collect and yield all requirements of the process.
+
+        :return: An iterator over requirements.
+        """
+        yield from super().requirements
+        yield self._scenario_requirement
+
+    def clone(self):
+        new = ScenarioWithRelevance(self.process, self._relevant_savepoint, self._scenario_requirement,
+                                    self.savepoint, self.name)
+        new.actions = self.actions.clone()
+        new.__initial_action = new.actions.initial_action
+        return new
+
+    def _broken_defined_processes(self, requirement, processes, model):
+        broken = set()
+        for name, process in processes.items():
+            if not requirement.compatible(name, process.actions):
+                broken.add(name)
+            elif isinstance(requirement, ScenarioRequirements) and not requirement.compatible_scenario(process) and \
+                    (model.savepoint and str(model.savepoint) != requirement.relevant_savepoint):
+                broken.add(name)
+        return broken
 
 
 class ReqsExtractor(ScenarioExtractor):
@@ -96,8 +209,7 @@ class ReqsExtractor(ScenarioExtractor):
                     action_requirements = []
 
                 self._action_requirements = action_requirements
-
-                new = self._new_scenario(self._actions.initial_action, savepoint)
+                new = self._new_scenario_with_relevance(self._actions.initial_action, savepoint, savepoint)
                 assert new.name
                 yield new
 
@@ -108,9 +220,35 @@ class ReqsExtractor(ScenarioExtractor):
                     actions = savepoint.requirements.required_actions(str(self._process))
                     if actions:
                         self._action_requirements = actions
-                        new = self._new_scenario(self._actions.initial_action, None)
-                        new.name = f'for_{str(savepoint)}'
-                        yield new
+                    else:
+                        self._action_requirements = []
+                    new = self._new_scenario_with_relevance(self._actions.initial_action, savepoint, None)
+                    yield new
+
+    def _new_scenario_with_relevance(self, root: Operator, relevant_savepoint: Savepoint, savepoint: Savepoint = None):
+        assert isinstance(relevant_savepoint, Savepoint)
+        if savepoint:
+            assert str(savepoint) == str(relevant_savepoint)
+
+        relevant_requirements = ScenarioRequirements.override_requirement(relevant_savepoint.requirements,
+                                                                          str(relevant_savepoint))
+
+        nsc = ScenarioWithRelevance(self._process, str(relevant_savepoint), relevant_requirements, savepoint)
+        if not self._action_requirements:
+            path_name = 'base'
+        else:
+            path_name = '_'.join(self._action_requirements)
+
+        nsc.initial_action = root
+        for child in root:
+            self._fill_top_down(nsc, child, nsc.initial_action)
+
+        if savepoint:
+            nsc.name = f"{str(savepoint)} with {path_name}"
+        else:
+            nsc.name = f"{path_name} for {str(relevant_savepoint)}"
+
+        return nsc
 
 
 class ReqsStrategy(SeparationStrategy):
