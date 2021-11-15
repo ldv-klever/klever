@@ -877,7 +877,7 @@ class Requirements:
                 return False
 
         # Check missing processes
-        return self._get_missing_processes(model, processes, restrict_to)
+        return self.get_missing_processes(model, processes, restrict_to)
 
     def rename_notion(self, previous: str, new: str):
         if previous in self._required_processes:
@@ -887,7 +887,7 @@ class Requirements:
             self._required_actions[new] = self._required_actions[previous]
             del self._required_actions[previous]
 
-    def _get_missing_processes(self, model, processes_map, restrict_to=None):
+    def get_missing_processes(self, model, processes_map, restrict_to=None):
         """
         Find if the provided processes dict has missing processes required by this object.
 
@@ -941,11 +941,11 @@ class WeakRequirements(Requirements):
 
         if single_suiting:
             # Check missing processes
-            return self._get_missing_processes(model, processes, restrict_to)
+            return self.get_missing_processes(model, processes, restrict_to)
         else:
             return False
 
-    def _get_missing_processes(self, model, processes_map, restrict_to=None):
+    def get_missing_processes(self, model, processes_map, restrict_to=None):
         """
         Find if the provided processes dict has missing processes required by this object.
 
