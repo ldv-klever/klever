@@ -365,7 +365,9 @@ class Process:
                 yield action.requirements
             if action.weak_requirements and not action.weak_requirements.is_empty:
                 yield action.weak_requirements
-        yield self.peers_as_requirements
+        new = self.peers_as_requirements
+        if not new.is_empty:
+            yield new
 
     def relevant_requirements(self, name):
         """
