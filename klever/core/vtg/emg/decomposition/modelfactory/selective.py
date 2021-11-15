@@ -130,9 +130,8 @@ class SelectiveSelector(Selector):
                                                      if not isinstance(s, Scenario) or not s.savepoint}
 
                 # Filter scenarios with savepoints if there is one already
-                scenarios_items_for_model = self._filter_by_model(model, process_name, scenarios_items_for_model,
-                                                                  dep_order, must_contain, processed,
-                                                                  process_name in coverage)
+                scenarios_items_for_model = self._filter_by_model(model, scenarios_items_for_model, dep_order,
+                                                                  must_contain, processed, process_name in coverage)
 
                 # Iteratively copy models to fill the coverage
                 if not scenarios_items_for_model and process_name not in must_contain:
@@ -481,7 +480,7 @@ class SelectiveSelector(Selector):
         else:
             return scenarios_items
 
-    def _filter_by_model(self, model, process_name, scenarios_items, dep_order, must_contain, processed,  in_coverage):
+    def _filter_by_model(self, model, scenarios_items, dep_order, must_contain, processed, in_coverage):
         # Check that there is a savepoint in the model and required by must contain
         exists_savepoint = model.savepoint
 
