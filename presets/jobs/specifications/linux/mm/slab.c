@@ -70,7 +70,6 @@ struct kmem_cache *ldv_kmem_cache_create(const char *name, unsigned int size)
 	if (res) {
 		res->name = name;
 		res->size = size;
-		res->object_size = size;
 	}
 
 	return res;
