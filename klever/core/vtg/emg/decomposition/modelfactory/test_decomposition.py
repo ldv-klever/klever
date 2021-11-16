@@ -77,7 +77,7 @@ def test_default_models(base_model):
     models = list(separation(processes_to_scenarios, base_model))
 
     cnt = 1  # Original model
-    for process in model.environment.values():
+    for process in base_model.environment.values():
         for action_name in process.actions.first_actions():
             action = process.actions[action_name]
             cnt += len(action.savepoints) if hasattr(action, 'savepoints') and action.savepoints else 0
@@ -88,7 +88,7 @@ def test_default_models(base_model):
         assert len(list(new_model.models.keys())) > 0
         assert len(list(new_model.environment.keys())) > 0
 
-        for name, process in model.environment.items():
+        for name, process in base_model.environment.items():
             if name in new_model.environment:
                 for label in process.labels:
                     # Check labels
@@ -111,7 +111,8 @@ def test_inclusion_p1(logger, model):
 
     # Cover all scenarios from c2p1
     p1scenarios = processes_to_scenarios['c/p1']
-    assert len(p1scenarios) == len(models)
+    p2scenarios = {s for s in processes_to_scenarios['c/p2'] if not s.savepoint}
+    assert (len(p1scenarios) + len(p2scenarios)) == len(models)
     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
               [m.entry.actions for m in models]
     for scenario in p1scenarios:
