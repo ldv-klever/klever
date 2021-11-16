@@ -208,8 +208,9 @@ class SelectiveSelector(Selector):
         model_pool = self._supersede_models(model_pool)
 
         for model, related_process in model_pool:
-            self.logger.info(f"Finally return a batch for model '{model.attributed_name}'")
-            yield model, related_process
+            if not must_contain or set(model.environment.keys()).intersection(must_contain):
+                self.logger.info(f"Finally return a batch for model '{model.attributed_name}'")
+                yield model, related_process
 
     def _get_feasible_models(self, models):
         new_model_pool = []
