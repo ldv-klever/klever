@@ -21,6 +21,11 @@ before: file ("$this")
 
 struct mutex;
 
+extern void mutex_lock(struct mutex *lock);
+extern void mutex_lock_nested(struct mutex *, unsigned int);
+extern int mutex_lock_interruptible(struct mutex *lock);
+extern int mutex_lock_killable(struct mutex *lock);
+
 // for arg_sign in mutex_arg_signs
 extern int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock);
 extern void ldv_mutex_lock_nested{{ arg_sign.id }}(struct mutex *lock, unsigned int subclass);
@@ -32,17 +37,33 @@ extern void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock);
 // endfor
 }
 
-around: call(void mutex_lock(struct mutex *)) ||
-        call(void mutex_lock_nested(struct mutex *, ..))
+around: define(mutex_lock_interruptible(lock))
+{
+mutex_lock_interruptible(lock)
+}
+
+around: define(mutex_lock_nested(lock, subclass))
+{
+mutex_lock_nested(lock, subclass)
+}
+
+around: define(mutex_lock_killable(lock))
+{
+mutex_lock_killable(lock)
+}
+
+around: define(mutex_lock(lock))
+{
+mutex_lock(lock)
+}
+
+around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
 {
 	/* ASPECT_FUNC_CALL Check that mutex was not locked and lock it */
 	ldv_mutex_lock{{ mutex_arg_sign_patterns[1] }}($arg1);
 }
 
-around: call(int mutex_lock_interruptible(struct mutex *)) ||
-        call(int mutex_lock_interruptible_nested(struct mutex *, ..)) ||
-        call(int mutex_lock_killable(struct mutex *)) ||
-        call(int mutex_lock_killable_nested(struct mutex *, ..))
+around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
 {
 	/* ASPECT_FUNC_CALL Check that mutex was not locked and nondeterministically lock it */
 	return ldv_mutex_lock_interruptible_or_killable{{ mutex_arg_sign_patterns[1] }}($arg1);
