@@ -22,6 +22,7 @@ from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
+from klever.core.vtg.emg.decomposition.modelfactory.savepoints import SavepointsFactory
 from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 
 
@@ -70,6 +71,9 @@ def _choose_factory(logger, conf):
         conf.update(conf.get('select scenarios', dict()))
         logger.info("Activate the selection of scenarios according to the provided configuration")
         return SelectiveFactory(logger, conf)
+    elif isinstance(conf.get('select savepoints'), dict):
+        logger.info("Generate models according to requirements in savepoints")
+        return SavepointsFactory(logger, conf)
     else:
         logger.info("Choose the default model factory")
         return ModelFactory(logger, conf)
