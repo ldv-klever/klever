@@ -21,10 +21,9 @@ import logging
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
-from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
-from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
-import klever.core.vtg.emg.decomposition.modelfactory.decomposition_models as models
+from klever.core.vtg.emg.decomposition.modelfactory.savepoints import SavepointsFactory
+import klever.core.vtg.emg.decomposition.modelfactory.decomposition_models as test_models
 
 
 @pytest.fixture
@@ -33,8 +32,13 @@ def base_model():
 
 
 @pytest.fixture()
-def model():
-    return models.driver_model()
+def driver_model():
+    return test_models.driver_model()
+
+
+@pytest.fixture()
+def fs_deps_model():
+    return test_models.fs_savepoint_deps()
 
 
 @pytest.fixture()
@@ -43,25 +47,25 @@ def logger():
     return logger
 
 
-def _obtain_model(logger, model, specification):
-    separation = CombinatorialFactory(logger, specification)
-    scenario_generator = SeparationStrategy(logger, dict())
-    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
-    return processes_to_scenarios, list(separation(processes_to_scenarios, model))
-
-
-def _obtain_linear_model(logger, model, specification, separate_dispatches=False):
-    separation = CombinatorialFactory(logger, specification)
-    scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
-    {'add scenarios without dispatches': True})
-    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
-    return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+# def _obtain_model(logger, model, specification):
+#     separation = CombinatorialFactory(logger, specification)
+#     scenario_generator = SeparationStrategy(logger, dict())
+#     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+#                               for process in model.environment.values()}
+#     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+#
+#
+# def _obtain_linear_model(logger, model, specification, separate_dispatches=False):
+#     separation = CombinatorialFactory(logger, specification)
+#     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
+#     {'add scenarios without dispatches': True})
+#     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+#                               for process in model.environment.values()}
+#     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
 def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
-    separation = ReqsStrategy(logger, specification)
+    separation = SavepointsFactory(logger, specification)
     scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
     {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
@@ -102,51 +106,79 @@ def test_default_models(base_model):
 
                 assert new_model.entry.actions
 
+# todo: These features are unsupported yet
+# def test_inclusion_p1(logger, driver_model):
+#     spec = {
+#         "must contain": {"c/p1": {}}
+#     }
+#     processes_to_scenarios, models = _obtain_linear_model(logger, driver_model, spec)
+#
+#     # Cover all scenarios from c2p1
+#     p1scenarios = processes_to_scenarios['c/p1']
+#     p2scenarios = {s for s in processes_to_scenarios['c/p2'] if not s.savepoint}
+#     assert (len(p1scenarios) + len(p2scenarios)) == len(models)
+#     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+#               [m.entry.actions for m in models]
+#     for scenario in p1scenarios:
+#         assert scenario.actions in actions
+#
+#     # No savepoints from c2p2
+#     c2p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
+#     for driver_model in models:
+#         if driver_model.entry.actions == c2p2_withsavepoint.actions:
+#             assert False, f"Model {driver_model.attributed_name} has a savepoint from p2"
+#
+#
+# def test_deletion(logger, model):
+#     spec = {
+#         "must not contain": {"c/p2": {}}
+#     }
+#     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+#
+#     # Cover all scenarios from p1
+#     p1scenarios = {s for s in processes_to_scenarios['c/p1']}
+#     assert len(p1scenarios) == len(models)
+#     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+#               [m.entry.actions for m in models]
+#     for scenario in p1scenarios:
+#         assert scenario.actions in actions
+#
+#     # No savepoints from p2
+#     p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
+#     assert all([True if p2_withsavepoint.actions != m.entry.actions else False for m in models])
+#
+#     # No other actions
+#     for model in models:
+#         assert 'c/p2' not in model.environment
 
-def test_inclusion_p1(logger, model):
+
+def test_fs_reqs(logger, fs_deps_model):
     spec = {
-        "must contain": {"c/p1": {}}
+        "savepoints only": True
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
-
-    # Cover all scenarios from c2p1
-    p1scenarios = processes_to_scenarios['c/p1']
-    p2scenarios = {s for s in processes_to_scenarios['c/p2'] if not s.savepoint}
-    assert (len(p1scenarios) + len(p2scenarios)) == len(models)
-    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
-              [m.entry.actions for m in models]
-    for scenario in p1scenarios:
-        assert scenario.actions in actions
-
-    # No savepoints from c2p2
-    c2p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
-    for model in models:
-        if model.entry.actions == c2p2_withsavepoint.actions:
-            assert False, f"Model {model.attributed_name} has a savepoint from p2"
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    expected = [
+        {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
+        {'c/p1': 'sp2 with base', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
+         'c/p2': 'success for sp2'},
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'},
+        {'c/p1': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
 
 
-def test_deletion(logger, model):
-    spec = {
-        "must not contain": {"c/p2": {}}
-    }
-    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
-
-    # Cover all scenarios from p1
-    p1scenarios = {s for s in processes_to_scenarios['c/p1']}
-    assert len(p1scenarios) == len(models)
-    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
-              [m.entry.actions for m in models]
-    for scenario in p1scenarios:
-        assert scenario.actions in actions
-
-    # No savepoints from p2
-    p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
-    assert all([True if p2_withsavepoint.actions != m.entry.actions else False for m in models])
-
-    # No other actions
-    for model in models:
-        assert 'c/p2' not in model.environment
+def _to_sorted_attr_str(attrs):
+    return ", ".join(f"{k}: {attrs[k]}" for k in sorted(attrs.keys()))
 
 
-# todo: Test with only savepoints option
-# todo: Move the last tests from the selective dir
+def _expect_models_with_attrs(models, attributes):
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    attrs = {_to_sorted_attr_str(attrs) for attrs in attributes}
+
+    unexpected = model_attrs.difference(attrs)
+    assert len(unexpected) == 0, f"There are unexpected models: {unexpected}"
+
+    missing = attrs.difference(model_attrs)
+    assert len(missing) == 0, f"There are missing models: {missing}"
+
