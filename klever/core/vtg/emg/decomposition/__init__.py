@@ -71,7 +71,7 @@ def _choose_factory(logger, conf):
         conf.update(conf.get('select scenarios', dict()))
         logger.info("Activate the selection of scenarios according to the provided configuration")
         return SelectiveFactory(logger, conf)
-    elif isinstance(conf.get('select savepoints'), dict):
+    elif conf.get('select scenarios') == 'select savepoints':
         logger.info("Generate models according to requirements in savepoints")
         return SavepointsFactory(logger, conf)
     else:
