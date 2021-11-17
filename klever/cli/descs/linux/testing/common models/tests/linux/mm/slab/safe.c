@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <ldv/common/test.h>
-#include <ldv/linux/slab.h>
+#include "../slab.h"
 
 gfp_t ldv_flags;
 
@@ -32,12 +32,19 @@ static int __init ldv_init(void)
 {
 	size_t size = ldv_undef_uint();
 	size_t n = ldv_undef_uint();
+	struct kmem_cache *cachep;
 
 	ldv_flags = ldv_undef_uint();
+
 	kmalloc(size, ldv_flags);
 	kzalloc(size, ldv_flags);
 	kmalloc_array(n, size, ldv_flags);
 	kcalloc(n, size, ldv_flags);
+
+	cachep = kmem_cache_create("ldv", sizeof(struct ldv_struct1), 0, 0, NULL);
+	ldv_assume(cachep != NULL);
+	kmem_cache_alloc(cachep, ldv_flags);
+	kmem_cache_zalloc(cachep, ldv_flags);
 
 	return 0;
 }

@@ -379,7 +379,11 @@ class ErrorTrace:
 
     def add_file(self, file_name):
         if file_name not in self._files:
-            if not os.path.isfile(file_name):
+            # Violation witnesses can refer auxiliary files created at weaving in all aspect files for models. But these
+            # auxiliary files could be removed if one will not keep intermediate files. Taking into account that
+            # auxiliary files are not very important, we can silently work further. You can see
+            # https://forge.ispras.ru/issues/10994 for more details.
+            if not file_name.endswith(".aux") and not os.path.isfile(file_name):
                 raise FileNotFoundError("There is no file {!r}".format(file_name))
             self._files.append(file_name)
             return self.resolve_file_id(file_name)
@@ -578,6 +582,11 @@ class ErrorTrace:
         for file_id, file in self.files:
             # Files without names are not referred by witness.
             if not file:
+                continue
+
+            # Like for klever.core.vrp.et.error_trace.ErrorTrace.add_file. BTW, there is a data race here since the
+            # necessary file can be removed after this check will pass. Let's hope that this will not happen ever.
+            if file.endswith(".aux") and not os.path.isfile(file):
                 continue
 
             self._logger.debug('Parse model comments from {!r}'.format(file))

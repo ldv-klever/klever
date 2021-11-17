@@ -196,7 +196,7 @@ pointcut FREE:
 
 around: FREE
 {
-    ldv_free($arg1);
+    ldv_free((void *)$arg1);
 }
 
 around: call(void rsi_91x_deinit(..))

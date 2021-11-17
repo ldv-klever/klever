@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "int *ldv_main::*temp2"
+      "value": "struct ldv_struct (?.a)"
     },
     {
       "is_compare": true,

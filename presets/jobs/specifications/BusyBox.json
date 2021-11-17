@@ -60,7 +60,7 @@
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:38277"
+              "version": "klever_fixes:38771"
             }
           }
         }
@@ -89,7 +89,7 @@
               "verifier profile": "memory checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "klever_fixes:38277"
+                "version": "klever_fixes:38771"
               }
             }
           }

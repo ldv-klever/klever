@@ -19,6 +19,7 @@
             "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
             "ext-modules/linux/mm/slab",
+            "ext-modules/linux/mm/slab-memory-safety",
             "ext-modules/linux/mm/util",
             "ext-modules/linux/mm/vmalloc",
             "ext-modules/linux/mm/vmalloc-memory-safety",

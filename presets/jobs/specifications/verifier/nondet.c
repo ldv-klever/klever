@@ -50,20 +50,6 @@ int ldv_undef_int(void)
 	return undef_int;
 }
 
-int ldv_random_int(int begin, int end)
-{
-	int ret;
-
-	if (begin >= end)
-        return begin;
-  	else {
-        ret = ldv_undef_int();
-        ldv_assume(ret >= begin);
-        ldv_assume(ret < end);
-        return ret;
-	}
-}
-
 long ldv_undef_long(void)
 {
 	/* NOTE2 Make a non-determined value of the long type (verification tools will consider all possible values) */
@@ -122,6 +108,15 @@ int ldv_undef_int_negative(void)
 	return ret;
 }
 
+int ldv_undef_int_nonnegative(void)
+{
+	int ret = ldv_undef_int();
+
+	ldv_assume(ret >= 0);
+
+	return ret;
+}
+
 int ldv_undef_int_nonpositive(void)
 {
 	int ret = ldv_undef_int();
@@ -135,7 +130,31 @@ void *ldv_undef_ptr_non_null(void)
 {
 	void *ret = ldv_undef_ptr();
 
-	ldv_assume(ret);
+	ldv_assume(ret != (void *)0);
+
+	return ret;
+}
+
+/* Private method - you should use ldv_undef_int_range() in your code. */
+int __ldv_undef_int_range(int begin, int end)
+{
+	int ret;
+
+	ret = ldv_undef_int();
+	ldv_assume(ret >= begin);
+	ldv_assume(ret <= end);
+
+	return ret;
+}
+
+/* Private method - you should use ldv_undef_int_range() in your code. */
+int __ldv_undef_int_range2(int begin, int end)
+{
+	int ret;
+
+	for (ret = begin; ret < end; ret++)
+		if (ldv_undef_int())
+			break;
 
 	return ret;
 }

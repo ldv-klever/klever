@@ -60,7 +60,7 @@ class MarkAccess:
 
     @cached_property
     def _is_expert(self):
-        return self._user_valid and self.user.role == USER_ROLES[3][0]
+        return self._user_valid and self.user.is_expert
 
     @cached_property
     def _job_expert(self):

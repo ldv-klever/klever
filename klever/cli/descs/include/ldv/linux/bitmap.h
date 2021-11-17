@@ -18,8 +18,8 @@
 #ifndef __LDV_LINUX_BITMAP_H
 #define __LDV_LINUX_BITMAP_H
 
-extern void ldv_set_bit(long nr, unsigned long *addr);
-extern void ldv_clear_bit(long nr, unsigned long *addr);
+extern void ldv_set_bit(long nr, volatile unsigned long *addr);
+extern void ldv_clear_bit(long nr, volatile unsigned long *addr);
 
 extern void ldv_bitmap_set(unsigned long *map, unsigned int start, int nbits);
 extern void ldv_bitmap_clear(unsigned long *map, unsigned int start, int nbits);

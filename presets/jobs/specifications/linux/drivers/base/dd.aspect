@@ -20,12 +20,15 @@ before: file("$this")
 #include <ldv/linux/device.h>
 }
 
-around: call(void *dev_get_drvdata(const struct device *dev))
+/* Pointcut for __ldv__stub__() is used here and below only to get rid of warnings of mismatches in function
+   declarations. New versions of the Linux kernel use static inline dev_get_drvdata() and dev_set_drvdata(), and we
+   do not need models for them. */
+around: call(void *dev_get_drvdata(const struct device *dev)) || call($ __ldv__stub__(..))
 {
 	return ldv_dev_get_drvdata(dev);
 }
 
-around: call(int dev_set_drvdata(struct device *dev, void *data))
+around: call(int dev_set_drvdata(struct device *dev, void *data)) || call($ __ldv__stub__(..))
 {
 	return ldv_dev_set_drvdata(dev, data);
 }

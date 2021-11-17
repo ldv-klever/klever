@@ -18,7 +18,7 @@
 before: file("$this")
 {
 #include <ldv/linux/slab.h>
-} 
+}
 
 around: execution(static inline void *kmalloc(size_t size, gfp_t flags))
 {
@@ -38,4 +38,30 @@ around: execution(static inline void *kmalloc_array(size_t n, size_t size, gfp_t
 around: execution(static inline void *kcalloc(size_t n, size_t size, gfp_t flags))
 {
 	return ldv_kcalloc(n, size, flags);
+}
+
+around: call(struct kmem_cache *kmem_cache_create(const char *name, size_t size, ..)) ||
+        call(struct kmem_cache *kmem_cache_create(const char *name, unsigned int size, ..))
+{
+	return ldv_kmem_cache_create(name, size);
+}
+
+around: call(void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags))
+{
+	return ldv_kmem_cache_alloc(cachep, flags);
+}
+
+around: execution(static inline void *kmem_cache_zalloc(struct kmem_cache *cachep, gfp_t flags))
+{
+	return ldv_kmem_cache_alloc(cachep, flags);
+}
+
+around: call(void kmem_cache_free(struct kmem_cache *cachep, void *objp))
+{
+	return ldv_kmem_cache_free(cachep, objp);
+}
+
+around: call(void kmem_cache_destroy(struct kmem_cache *cachep))
+{
+	return ldv_kmem_cache_destroy(cachep);
 }

@@ -1,0 +1,38 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/verifier/nondet/safe.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:memory safety"
+    }
+  ],
+  "description": "CPAchecker SMG assumes that ptr != NULL and ptr == NULL can be compatible for undefined pointers.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'unexpected_error'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "3"
+}

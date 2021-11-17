@@ -246,6 +246,57 @@ It is not hard to accomplish this aspect file with bindings for static inline st
 The aspect file above contains declarations of model functions.
 You can place them into a separate header file and include that file into both the C file and the aspect file.
 
+If you will need to keep original function calls, you can use either before/after advices or include those calls
+directly in advices themselves like in the examples below:
+
+.. code-block:: c
+
+    /* Original function will be invoked after ldv_func_pre() and its return value will be returned eventually. */
+    before: call(int func(int arg))
+    {
+        ldv_func_pre(arg);
+    }
+
+.. code-block:: c
+
+    /* Original function will be invoked before ldv_func_post() and its return value will be returned eventually.
+       Besides, it is available as $res in advice body. */
+    after: call(int func(int arg))
+    {
+        ldv_func_post(arg, $res);
+    }
+
+.. code-block:: c
+
+    around: call(int func(int arg))
+    {
+        int ret;
+        ldv_func_pre(arg);
+        ret = func(arg);
+        ldv_func_post(arg, ret);
+        return ret;
+    }
+
+Unless you are using options "weave in model aspect" and "weave in all aspects", you can invoke original functions
+within model functions.
+Otherwise, you will have recursion due to those original function calls will be also woven in.
+
+Sometimes it may be quite hard to get function declarations to be used in the aspect file.
+For instance, it is forbidden to use macros in aspect files while macros may be used in sources.
+Also, there may be different declarations for the same function depending on configurations.
+If you will see that your model does not work (e.g. code coverage reports can demonstrate this), you can investigate
+Weaver's logs to find valid function declarations.
+There may be warnings like these::
+
+    These functions were matched by name but have different signatures:
+      source function declaration: void iounmap (void volatile *)
+      aspect function declaration: void iounmap (int *)
+
+Obviously you need to use at least valid function names.
+Otherwise, you will not see any warnings.
+Also, you should take into account that CIF does not issue these warnings for composite pointcuts unless there will be
+mismatches of original function declarations with their last primitive pointcuts.
+
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
