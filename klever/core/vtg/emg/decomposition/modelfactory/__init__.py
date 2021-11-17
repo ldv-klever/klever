@@ -68,9 +68,6 @@ class Selector:
         return new
 
     def _assign_scenario(self, batch: ScenarioCollection, scenario=None, process_name=None):
-        if scenario and scenario is not None:
-            assert scenario not in batch.environment.values()
-
         if not process_name:
             batch.entry = scenario
         elif process_name in batch.environment:
