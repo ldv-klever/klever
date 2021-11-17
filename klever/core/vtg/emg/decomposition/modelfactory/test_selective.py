@@ -48,6 +48,7 @@ def model_with_independent_process():
 def double_init_model():
     return models.driver_double_init()
 
+
 @pytest.fixture()
 def fs_deps_model():
     return models.fs_savepoint_deps()
@@ -669,7 +670,9 @@ def test_fs_reqs_linear(logger, fs_deps_model):
     expected = [
         {"c/p1": "sp1 with exit", "c/p2": "deregister_p2", "c/p3": "Removed", "c/p4": "Removed"},
         {"c/p1": "sp2 with exit", "c/p2": "success_probe_deregister_p2", "c/p3": "create_scenario_p4_scenario_success", "c/p4": "base"},
-        {"c/p1": "sp1 with init_failed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed"}
+        {"c/p1": "sp1 with init_failed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed"},
+        {'c/p1': 'sp5 with exit', 'c/p4': 'base', 'c/p3': 'create_scenario_p4_scenario_success',
+         'c/p2': 'success_probe_deregister_p2'}
     ]
     _expect_models_with_attrs(models, expected)
 
@@ -696,6 +699,7 @@ def test_fs_reqs_p1(logger, fs_deps_model):
         }
     }
     processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    # todo: hmm, maybe it is required to have scenario with s5 there
     expected = [
         {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'Removed'},
         {'c/p1': 'sp2 with base', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
