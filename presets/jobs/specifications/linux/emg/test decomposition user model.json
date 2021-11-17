@@ -141,7 +141,10 @@
               "register_c1": {
                 "comment": "Start actions of the first child.",
                 "require": {
-                  "entry_point/entry": {"include": ["first_branch"]}
+                  "processes": {"entry_point/entry": true},
+                  "actions": {
+                    "entry_point/entry": ["first_branch"]
+                  }
                 },
                 "savepoints": {
                   "first_savepoint": {
@@ -195,7 +198,12 @@
               "register_c2": {
                 "comment": "Start actions of the second child.",
                 "require": {
-                  "entry_point/entry": {"include": ["second_branch"]}
+                  "processes": {
+                    "entry_point/entry": true
+                  },
+                  "actions": {
+                    "entry_point/entry": ["second_branch"]
+                  }
                 },
                 "savepoints": {
                   "third_savepoint": {
