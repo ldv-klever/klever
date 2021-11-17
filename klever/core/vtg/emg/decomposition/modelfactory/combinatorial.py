@@ -15,48 +15,40 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.common.process.actions import Subprocess
-from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
-from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveSelector
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
 
 
-class CombinatorialSelector(SelectiveSelector):
+class CombinatorialSelector(Selector):
 
-    def _prepare_coverage(self, cover_conf):
-        coverage = dict()
-        for process_name in self.model.environment:
-            actions = set(str(a) for a in self.model.environment[process_name].actions.filter(exclude={Subprocess}))
-            savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
-                          for sp in ac.savepoints}
+    def __call__(self, *args, **kwargs):
+        self.logger.info("Iterate over all generated scenarios with both SP and not")
+        for new, related_process in self._iterate_over_base_models(
+                include_base_model=True, include_savepoints=not self.conf.get('skip savepoints')):
+            iterate_over_processes = [
+                p for p in self.processes_to_scenarios
+                if related_process != p and [x for x in self.processes_to_scenarios[p] if not x.savepoint]]
+            if iterate_over_processes:
+                self.logger.info(f"Create copies of '{new.attributed_name}' for processes:"
+                                 f" {', '.join(iterate_over_processes)}")
+                pool = []
+                for process_name in iterate_over_processes:
+                    for new_model in (list(pool) if pool else [new]):
+                        for scenario in (s for s in self.processes_to_scenarios[process_name] if not s.savepoint):
+                            newest = new_model.clone(new_model.name)
+                            self._assign_scenario(newest, scenario, process_name)
+                            self.logger.info(f"Add a new model '{newest.attributed_name}' from model"
+                                             f" '{new_model.attributed_name}' and scenario '{scenario.name}'")
+                            self._assign_scenario(newest, scenario, process_name)
+                            pool.append(newest)
 
-            actions_to_cover = actions
-            sp_to_cover = savepoints
-
-            self.logger.info(f"Cover the following actions from the process '{process_name}': " +
-                             ", ".join(sorted(actions_to_cover)))
-            self.logger.info(f"Cover the following savepoints from the process '{process_name}': " +
-                             ", ".join(sorted(sp_to_cover)))
-
-            # Now split coverage according to required savepoints
-            coverage[process_name] = {process_name: set(actions_to_cover)}
-            for sp in sp_to_cover:
-                coverage[process_name][sp] = set(actions_to_cover)
-
-            if self.conf.get("skip origin model"):
-                coverage[process_name][process_name] = set()
-                if len(coverage[process_name].keys()) == 1:
-                    raise ValueError(f"Process '{process_name}' cannot be covered with the provided configuration")
-
-        return coverage
-
-    def _check_controversial_requirements(self, deleted_processes, must_contain, coverage):
-        for deleted in deleted_processes:
-            if deleted in must_contain:
-                raise ValueError(f"Forced to delete '{deleted}' process according to 'must not contain' property but it"
-                                 f" is mentioned in 'must contain' properties. Such specification is controversial.")
-
-    def _check_coverage_impact(self, process_name, coverage, scenario):
-        return True
+                for new_model in pool:
+                    self.logger.debug(f"Generate model '{new_model.name}'" +
+                                      (f" for related_process '{related_process}'" if related_process else ''))
+                    yield new_model, related_process
+            else:
+                self.logger.info(
+                    f"No processes with scenarios without savepoints were selected for model '{new.attributed_name}'")
+                yield new, related_process
 
 
 class CombinatorialFactory(ModelFactory):
