@@ -23,10 +23,15 @@ class SavepointsSelector(Selector):
     def __call__(self, *args, **kwargs):
         self.logger.info("Iterate over all generated scenarios with both SP and not")
 
-        for process in self.model.environment.values():
+        selection = self.conf.get("savepoints", dict())
+        self._check_configuration(selection)
+
+        for process in (p for n, p in self.model.environment.items()
+                        if not selection or n in selection):
             scenarios = self.processes_to_scenarios[str(process)]
 
-            for scenario in (s for s in scenarios if s.savepoint):
+            for scenario in (s for s in scenarios
+                             if s.savepoint and (not selection or str(s.savepoint) in selection[str(process)])):
                 model = self._make_base_model()
                 self._assign_scenario(model, scenario, str(scenario))
 
@@ -46,6 +51,22 @@ class SavepointsSelector(Selector):
                     model.remove_process(name)
 
                 yield model, str(scenario)
+
+    def _check_configuration(self, selection):
+        for process_name in selection:
+            if process_name not in self.model.environment:
+                raise ValueError(f"There is no environment process '{process_name}' to check its savepoints")
+
+            possible_savepoints = set(map(str, self.model.environment[process_name].actions.savepoints))
+            if isinstance(selection.get(process_name), list):
+                left = set(selection[process_name]).difference(possible_savepoints)
+                if left:
+                    left = ', '.join(left)
+                    raise ValueError(f"Process '{process_name}' does not have the following savepoints: {left}")
+            elif isinstance(selection.get(process_name), bool):
+                selection[process_name] = possible_savepoints
+            else:
+                raise ValueError(f"The savepoints configuration has an invalid value provided for '{process_name}'")
 
 
 class SavepointsFactory(ModelFactory):

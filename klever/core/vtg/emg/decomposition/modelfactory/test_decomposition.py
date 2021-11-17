@@ -185,6 +185,21 @@ def test_double_init_reqs(logger, double_init_with_deps_model):
     _expect_models_with_attrs(models, expected)
 
 
+def test_double_init_selected(logger, double_init_with_deps_model):
+    spec = {
+        "savepoints": {
+            "c1/p1": ["s1"],
+            "c2/p1": True
+        }
+    }
+    processes_to_scenarios, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
+    expected = [
+        {'c1/p1': 's1 with base', 'c1/p2': 'Removed', 'c2/p1': 'base', 'c2/p2': 'base'},
+        {'c2/p1': 's5 with base', 'c1/p1': 'Removed', 'c2/p2': 'Removed', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
 def _to_sorted_attr_str(attrs):
     return ", ".join(f"{k}: {attrs[k]}" for k in sorted(attrs.keys()))
 
