@@ -42,6 +42,11 @@ def fs_deps_model():
 
 
 @pytest.fixture()
+def double_init_with_deps_model():
+    return test_models.driver_double_init_with_deps()
+
+
+@pytest.fixture()
 def logger():
     logger = logging.getLogger(__name__)
     return logger
@@ -153,9 +158,7 @@ def test_default_models(base_model):
 
 
 def test_fs_reqs(logger, fs_deps_model):
-    spec = {
-        "savepoints only": True
-    }
+    spec = {}
     processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
     expected = [
         {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
@@ -164,6 +167,20 @@ def test_fs_reqs(logger, fs_deps_model):
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p1': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_double_init_reqs(logger, double_init_with_deps_model):
+    spec = {}
+    processes_to_scenarios, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
+    expected = [
+        {'c1/p1': 's1 with base', 'c1/p2': 'Removed', 'c2/p1': 'base', 'c2/p2': 'base'},
+        {'c1/p1': 's2 with base', 'c2/p1': 'base for s2', 'c2/p2': 'Removed', 'c1/p2': 'Removed'},
+        {'c1/p1': 's3 with base', 'c2/p1': 'base for s3', 'c2/p2': 'base for s3', 'c1/p2': 'Removed'},
+        {'c1/p1': 's4 with base', 'c2/p1': 'base for s4', 'c2/p2': 'v1 for s4', 'c1/p2': 'Removed'},
+        {'c1/p2': 'basic with base', 'c1/p1': 'Removed', 'c2/p2': 'Removed', 'c2/p1': 'base'},
+        {'c2/p1': 's5 with base', 'c1/p1': 'Removed', 'c2/p2': 'Removed', 'c1/p2': 'Removed'}
     ]
     _expect_models_with_attrs(models, expected)
 

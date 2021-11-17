@@ -466,19 +466,19 @@ class DoubleInitModelWithSavepoints(DoubleInitModel):
                         "s2": {
                             "statements": [],
                             "require": {
-                                "processes": {"c2/p1": True, "c2p2": False}
+                                "processes": {"c2/p1": True, "c2/p2": False}
                             }
                         },
                         "s3": {
                             "statements": [],
                             "require": {
-                                "processes": {"c2/p1": True, "c2p2": True}
+                                "processes": {"c2/p1": True, "c2/p2": True}
                             }
                         },
                         "s4": {
                             "statements": [],
                             "require": {
-                                "processes": {"c2/p1": True, "c2p2": True},
+                                "processes": {"c2/p1": True, "c2/p2": True},
                                 "actions": {
                                     "c2/p2": ["v1"]
                                 }
@@ -501,9 +501,15 @@ class DoubleInitModelWithSavepoints(DoubleInitModel):
             "actions": {
                 "register_p1": {
                     "parameters": ["%container%"],
-                    "require": {
-                        "c1/p1": {"include": ["ok"]},
-                        "c1/p2": {"include": ["ok"]}
+                    "weak require": {
+                        "processes": {
+                            "c1/p1": True,
+                            "c1/p2": True
+                        },
+                        "actions": {
+                            "c1/p1": ["ok"],
+                            "c1/p2": ["ok"]
+                        }
                     },
                     "savepoints": {
                         "s5": {
