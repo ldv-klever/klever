@@ -16,7 +16,6 @@
  */
 
 #include <linux/types.h>
-#include <linux/slab.h>
 #include <ldv/linux/common.h>
 #include <ldv/linux/slab.h>
 #include <ldv/verifier/memory.h>
@@ -61,15 +60,23 @@ void *ldv_kcalloc(size_t n, size_t size, gfp_t flags)
 	return res;
 }
 
+struct ldv_kmem_cache
+{
+	const char *name;
+	unsigned int size;
+};
+
 struct kmem_cache *ldv_kmem_cache_create(const char *name, unsigned int size)
 {
 	struct kmem_cache *res;
+	struct ldv_kmem_cache *ldv_res;
 
-	res = ldv_zalloc(sizeof(*res));
+	res = ldv_zalloc(sizeof(struct ldv_kmem_cache));
 
 	if (res) {
-		res->name = name;
-		res->size = size;
+		ldv_res = (struct ldv_kmem_cache *)res;
+		ldv_res->name = name;
+		ldv_res->size = size;
 	}
 
 	return res;
@@ -77,12 +84,12 @@ struct kmem_cache *ldv_kmem_cache_create(const char *name, unsigned int size)
 
 void *ldv_kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 {
-	return ldv_kmalloc(cachep->size, flags);
+	return ldv_kmalloc(((struct ldv_kmem_cache *)cachep)->size, flags);
 }
 
 void *ldv_kmem_cache_zalloc(struct kmem_cache *cachep, gfp_t flags)
 {
-	return ldv_kzalloc(cachep->size, flags);
+	return ldv_kzalloc(((struct ldv_kmem_cache *)cachep)->size, flags);
 }
 
 void ldv_kmem_cache_free(struct kmem_cache *cachep, void *objp)

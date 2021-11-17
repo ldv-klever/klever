@@ -19,12 +19,13 @@
 #define __LDV_LINUX_SLAB_H
 
 #include <linux/types.h>
-#include <linux/slab.h>
 
 extern void *ldv_kzalloc(size_t size, gfp_t flags);
 extern void *ldv_kmalloc(size_t size, gfp_t flags);
 extern void *ldv_kcalloc(size_t n, size_t size, gfp_t flags);
 extern void *ldv_kmalloc_array(size_t n, size_t size, gfp_t flags);
+
+struct kmem_cache;
 
 extern struct kmem_cache *ldv_kmem_cache_create(const char *name, unsigned int size);
 extern void *ldv_kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags);
