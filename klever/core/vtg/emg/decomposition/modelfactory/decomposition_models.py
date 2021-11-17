@@ -303,6 +303,12 @@ class FileSystemModelWithRequirements(FileSystemModel):
                                     "c/p3": ["register_p4", "success", "create"]
                                 }
                             }
+                        },
+                        'sp5': {
+                            "statements": [],
+                            "require": {
+                                "processes": {"c/p4": True}
+                            }
                         }
                     }
                 },
