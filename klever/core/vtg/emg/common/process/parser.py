@@ -216,6 +216,7 @@ def p_dispatch(p):
     number = number[-1] if number else 1
 
     action = Behaviour(name, Dispatch)
+    action.repeat = number
     action.specific_attributes.append(('broadcast', broadcast))
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
@@ -239,6 +240,7 @@ def p_receive(p):
         replicative = False
     number = number[-1] if number else 1
     action = Behaviour(name, Receive)
+    action.repeat = number
     action.specific_attributes.append(('replicative', replicative))
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
@@ -252,6 +254,7 @@ def p_condition(p):
     name, *number = p[2:-1]
     number = number[-1] if number else 1
     action = Behaviour(name, Block)
+    action.repeat = number
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
@@ -264,6 +267,7 @@ def p_subprocess(p):
     name, *number = p[2:-1]
     number = number[-1] if number else 1
     action = Behaviour(name, Subprocess)
+    action.repeat = number
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
