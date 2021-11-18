@@ -371,6 +371,11 @@ class CollectionDecoder:
         return process
 
     def _import_action(self, process, name, dic):
+        # Check labels
+        for behaviour in process.actions.behaviour(name):
+            if isinstance(behaviour.repeat, str) and behaviour.repeat not in process.labels:
+                raise ValueError(f"Process '{str(process)}' does not have label {behaviour.repeat}")
+
         act = process.actions.behaviour(name).pop().kind(name)
         process.actions[name] = act
 

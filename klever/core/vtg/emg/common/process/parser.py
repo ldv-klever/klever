@@ -184,23 +184,23 @@ def p_bracket(p):
     p[0] = par
 
 
-def p_repeate(p):
+def p_repeat(p):
     """
-    repeate : SBR_OPEN NUMBER SBR_CLOSE
+    repeat : SBR_OPEN NUMBER SBR_CLOSE
             | SBR_OPEN PER IDENTIFIER PER SBR_CLOSE
     """
     context = p[2:-1]
     if len(context) > 1:
-        number = context[1]
+        number = str(context[1])
     else:
-        number = context[0]
+        number = int(context[0])
     p[0] = number
 
 
 def p_dispatch(p):
     """
-    dispatch : SBR_OPEN BS IDENTIFIER repeate SBR_CLOSE
-             | SBR_OPEN IDENTIFIER repeate SBR_CLOSE
+    dispatch : SBR_OPEN BS IDENTIFIER repeat SBR_CLOSE
+             | SBR_OPEN IDENTIFIER repeat SBR_CLOSE
              | SBR_OPEN BS IDENTIFIER SBR_CLOSE
              | SBR_OPEN IDENTIFIER SBR_CLOSE
     """
@@ -224,8 +224,8 @@ def p_dispatch(p):
 
 def p_receive(p):
     """
-    receive : PAR_OPEN RS IDENTIFIER repeate PAR_CLOSE
-            | PAR_OPEN IDENTIFIER repeate PAR_CLOSE
+    receive : PAR_OPEN RS IDENTIFIER repeat PAR_CLOSE
+            | PAR_OPEN IDENTIFIER repeat PAR_CLOSE
             | PAR_OPEN RS IDENTIFIER PAR_CLOSE
             | PAR_OPEN IDENTIFIER PAR_CLOSE
     """
@@ -248,7 +248,7 @@ def p_receive(p):
 
 def p_condition(p):
     """
-    condition : DIM_OPEN IDENTIFIER repeate DIM_CLOSE
+    condition : DIM_OPEN IDENTIFIER repeat DIM_CLOSE
               | DIM_OPEN IDENTIFIER DIM_CLOSE
     """
     name, *number = p[2:-1]
@@ -261,7 +261,7 @@ def p_condition(p):
 
 def p_subprocess(p):
     """
-    subprocess : BR_OPEN IDENTIFIER repeate BR_CLOSE
+    subprocess : BR_OPEN IDENTIFIER repeat BR_CLOSE
                | BR_OPEN IDENTIFIER BR_CLOSE
     """
     name, *number = p[2:-1]
