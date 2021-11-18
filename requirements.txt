@@ -6,7 +6,7 @@ cchardet==2.1.7
 celery==5.0.3
 certifi==2020.12.5
 chardet==3.0.4
-clade==3.4.8
+clade==3.4.9
 click==7.1.2
 click-didyoumean==0.0.3
 click-plugins==1.1.1
