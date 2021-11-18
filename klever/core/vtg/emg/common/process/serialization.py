@@ -374,7 +374,9 @@ class CollectionDecoder:
         # Check labels
         for behaviour in process.actions.behaviour(name):
             if isinstance(behaviour.repeat, str) and behaviour.repeat not in process.labels:
-                raise ValueError(f"Process '{str(process)}' does not have label {behaviour.repeat}")
+                raise ValueError(f"Action '{name}' of '{str(process)}' does not have label {behaviour.repeat}")
+            elif isinstance(behaviour.repeat, int) and behaviour.repeat < 1:
+                raise ValueError(f"Action '{name}' of '{str(process)}' has a repeating suffix value less than 2")
 
         act = process.actions.behaviour(name).pop().kind(name)
         process.actions[name] = act
