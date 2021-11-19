@@ -23,7 +23,7 @@ import sortedcontainers
 from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer, ProcessDescriptor
 from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal,\
     Requirements, WeakRequirements
 
@@ -119,7 +119,7 @@ class CollectionEncoder(json.JSONEncoder):
 
     def _serialize_process(self, process):
         ict_action = sortedcontainers.SortedDict()
-        ict_action['category']  = process.category
+        ict_action['category'] = process.category
         ict_action['comment'] = process.comment
         ict_action['process'] = repr(process.actions.initial_action)
         ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
@@ -225,7 +225,8 @@ class CollectionDecoder:
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, "entry", "main", raw["main process"])
+                entry_process = self._import_process(source, ProcessDescriptor.EXPECTED_CATEGORY,
+                                                     ProcessDescriptor.EXPECTED_CATEGORY, raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
                 self.logger.warning("Cannot parse the main process: {}".format(str(err)))
@@ -244,7 +245,7 @@ class CollectionDecoder:
             if model_process.savepoints:
                 raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
         savepoints = set()
-        for process in collection.environment.values():
+        for process in collection.processes:
             for action in process.actions.values():
                 if action.savepoints:
                     sp = set(map(str, action.savepoints))
@@ -256,12 +257,12 @@ class CollectionDecoder:
 
                     for savepoint in action.savepoints:
                         for name in savepoint.requirements.required_processes:
-                            if name not in collection.environment:
+                            if name not in collection.process_map:
                                 raise ValueError(f"Savepoint '{str(savepoint)}' requires unknown process '{name}'")
 
                             required_actions = savepoint.requirements.required_actions(name)
                             for act in required_actions:
-                                if act not in collection.environment[name].actions:
+                                if act not in collection.process_map[name].actions:
                                     raise ValueError(
                                         f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
                                         f"process '{name}'")
@@ -271,8 +272,8 @@ class CollectionDecoder:
                         required = collection.entry
                     elif name in collection.models.keys():
                         required = collection.models[name]
-                    elif name in map(str, collection.environment.values()):
-                        required = collection.environment[name]
+                    elif name in collection.process_map:
+                        required = collection.process_map[name]
                     else:
                         raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
                                          f" action '{str(action)}'")
@@ -366,6 +367,11 @@ class CollectionDecoder:
         intrs = set(process.actions.keys()).intersection(process.actions.savepoints)
         assert not intrs, "Process must not have savepoints with the same names as actions, but there is an" \
                           " intersection: %s" % ', '.join(intrs)
+
+        # Check name and savepoints
+        if process.name == ProcessDescriptor.DEFAULT_ID and process.actions.savepoints:
+            raise ValueError(f"It is forbidden using '{ProcessDescriptor.DEFAULT_ID}' as a process name for processes "
+                             f"that have savepoints as it might result in bad requirements processing")
 
         process.accesses()
         return process
