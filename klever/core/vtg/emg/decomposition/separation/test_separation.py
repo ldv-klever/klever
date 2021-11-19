@@ -19,11 +19,11 @@ import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
+from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset, source_preset
 
@@ -489,12 +489,13 @@ def _check_linear_actions(scenarios, actions):
                 assert False, f'Do not expect choice in the scenario: {repr(beh)}'
 
     # Have registration or savepoint
-    registrations = {a.name for a in actions.filter(include={Receive})}.intersection(first_actions)
-    assert len(registrations) == 1, f'The process should have a single registration instead of:' \
-                                    f' {", ".join(registrations)}'
-    registration = registrations.pop()
-    for scenario in scenarios:
-        assert scenario.savepoint or registration in scenario.actions.first_actions()
+    if str(scenarios[-1].process) != f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}":
+        registrations = {a.name for a in actions.filter(include={Receive})}.intersection(first_actions)
+        assert len(registrations) == 1, f'The process should have a single registration instead of:' \
+                                        f' {", ".join(registrations)}'
+        registration = registrations.pop()
+        for scenario in scenarios:
+            assert scenario.savepoint or registration in scenario.actions.first_actions()
 
     # No blocks with conditions
     for scenario in scenarios:
@@ -526,7 +527,7 @@ def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separato
     scenarios = requirements_driven_separator(c1p1, model_with_savepoint_requirements)
 
     # There should be an extra scenario which is created for savepoint 9
-    assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 1
+    assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 2
 
     scenario_dict = {s.name: s for s in scenarios}
     s1 = scenario_dict['s1 with b_c_g']
