@@ -91,7 +91,7 @@ class Decomposition:
     def __call__(self, *args, **kwargs):
         processes_to_scenarios = dict()
         self.logger.info("Generating models ...")
-        for process in self.model.environment.values():
+        for process in self.model.non_models.values():
             scenarios = list(self.separator(process, self.model))
             self.logger.debug(f"Generated {len(scenarios)} scenarios for the process '{str(process)}'")
             processes_to_scenarios[str(process)] = scenarios
