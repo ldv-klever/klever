@@ -26,7 +26,7 @@ class SavepointsSelector(Selector):
         selection = self.conf.get("savepoints", dict())
         self._check_configuration(selection)
 
-        for process in (p for n, p in self.model.environment.items()
+        for process in (p for n, p in self.model.non_models.items()
                         if not selection or n in selection):
             scenarios = self.processes_to_scenarios[str(process)]
 
@@ -54,10 +54,10 @@ class SavepointsSelector(Selector):
 
     def _check_configuration(self, selection):
         for process_name in selection:
-            if process_name not in self.model.environment:
+            if process_name not in self.model.non_models:
                 raise ValueError(f"There is no environment process '{process_name}' to check its savepoints")
 
-            possible_savepoints = set(map(str, self.model.environment[process_name].actions.savepoints))
+            possible_savepoints = set(map(str, self.model.non_models[process_name].actions.savepoints))
             if isinstance(selection.get(process_name), list):
                 left = set(selection[process_name]).difference(possible_savepoints)
                 if left:

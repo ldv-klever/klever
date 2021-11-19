@@ -29,6 +29,8 @@ class ScenarioCollection(ProcessCollection):
     it will use a provided scenario.
     """
 
+    entry = None
+
     def __init__(self, original_model, name='base', entry=None, models=None, environment=None):
         assert isinstance(name, str)
         self.name = name

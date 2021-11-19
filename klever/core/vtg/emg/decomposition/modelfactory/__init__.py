@@ -19,7 +19,7 @@ import copy
 import logging
 
 from klever.core.vtg.emg.common.process.actions import Receive
-from klever.core.vtg.emg.common.process import Process, ProcessCollection
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioCollection
 
 
@@ -45,10 +45,14 @@ class Selector:
         if include_savepoints:
             for scenario, related_process in self._scenarios_with_savepoint.items():
                 new = ScenarioCollection(self.model, scenario.name)
-                for process in self.model.environment:
-                    new.environment[str(process)] = None
-                    if scenario in self.processes_to_scenarios[process]:
-                        self._assign_scenario(new, scenario, str(process))
+                new.entry = None
+                if scenario in self.processes_to_scenarios[str(self.model.entry)]:
+                    self._assign_scenario(new, scenario, str(self.model.entry))
+                else:
+                    for process_name in self.model.environment:
+                        new.environment[process_name] = None
+                        if scenario in self.processes_to_scenarios[process_name]:
+                            self._assign_scenario(new, scenario, process_name)
                 yield new, related_process
 
     @property
@@ -68,7 +72,7 @@ class Selector:
         return new
 
     def _assign_scenario(self, batch: ScenarioCollection, scenario=None, process_name=None):
-        if not process_name:
+        if not process_name or process_name == f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}":
             batch.entry = scenario
         elif process_name in batch.environment:
             batch.environment[process_name] = scenario
@@ -148,11 +152,12 @@ class ModelFactory:
             original_name = batch.attributed_name
 
             # Do sanity check to catch several savepoints in a model
-            sp_scenarios = {s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint}
+            sp_scenarios = {s for s in batch.non_models if isinstance(s, Scenario) and s.savepoint}
             assert len(sp_scenarios) < 2
 
             # Set entry process
-            if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
+            if related_process and related_process in batch.environment and batch.environment[related_process] and\
+                    batch.environment[related_process].savepoint:
                 # There is an environment process with a savepoint
                 new.entry = self._process_from_scenario(batch.environment[related_process],
                                                         model.environment[related_process])
@@ -198,7 +203,7 @@ class ModelFactory:
                     self.logger.info("Reduced batch {!r} to {!r}".format(original_name, new.attributed_name))
 
                 # Add missing attributes to the model
-                for process_name in model.environment:
+                for process_name in model.non_models:
                     added_attributes = []
                     if process_name not in new.attributes:
                         added_attributes.append(process_name)
