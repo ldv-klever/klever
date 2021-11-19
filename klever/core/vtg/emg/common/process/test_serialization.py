@@ -20,9 +20,9 @@ import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
-from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
+from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def test_import_model(raw_model, model):
 
 def test_imported_names(raw_model, model):
     assert model.name == raw_model['name']
-    assert 'entry' == model.entry.name
+    assert str(model.entry) == f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}"
 
     for name in raw_model['functions models']:
         assert name in model.models, 'There are models: {}'.format(', '.join(sorted(model.models.keys())))

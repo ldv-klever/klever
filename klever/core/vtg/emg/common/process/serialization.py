@@ -215,6 +215,13 @@ class CollectionDecoder:
                     if process in collection.environment:
                         raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                          format(str(process)))
+
+                    # Check name and savepoints
+                    if process.name == ProcessDescriptor.DEFAULT_ID and process.actions.savepoints:
+                        raise ValueError(f"It is forbidden using '{ProcessDescriptor.DEFAULT_ID}' as a process name for"
+                                         f" processes that have savepoints as it might result in bad requirements "
+                                         f"processing")
+
                     collection.environment[str(process)] = process
                 except Exception:
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
@@ -225,7 +232,7 @@ class CollectionDecoder:
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, ProcessDescriptor.EXPECTED_CATEGORY,
+                entry_process = self._import_process(source, ProcessDescriptor.DEFAULT_ID,
                                                      ProcessDescriptor.EXPECTED_CATEGORY, raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
@@ -239,8 +246,6 @@ class CollectionDecoder:
                                format(', '.join(raise_exc)))
 
         # Check savepoint's uniqueness
-        if collection.entry and collection.entry.savepoints:
-            raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
         for model_process in collection.models.values():
             if model_process.savepoints:
                 raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
@@ -367,11 +372,6 @@ class CollectionDecoder:
         intrs = set(process.actions.keys()).intersection(process.actions.savepoints)
         assert not intrs, "Process must not have savepoints with the same names as actions, but there is an" \
                           " intersection: %s" % ', '.join(intrs)
-
-        # Check name and savepoints
-        if process.name == ProcessDescriptor.DEFAULT_ID and process.actions.savepoints:
-            raise ValueError(f"It is forbidden using '{ProcessDescriptor.DEFAULT_ID}' as a process name for processes "
-                             f"that have savepoints as it might result in bad requirements processing")
 
         process.accesses()
         return process
