@@ -62,6 +62,13 @@ class ScenarioCollection(ProcessCollection):
         return new
 
     @property
+    def non_models(self):
+        """Return environment processes with an entry process"""
+        ret = dict(self.environment)
+        ret[str(self.original_model.entry)] = self.entry
+        return ret
+
+    @property
     def defined_processes(self):
         return [self.original_model.models[i] for i in sorted(self.models.keys())] + \
                [self.environment[i] for i in sorted(self.environment.keys()) if self.environment[i]] + \

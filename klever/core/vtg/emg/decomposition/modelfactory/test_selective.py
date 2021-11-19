@@ -69,7 +69,7 @@ def _obtain_model(logger, model, specification):
     separation = SelectiveFactory(logger, specification)
     scenario_generator = SeparationStrategy(logger, dict())
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -78,7 +78,7 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -87,7 +87,7 @@ def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
