@@ -32,13 +32,12 @@ class ScenarioCollection(ProcessCollection):
     entry = None
 
     def __init__(self, original_model, name='base', entry=None, models=None, environment=None):
+        super().__init__(name)
         assert isinstance(name, str)
-        self.name = name
         self.entry = entry
         self.original_model = original_model
         self.models = models if isinstance(models, dict) else dict()
         self.environment = environment if isinstance(environment, dict) else dict()
-        self.attributes = dict()
 
     def __hash__(self):
         return hash(str(self.attributed_name))
@@ -80,7 +79,7 @@ class ScenarioCollection(ProcessCollection):
         return [self.original_model.models[i] for i in sorted(self.models.keys())] + \
                [self.environment[i] if self.environment[i] else self.original_model.environment[i]
                 for i in sorted(self.environment.keys())] + \
-               ([self.entry] if self.entry else [])
+               ([self.entry] if self.entry else ([self.original_model.entry] if self.original_model.entry else []))
 
     @property
     def savepoint(self):
