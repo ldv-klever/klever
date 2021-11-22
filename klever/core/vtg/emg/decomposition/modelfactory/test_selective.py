@@ -757,19 +757,3 @@ def test_fs_reqs_init_cover_init(logger, fs_init_deps_model):
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'}
     ]
     _expect_models_with_attrs(models, expected)
-
-
-def test_fs_reqs_entry(logger, fs_init_deps_model):
-    spec = {
-        "cover scenarios": {
-            "entry_point/main": {"savepoints only": True}
-        }
-    }
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
-    expected = [
-        {'entry_point/main': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
-        {'entry_point/main': 'sp2 with exit', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
-         'c/p2': 'success for sp2'},
-        {'entry_point/main': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
-    ]
-    _expect_models_with_attrs(models, expected)
