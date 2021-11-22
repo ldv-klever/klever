@@ -380,6 +380,77 @@ class FileSystemModelWithRequirements(FileSystemModel):
     }
 
 
+class FileSystemModelWithRequirementsAndInit(FileSystemModelWithRequirements):
+    environment_models = {
+        "c/p2": {
+            "comment": "",
+            "labels": {"ret": {"declaration": "int x"}},
+            "process": "(!register_p2).{main}",
+            "actions": {
+                "main": {
+                    "comment": "Test initialization.",
+                    "process": "<probe>.(<success>.[register_p3].[deregister_p3] | <fail>.<remove>).{main} | (deregister_p2)"
+                },
+                "register_p2": {
+                    "parameters": [],
+                    "require": {
+                        "processes": {"entry_point/main": True},
+                        "actions": {
+                            "entry_point/main": ["init", "exit"]
+                        }
+                    }
+                },
+                "deregister_p2": {"parameters": []},
+                "probe": {"comment": ""},
+                "success": {"comment": "", "condition": ["%ret% == 0"]},
+                "fail": {"comment": "Failed probing.", "condition": ["%ret% != 0"]},
+                "remove": {"comment": ""},
+                "register_p3": {"parameters": []},
+                "deregister_p3": {"parameters": []}
+            }
+        },
+        "c/p3": FileSystemModelWithRequirements.environment_models["c/p3"],
+        "c/p4": FileSystemModelWithRequirements.environment_models["c/p4"]
+    }
+    entry = {
+        "comment": "",
+        "labels": {},
+        "process": "<pre>.<init>.(<exit> | <init_failed>)",
+        "actions": {
+            "pre": {
+                "savepoints": {
+                    'sp1': {
+                        "statements": [],
+                        "require": {
+                            "processes": {"c/p3": False, "c/p4": False}
+                        }
+                    },
+                    'sp2': {
+                        "statements": [],
+                        "require": {
+                            "processes": {"c/p2": True, "c/p3": True, "c/p4": True},
+                            "actions": {
+                                "entry_point/main": ["exit"],
+                                "c/p2": ["success"],
+                                "c/p3": ["register_p4", "success", "create"]
+                            }
+                        }
+                    },
+                    'sp5': {
+                        "statements": [],
+                        "require": {
+                            "processes": {"c/p4": True}
+                        }
+                    }
+                }
+            },
+            "init": {"comment": ""},
+            "exit": {"comment": ""},
+            "init_failed": {"comment": ""}
+        }
+    }
+
+
 class DoubleInitModel(DeviceDriverModel):
     entry = None,
     environment_models = {
@@ -564,6 +635,10 @@ def fs_with_unique_process():
 
 def fs_savepoint_deps():
     return _model_factory(FileSystemModelWithRequirements)
+
+
+def fs_savepoint_init_deps():
+    return _model_factory(FileSystemModelWithRequirementsAndInit)
 
 
 def fs_simplified():

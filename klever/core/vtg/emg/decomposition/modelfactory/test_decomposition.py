@@ -42,6 +42,11 @@ def fs_deps_model():
 
 
 @pytest.fixture()
+def fs_init_deps_model():
+    return test_models.fs_savepoint_init_deps()
+
+
+@pytest.fixture()
 def double_init_with_deps_model():
     return test_models.driver_double_init_with_deps()
 
@@ -167,6 +172,20 @@ def test_fs_reqs(logger, fs_deps_model):
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p1': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_init_reqs(logger, fs_init_deps_model):
+    spec = {}
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'entry_point/main': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
+        {'entry_point/main': 'sp2 with exit', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
+         'c/p2': 'success for sp2'},
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'entry_point/main': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
     ]
     _expect_models_with_attrs(models, expected)
 
