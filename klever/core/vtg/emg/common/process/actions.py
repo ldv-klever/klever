@@ -94,9 +94,10 @@ class Behaviour(BaseAction):
     def __init__(self, name, accepted_class):
         assert accepted_class is not None and issubclass(accepted_class, Action)
         super().__init__()
+        self.specific_attributes = []
+        self.repeat = None
         self._name = name
         self._description = None
-        self.specific_attributes = []
         self._accepted_class = accepted_class
 
     def __repr__(self):

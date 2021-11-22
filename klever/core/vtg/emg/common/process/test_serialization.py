@@ -124,6 +124,12 @@ def test_failures(source, raw_model):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
                                                                      ProcessCollection())
 
+    raw_model4 = copy.deepcopy(raw_model)
+    raw_model4['environment processes']['c1/p1']['process'] = '(!register_c1p1).{activate[%unknown_label%]}'
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model4)),
+                                                                     ProcessCollection())
+
 
 def _compare_models(raw1, raw2):
     _compare_process(raw1["main process"], raw2["main process"])
