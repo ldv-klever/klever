@@ -16,6 +16,11 @@
         "header": "linux/fs.h",
         "reference": true
       },
+      "iput": {
+        "declaration": "void iput(struct inode *inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
       "d_instantiate": {
         "declaration": "void d_instantiate(struct dentry *, struct inode *)",
         "header": "linux/dcache.h",
