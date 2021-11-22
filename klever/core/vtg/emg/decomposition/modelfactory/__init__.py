@@ -166,6 +166,7 @@ class ModelFactory:
 
                 # Move declarations and definitions
                 if model.entry:
+                    new.extend_model_name(str(model.entry), 'Removed')
                     new.copy_declarations_to_init(model.entry)
             elif batch.entry:
                 # The entry process has a scenario
