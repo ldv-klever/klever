@@ -32,6 +32,7 @@ struct inode *ldv_alloc_inode(struct super_block *);
 void ldv_inode_init_once(struct inode *);
 void ldv_clear_inode(struct inode *);
 struct inode *ldv_iget_locked(struct super_block *, unsigned long);
+void ldv_iput(struct inode *);
 
 /* Aux functions */
 struct inode *ldv_get_root_inode(void);
