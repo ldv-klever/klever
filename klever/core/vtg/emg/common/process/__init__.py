@@ -559,8 +559,10 @@ class ProcessCollection:
         self.attributes[process_name] = attribute
 
     def remove_process(self, process_name):
-        assert process_name and process_name in self.environment
-        del self.environment[process_name]
+        if process_name in self.environment:
+            del self.environment[process_name]
+        else:
+            self.entry = None
         self.extend_model_name(process_name, 'Removed')
 
     def copy_declarations_to_init(self, process: Process):
