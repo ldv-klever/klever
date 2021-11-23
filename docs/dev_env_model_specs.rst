@@ -347,6 +347,17 @@ process = (!a).<b>.(<c>.[e] \| <f>)
 
 The example demonstrates the usage of conditions in first base block actions of the choice operator.
 
+A user may need to attempt an action several times in a row.
+There is an additional form to describe such repeated actions.
+Imagine, there is a base block action *x*, then the process should contain it in the following form to repeat it twice: *<x[2]>*.
+It is possible to provide only numbers in square brackets.
+
+Jumps have the same notation but the semantics is a bit different.
+The number means the maximum number of jumps that can be done on a single path through this action.
+There is an another kind of guards to restrict passing through a jump: *{my_jump[%flag%]}*.
+This jump depends on the evaluation of *%flag%* label that serves as a guard.
+A user may choose any defined process label as a guard.
+
 Model Description
 -----------------
 
@@ -676,10 +687,14 @@ Signaling action description can have the following attributes:
     - Labels to save or send data.
     - Yes
   * - require
-    - The object is a map from process identifiers to objects with the *include* attribute.
+    - The object has *processes* and *actions* attributes.
       The latter lists actions required for this one.
+      Processes contains a map from process identifiers to True/False values that means inclusion or exclusion of these
+      processes.
+      It is not necessary to include the identifier of the process which is a host to the action with the *require* attribute.
+      Actions contain a map from process identifiers to corresponding lists of names of actions that are required.
 
-      {"c/p1": {"include": ["probe", "success"]}}
+      {"require": {"actions": {"c/p1": ["probe", "success"]}, "processes": {"c/p1": true}}}
     - The attribute says that the action requires another process that should have specific actions in turn.
       This field is used only at the decomposition of models, which is considered in the following chapters.
     - No
@@ -1202,6 +1217,10 @@ Description of savepoints should follow the following table:
     - Statements contain the code of the process initialization if the process with the savepoint becomes the main one.
       Values should be provided as for the same attribute of block actions.
     - Not
+  * - require
+    - It is the same map which is already described for the attribute with the same name used in actions.
+    - Requirements allow to restrict actions and processes that should be included to models with the savepoint.
+    - Not
 
 There is an example of a savepoint attached to the registering action considered in the section related to IEM and
 UDEMS:
@@ -1236,13 +1255,13 @@ added as the previous main one also.
 Decomposition Tactics
 ---------------------
 
-There are two implementations of process decomposition tactics.
+There are three implementations of process decomposition tactics.
 The default one is used if the value of the *scenario separation* configuration property is None (find the description
 in the table below).
 The default tactic does not modify actions.
 But instead, it creates a scenario with the origin actions and different scenarios with savepoints.
 
-The second tactic splits process actions into sequences of actions without choices.
+The second tactic (*linear*) splits process actions into sequences of actions without choices.
 Together created scenarios cover the exact behavior of the original process.
 
 The example of a model provided above can be split into three models assuming there are no savepoints.
@@ -1251,6 +1270,18 @@ The first model does not contain any versions of B process, since there is no an
 Models 2 and 3 have *A.2* process and *B.1* and *B.2* correspondingly.
 
 .. figure:: ./media/env/linear-example-of-decomposing.png
+
+The third tactic (*savepoint_requirements*) splits processes into scenarios reducing the number of branches in choices.
+It extracts savepoint requirements and looks into lists of provided actions.
+These actions are used to select first actions of required branches in choices.
+The tactic starts from the first process's action and traverses actions moving to leaf actions.
+Thus, the order of actions in requirements matters, as it influences processing of choices.
+The tactic generates much fewer scenarios than the linear one because it reduces branches only for those choices for which
+there are provided actions in requirements.
+Moreover, it does not generate scenarios for branches that are excluded by requirements.
+
+The tactic generates specific scenarios for each requirement with provided actions for each process given in every savepoint requirement.
+So a process may have several scenarios generated for certain savepoints exclusively.
 
 The next step of decomposition of an IEM is scenario selection.
 It means that the origin IEM is copied, then each process is replaced by a scenario prepared from it.
@@ -1261,7 +1292,7 @@ There are several attributes in processes that influence the whole model: declar
 For the sake of comfortable use of these attributes, the EMG tool keeps declarations and definitions even from processes
 that are excluded from generated models.
 
-There are several implementations of this step.
+There are several implementations of scenario selection.
 The *select scenarios* configuration property allows choosing a tactic for scenario selection.
 There are the following tactics with the corresponding configuration property values in parentheses:
 
@@ -1270,6 +1301,8 @@ There are the following tactics with the corresponding configuration property va
   environment models filtering out infeasible ones.
 * **Selective** (a dictionary with configuration is given) – the tactic allows users to set which particular scenarios
   should be added to new environment models.
+* **Savepoints-based** (*select savepoints*) – the tactic allows users to choose scenarios generated for savepoints.
+  It is intended to use this tactic with the *savepoint_requirements* process separation tactic.
 
 To activate decomposition, one should set the *single environment model per fragment* configuration property to True.
 There are additional configuration parameters to manage the decomposition listed below:
@@ -1285,11 +1318,11 @@ There are additional configuration parameters to manage the decomposition listed
     - Default Value
     - Description
   * - scenario separation
-    - linear, None
+    - None, linear, savepoint_requirements
     - None
-    - Allows choosing the default process separation tactic or the linear one.
+    - Allows choosing a process separation tactic.
   * - select scenarios
-    - *use all scenarios combinations*, Obj or None
+    - *use all scenarios combinations*, *select savepoints*, Obj or None
     - None
     - Allows to select one of listed above scenario selection tactics.
   * - skip origin model
@@ -1301,6 +1334,14 @@ There are additional configuration parameters to manage the decomposition listed
     - False
     - It is relevant for default and combinatorial factories to generate models.
       If the flag is set, then no extra models with savepoint scenarios will be outputted.
+  * - savepoints
+    - A map from process identifiers to either list of savepoint names or bool flag. True value means that all savepoints
+      can be included. False means no savepoints should be included. A list just enumerates savepoints to include. Omitted
+      processes are ignored.
+      {"c1/p1": true, "c1/p2": ["sp1"]}
+    - False
+    - The configuration parameter is intended only for the *savepoints-based* tactic. It allows to filter savepoints for which
+      models should be prepared.
 
 The *selective* tactic allows a user to select scenarios for IEMs for each process.
 Names of scenarios are generated automatically, so they are assumed to be unknown to users.
@@ -1865,7 +1906,7 @@ But it is rather simple in our case.
 That is why we consider the more interesting case: how to implement several versions of the model using savepoints.
 
 To keep the model as is but add several savepoints, it is required to add them to the main process.
-But it is forbidden.
+But it is difficult to use them alongside with the selective tactic that we are going to use for this example.
 The solution is to move the process to the *environment processes*:
 
 #. Add a new *main/process* member to *environment processes*.
@@ -1889,7 +1930,8 @@ It allows us to reduce the number of models generated at decomposition by fulfil
 .. code-block:: json
 
   "require": {
-    "main/process": {"include": ["init_success"]}
+    "processes": {"main/process": true},
+    "actions": {"main/process": ["init_success"]}
   }
 
 Finally, we can add a savepoint to the *main_register* action of *main/process*.
