@@ -46,7 +46,7 @@ class Selector:
             for scenario, related_process in self._scenarios_with_savepoint.items():
                 new = ScenarioCollection(self.model, scenario.name)
                 new.entry = None
-                if scenario in self.processes_to_scenarios[str(self.model.entry)]:
+                if self.model.entry and scenario in self.processes_to_scenarios[str(self.model.entry)]:
                     self._assign_scenario(new, scenario, str(self.model.entry))
                 else:
                     for process_name in self.model.environment:
