@@ -171,6 +171,7 @@ class ReqsExtractor(ScenarioExtractor):
                                 # This is a single branch
                                 self._action_requirements.remove(option)
                             tmp_requirements.pop(0)
+                            break
             else:
                 selected = [o[0] for o in options]
 
