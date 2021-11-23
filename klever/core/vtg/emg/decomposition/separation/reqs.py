@@ -167,9 +167,9 @@ class ReqsExtractor(ScenarioExtractor):
                         if option in first_actions and case not in selected:
                             selected.append(case)
 
-                            if len(first_actions) == 1:
+                            if len(first_actions) == 1 and option in self._action_requirements:
                                 # This is a single branch
-                                self._action_requirements.pop(0)
+                                self._action_requirements.remove(option)
                             tmp_requirements.pop(0)
             else:
                 selected = [o[0] for o in options]
