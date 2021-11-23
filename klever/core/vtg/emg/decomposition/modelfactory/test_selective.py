@@ -55,6 +55,11 @@ def fs_deps_model():
 
 
 @pytest.fixture()
+def fs_init_deps_model():
+    return models.fs_savepoint_init_deps()
+
+
+@pytest.fixture()
 def logger():
     logger = logging.getLogger(__name__)
     # todo: Uncomment when you will need a log or implement ini file
@@ -69,7 +74,7 @@ def _obtain_model(logger, model, specification):
     separation = SelectiveFactory(logger, specification)
     scenario_generator = SeparationStrategy(logger, dict())
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -78,7 +83,7 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -87,7 +92,7 @@ def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -718,5 +723,37 @@ def test_fs_reqs_p3(logger, fs_deps_model):
     expected = [
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_init_linear(logger, fs_init_deps_model):
+    spec = {
+        "cover scenarios": {
+            "entry_point/main": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'c/p2': 'success_probe_deregister_p2', 'c/p3': 'create_scenario_p4_scenario_success', 'c/p4': 'base',
+         'entry_point/main': 'sp5 with exit'},
+        {'c/p2': 'success_probe_deregister_p2', 'c/p3': 'create_scenario_p4_scenario_success', 'c/p4': 'base',
+         'entry_point/main': 'sp2 with exit'},
+        {'c/p2': 'deregister_p2', 'c/p3': 'Removed', 'c/p4': 'Removed', 'entry_point/main': 'sp1 with exit'},
+        {'c/p2': 'Removed', 'c/p3': 'Removed', 'c/p4': 'Removed', 'entry_point/main': 'sp1 with init_failed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_init_cover_init(logger, fs_init_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p3": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'}
     ]
     _expect_models_with_attrs(models, expected)

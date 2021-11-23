@@ -402,6 +402,7 @@ class ProcessDescriptor:
     """The descriptor forbids to set non-Process values."""
 
     EXPECTED_CATEGORY = 'entry_point'
+    DEFAULT_ID = 'main'
 
     def __set__(self, obj, value):
         assert isinstance(value, Process) or value is None, f"Got '{type(value).__name__}' instead of a process"
@@ -471,13 +472,17 @@ class ProcessCollection:
                ([self.entry] if self.entry else [])
 
     @property
-    def defined_processes(self):
-        return self.processes
-
-    @property
     def process_map(self):
         """Returns a dict with all processes from the model."""
         return {str(p): p for p in self.processes}
+
+    @property
+    def non_models(self):
+        """Return environment processes with an entry process"""
+        ret = set(self.environment.keys())
+        if self.entry:
+            ret.add(str(self.entry))
+        return {n: p for n, p in self.process_map.items() if n in ret}
 
     def find_process(self, identifier: str):
         """
@@ -554,8 +559,10 @@ class ProcessCollection:
         self.attributes[process_name] = attribute
 
     def remove_process(self, process_name):
-        assert process_name and process_name in self.environment
-        del self.environment[process_name]
+        if process_name in self.environment:
+            del self.environment[process_name]
+        else:
+            self.entry = None
         self.extend_model_name(process_name, 'Removed')
 
     def copy_declarations_to_init(self, process: Process):
@@ -725,6 +732,9 @@ class ProcessCollection:
         """
         dep_order = []
         todo = set(self.environment.keys())
+        if self.entry:
+            todo.add(str(self.entry))
+
         while todo:
             free = []
             for entry in sorted(todo):

@@ -42,6 +42,11 @@ def fs_deps_model():
 
 
 @pytest.fixture()
+def fs_init_deps_model():
+    return test_models.fs_savepoint_init_deps()
+
+
+@pytest.fixture()
 def double_init_with_deps_model():
     return test_models.driver_double_init_with_deps()
 
@@ -74,7 +79,7 @@ def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
     {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
-                              for process in model.environment.values()}
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -82,11 +87,11 @@ def test_default_models(base_model):
     separation = ModelFactory(logging.Logger('default'), {})
     scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
     processes_to_scenarios = {str(process): list(scenario_generator(process, base_model))
-                              for process in base_model.environment.values()}
+                              for process in base_model.non_models.values()}
     models = list(separation(processes_to_scenarios, base_model))
 
     cnt = 1  # Original model
-    for process in base_model.environment.values():
+    for process in base_model.non_models.values():
         for action_name in process.actions.first_actions():
             action = process.actions[action_name]
             cnt += len(action.savepoints) if hasattr(action, 'savepoints') and action.savepoints else 0
@@ -95,7 +100,7 @@ def test_default_models(base_model):
     # Compare processes itself
     for new_model in models:
         assert len(list(new_model.models.keys())) > 0
-        assert len(list(new_model.environment.keys())) > 0
+        assert len(list(new_model.environment.keys())) > 0 or new_model.entry
 
         for name, process in base_model.environment.items():
             if name in new_model.environment:
@@ -167,6 +172,20 @@ def test_fs_reqs(logger, fs_deps_model):
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p1': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_init_reqs(logger, fs_init_deps_model):
+    spec = {}
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'entry_point/main': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
+        {'entry_point/main': 'sp2 with exit', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
+         'c/p2': 'success for sp2'},
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'entry_point/main': 'sp5 with base', 'c/p4': 'base for sp5', 'c/p2': 'base', 'c/p3': 'base'}
     ]
     _expect_models_with_attrs(models, expected)
 

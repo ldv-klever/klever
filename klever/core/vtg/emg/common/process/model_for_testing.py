@@ -300,7 +300,10 @@ main = {
     "actions": {
         "root": {
             "comment": "Some action",
-            "statements": "f5();"
+            "statements": "f5();",
+            "savepoints": {
+                "entry_sp": {"statements": []}
+            }
         }
     }
 }

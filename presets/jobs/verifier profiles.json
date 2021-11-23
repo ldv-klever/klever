@@ -106,7 +106,7 @@
         {"-setprop": "cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false"},
         {"-setprop": "cpa.smg.handleUnknownDereferenceAsSafe=false"},
         {"-setprop": "cpa.smg.handleUnknownFunctions=STRICT"},
-        {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*,printk"}
+        {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*,printk,schedule"}
       ]
     },
     "CPAchecker SMG without deducing abstraction for lists": {

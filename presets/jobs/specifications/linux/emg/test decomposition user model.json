@@ -141,9 +141,9 @@
               "register_c1": {
                 "comment": "Start actions of the first child.",
                 "require": {
-                  "processes": {"entry_point/entry": true},
+                  "processes": {"entry_point/main": true},
                   "actions": {
-                    "entry_point/entry": ["first_branch"]
+                    "entry_point/main": ["first_branch"]
                   }
                 },
                 "savepoints": {
@@ -199,10 +199,10 @@
                 "comment": "Start actions of the second child.",
                 "require": {
                   "processes": {
-                    "entry_point/entry": true
+                    "entry_point/main": true
                   },
                   "actions": {
-                    "entry_point/entry": ["second_branch"]
+                    "entry_point/main": ["second_branch"]
                   }
                 },
                 "savepoints": {
@@ -282,6 +282,10 @@
                 "%branch% = 2;",
                 "main_callback(%branch%);"
               ]
+            },
+            "init": {
+              "comment": "Artificial action to avoid several initial actions.",
+              "statements": []
             }
           },
           "category": "entry_point",
@@ -297,7 +301,7 @@
               "first_callback": "extern void first_callback(int branch, int sp);"
             }
           },
-          "process": "[register_c1].<first_branch>.[deregister_c1] | [register_c2].<second_branch>.[deregister_c2]"
+          "process": "<init>.([register_c1].<first_branch>.[deregister_c1] | [register_c2].<second_branch>.[deregister_c2])"
         }
       }
     }

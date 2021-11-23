@@ -33,9 +33,9 @@ def _must_contain_scenarios(must_contain_conf, scenario_model):
     names = set()
     scenarios = set()
     for entry in must_contain_conf:
-        if entry in scenario_model.environment and scenario_model.environment[entry]:
+        if entry in scenario_model.non_models and scenario_model.non_models[entry]:
             names.add(entry)
-            scenarios.add(scenario_model.environment[entry])
+            scenarios.add(scenario_model.non_models[entry])
     return names, scenarios
 
 
@@ -77,7 +77,7 @@ class SelectiveSelector(Selector):
 
             # Get all scenarios
             scenarios_items = set(list(self.processes_to_scenarios[process_name]) +
-                                  [self.model.environment[process_name]])
+                                  [self.model.non_models[process_name]])
 
             # Filter by "must contain"
             scenarios_items = self._filter_must_contain_base_process(process_name, scenarios_items, must_contain)
@@ -101,7 +101,7 @@ class SelectiveSelector(Selector):
                 local_model_pool = set()
                 local_coverage = copy.deepcopy(coverage)
 
-                if process_name not in model.environment:
+                if process_name not in model.non_models:
                     self.logger.warning(
                         f"Skip processing model '{model.attributed_name}' as it does not require '{process_name}'")
                     next_model_pool.add(model)
@@ -114,10 +114,10 @@ class SelectiveSelector(Selector):
                     # Do we have already savepoint?
                     # Have we covered required processes?
                     if process_name in dep_order and not any(True for p in dep_order[dep_order.index(process_name):]
-                                                             if p in coverage and p in model.environment):
+                                                             if p in coverage and p in model.non_models):
                         self.logger.debug(f"Now we have covered all required processes and can enable savepoints for "
                                           f"'{process_name}'")
-                        if any(True for s in model.environment.values() if s and s.savepoint):
+                        if any(True for s in model.non_models.values() if s and s.savepoint):
                             self.logger.debug(f"Model '{model.attributed_name}' has a savepoint already")
                             scenarios_items_for_model = {s for s in scenarios_items
                                                          if not isinstance(s, Scenario) or not s.savepoint}
@@ -161,7 +161,7 @@ class SelectiveSelector(Selector):
                         break
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
                         # Check savepoints
-                        p_with_sp = [n for n, s in model.environment.items() if s and s.savepoint]
+                        p_with_sp = [n for n, s in model.non_models.items() if s and s.savepoint]
                         p_with_sp = None if not p_with_sp else p_with_sp.pop()
                         reassign = None
                         if scenario and isinstance(scenario, Scenario) and p_with_sp and \
@@ -185,7 +185,7 @@ class SelectiveSelector(Selector):
 
                 # This is a corner case when no coverage impact exists for a model. If a model still has a coverage
                 # bonus for any other process add it.
-                if not added and any(p for p in local_coverage if p in model.environment and p not in order):
+                if not added and any(p for p in local_coverage if p in model.non_models and p not in order):
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} that give extra'
                                         f' coverage for model {model.attributed_name}, deleting it but keep a model')
                     new = model.clone(model.name)
@@ -208,7 +208,7 @@ class SelectiveSelector(Selector):
         model_pool = self._supersede_models(model_pool)
 
         for model, related_process in model_pool:
-            if not must_contain or set(model.environment.keys()).intersection(must_contain):
+            if not must_contain or set(model.non_models.keys()).intersection(must_contain):
                 self.logger.info(f"Finally return a batch for model '{model.attributed_name}'")
                 yield model, related_process
 
@@ -216,7 +216,7 @@ class SelectiveSelector(Selector):
         new_model_pool = []
         for model in sorted(models, key=lambda x: x.attributed_name):
             related_process = None
-            for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
+            for process_name in (p for p, s in model.non_models.items() if s and s.savepoint):
                 related_process = process_name
                 break
 
@@ -260,7 +260,7 @@ class SelectiveSelector(Selector):
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
-            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
+            assert process_name in self.model.non_models, f"There is no process '{process_name}' in the model"
 
             if 'actions' in must_contain[process_name]:
                 assert isinstance(must_contain[process_name]['actions'], list), \
@@ -271,7 +271,7 @@ class SelectiveSelector(Selector):
 
                     for action_name in item:
                         assert isinstance(action_name, str) and \
-                               action_name in self.model.environment[process_name].actions, \
+                               action_name in self.model.non_models[process_name].actions, \
                                f"There is no action '{action_name}' in '{process_name}'"
 
             if 'savepoints' in must_contain[process_name]:
@@ -282,19 +282,19 @@ class SelectiveSelector(Selector):
                     assert isinstance(item, str), \
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
-                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                    assert isinstance(item, str) and item in map(str, self.model.non_models[process_name].savepoints),\
                            f"There is no savepoint '{item}' in '{process_name}'"
 
     def _sanity_check_must_not_contain(self, must_not_contain):
         for process_name in must_not_contain:
-            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
+            assert process_name in self.model.non_models, f"There is no process '{process_name}' in the model"
 
             for item in must_not_contain[process_name].get('actions', []):
                 assert isinstance(item, list), "Provide a list of lists to the 'must not contain' parameter"
 
                 for action_name in item:
                     assert isinstance(action_name, str) and \
-                           action_name in action_name in self.model.environment[process_name].actions, \
+                           action_name in action_name in self.model.non_models[process_name].actions, \
                            f"There is no action '{action_name}' in '{process_name}'"
 
             if 'savepoints' in must_not_contain[process_name]:
@@ -305,12 +305,12 @@ class SelectiveSelector(Selector):
                     assert isinstance(item, str), \
                         "Provide a list of savepoints' names to the 'must not contain' parameter"
 
-                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                    assert isinstance(item, str) and item in map(str, self.model.non_models[process_name].savepoints),\
                         f"There is no savepoint '{item}' in '{process_name}'"
 
     def _calculate_process_order(self, must_contain, must_not_contain, coverage):
         # Detect order using transitive dependencies
-        todo = set(self.model.environment.keys())
+        todo = set(self.model.non_models.keys())
 
         # Check controversial configurations
         for process_name in sorted(todo):
@@ -355,15 +355,15 @@ class SelectiveSelector(Selector):
         coverage = dict()
         for process_name in cover_conf:
             # Subprocesses may not be covered in scenarios, so avoid adding the origin process to cover them
-            assert process_name in self.model.environment, f"There is no process '{process_name}' in the model"
-            actions = set(str(a) for a in self.model.environment[process_name].actions.filter(exclude={Subprocess}))
-            savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
+            assert process_name in self.model.non_models, f"There is no process '{process_name}' in the model"
+            actions = set(str(a) for a in self.model.non_models[process_name].actions.filter(exclude={Subprocess}))
+            savepoints = {str(sp) for ac in self.model.non_models[process_name].actions.values()
                           for sp in ac.savepoints}
 
             if 'actions' in cover_conf[process_name]:
                 assert(isinstance(cover_conf[process_name]['actions'], list))
                 for item in cover_conf[process_name]['actions']:
-                    assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
+                    assert isinstance(item, str) and item in self.model.non_models[process_name].actions, \
                         f"There is no action '{item}' in '{process_name}'"
                 actions_to_cover = set(cover_conf[process_name]['actions'])
             else:
@@ -372,14 +372,14 @@ class SelectiveSelector(Selector):
             if cover_conf[process_name].get('actions except'):
                 assert (isinstance(cover_conf[process_name]['actions except'], list))
                 for item in cover_conf[process_name]['actions except']:
-                    assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
+                    assert isinstance(item, str) and item in self.model.non_models[process_name].actions, \
                         f"There is no action '{item}' in '{process_name}'"
                 actions_to_cover.difference_update(set(cover_conf[process_name]['actions except']))
 
             if 'savepoints' in cover_conf[process_name]:
                 assert (isinstance(cover_conf[process_name]['savepoints'], list))
                 for item in cover_conf[process_name]['savepoints']:
-                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                    assert isinstance(item, str) and item in map(str, self.model.non_models[process_name].savepoints),\
                         f"There is no savepoint '{item}' in {process_name}"
                 sp_to_cover = set(cover_conf[process_name]['savepoints'])
             else:
@@ -388,7 +388,7 @@ class SelectiveSelector(Selector):
             if cover_conf[process_name].get('savepoints except'):
                 assert (isinstance(cover_conf[process_name]['savepoints except'], list))
                 for item in cover_conf[process_name]['savepoints except']:
-                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                    assert isinstance(item, str) and item in map(str, self.model.non_models[process_name].savepoints),\
                         f"There is no savepoint '{item}' in '{process_name}'"
                 sp_to_cover.difference_update(set(cover_conf[process_name]['savepoints except']))
 

@@ -570,6 +570,13 @@ class FSATranslator:
             final_code = list()
             final_code.append(comments[0])
 
+            if isinstance(beh.repeat, int):
+                code = ([''] + code) * beh.repeat
+                code = code[1:]
+            elif isinstance(beh, str) and not isinstance(action, Subprocess):
+                raise ValueError(f"The translator does not support labels to set the number of regular actions "
+                                 f"repeating. Fix the process {str(automaton.process)}.")
+
             # Skip or assert action according to conditions
             if conditions and (isinstance(beh.my_operator, Choice) or
                                (isinstance(beh.my_operator, Concatenation) and not beh.my_operator.index(beh))):

@@ -20,9 +20,9 @@ import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
-from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
+from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def test_import_model(raw_model, model):
 
 def test_imported_names(raw_model, model):
     assert model.name == raw_model['name']
-    assert 'entry' == model.entry.name
+    assert str(model.entry) == f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}"
 
     for name in raw_model['functions models']:
         assert name in model.models, 'There are models: {}'.format(', '.join(sorted(model.models.keys())))
@@ -122,6 +122,12 @@ def test_failures(source, raw_model):
     }
     with pytest.raises(RuntimeError):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
+                                                                     ProcessCollection())
+
+    raw_model4 = copy.deepcopy(raw_model)
+    raw_model4['environment processes']['c1/p1']['process'] = '(!register_c1p1).{activate[%unknown_label%]}'
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model4)),
                                                                      ProcessCollection())
 
 

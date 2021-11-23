@@ -23,7 +23,7 @@ import sortedcontainers
 from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer, ProcessDescriptor
 from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal,\
     Requirements, WeakRequirements
 
@@ -119,7 +119,7 @@ class CollectionEncoder(json.JSONEncoder):
 
     def _serialize_process(self, process):
         ict_action = sortedcontainers.SortedDict()
-        ict_action['category']  = process.category
+        ict_action['category'] = process.category
         ict_action['comment'] = process.comment
         ict_action['process'] = repr(process.actions.initial_action)
         ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
@@ -215,6 +215,13 @@ class CollectionDecoder:
                     if process in collection.environment:
                         raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                          format(str(process)))
+
+                    # Check name and savepoints
+                    if process.name == ProcessDescriptor.DEFAULT_ID and process.actions.savepoints:
+                        raise ValueError(f"It is forbidden using '{ProcessDescriptor.DEFAULT_ID}' as a process name for"
+                                         f" processes that have savepoints as it might result in bad requirements "
+                                         f"processing")
+
                     collection.environment[str(process)] = process
                 except Exception:
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
@@ -225,7 +232,8 @@ class CollectionDecoder:
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, "entry", "main", raw["main process"])
+                entry_process = self._import_process(source, ProcessDescriptor.DEFAULT_ID,
+                                                     ProcessDescriptor.EXPECTED_CATEGORY, raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
                 self.logger.warning("Cannot parse the main process: {}".format(str(err)))
@@ -238,13 +246,11 @@ class CollectionDecoder:
                                format(', '.join(raise_exc)))
 
         # Check savepoint's uniqueness
-        if collection.entry and collection.entry.savepoints:
-            raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
         for model_process in collection.models.values():
             if model_process.savepoints:
                 raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
         savepoints = set()
-        for process in collection.environment.values():
+        for process in collection.processes:
             for action in process.actions.values():
                 if action.savepoints:
                     sp = set(map(str, action.savepoints))
@@ -256,12 +262,12 @@ class CollectionDecoder:
 
                     for savepoint in action.savepoints:
                         for name in savepoint.requirements.required_processes:
-                            if name not in collection.environment:
+                            if name not in collection.process_map:
                                 raise ValueError(f"Savepoint '{str(savepoint)}' requires unknown process '{name}'")
 
                             required_actions = savepoint.requirements.required_actions(name)
                             for act in required_actions:
-                                if act not in collection.environment[name].actions:
+                                if act not in collection.process_map[name].actions:
                                     raise ValueError(
                                         f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
                                         f"process '{name}'")
@@ -271,8 +277,8 @@ class CollectionDecoder:
                         required = collection.entry
                     elif name in collection.models.keys():
                         required = collection.models[name]
-                    elif name in map(str, collection.environment.values()):
-                        required = collection.environment[name]
+                    elif name in collection.process_map:
+                        required = collection.process_map[name]
                     else:
                         raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
                                          f" action '{str(action)}'")
@@ -371,6 +377,13 @@ class CollectionDecoder:
         return process
 
     def _import_action(self, process, name, dic):
+        # Check labels
+        for behaviour in process.actions.behaviour(name):
+            if isinstance(behaviour.repeat, str) and behaviour.repeat not in process.labels:
+                raise ValueError(f"Action '{name}' of '{str(process)}' does not have label {behaviour.repeat}")
+            elif isinstance(behaviour.repeat, int) and behaviour.repeat < 1:
+                raise ValueError(f"Action '{name}' of '{str(process)}' has a repeating suffix value less than 2")
+
         act = process.actions.behaviour(name).pop().kind(name)
         process.actions[name] = act
 

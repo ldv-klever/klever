@@ -214,7 +214,7 @@ class ReqsExtractor(ScenarioExtractor):
                 yield new
 
         # Add additional scenarios created for savepoints in other processes
-        for process in (p for p in self._model.environment.values() if str(p) != str(self._process)):
+        for process in (p for p in self._model.non_models.values() if str(p) != str(self._process)):
             for savepoint in process.savepoints:
                 if str(self._process) in savepoint.requirements.required_processes:
                     actions = savepoint.requirements.required_actions(str(self._process))

@@ -48,7 +48,14 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     for var in (v for v in automaton.variables(only_used=True) if v.value):
         f_code.append("{} = {};".format(var.name, var.value))
 
-    main_v_code, main_f_code = __subprocess_code(automaton, automaton.process.actions.initial_action, ret_expression)
+    # Intialize repeat counters
+    for behaviour in (b for b in automaton.process.actions.behaviour()
+                      if isinstance(b, Behaviour) and isinstance(b.description, Subprocess) and
+                         isinstance(b.repeat, int)):
+        var = __repeate_subprocess_var_name(automaton, behaviour)
+        v_code.append("int {} = {};".format(var, behaviour.repeat))
+
+    main_v_code, main_f_code = __subprocess_code(automaton, automaton.process.actions.initial_action)
     v_code += main_v_code
     f_code += main_f_code + ["/* End of the process */"]
     if ret_expression:
@@ -58,7 +65,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     for subp in automaton.process.actions.filter(include={Subprocess}):
         if subp.name not in processed:
             first_actual_state = subp.action
-            sp_v_code, sp_f_code = __subprocess_code(automaton, first_actual_state, ret_expression)
+            sp_v_code, sp_f_code = __subprocess_code(automaton, first_actual_state)
 
             v_code.extend(sp_v_code)
             f_code.extend([
@@ -88,16 +95,49 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     return cf.name
 
 
-def __subprocess_code(automaton, initial_action, ret_expression):
+def __repeate_subprocess_var_name(automaton, behaviour):
+    behaviours = sorted([b for b in automaton.process.actions.behaviour(behaviour.name) if isinstance(b.repeat, int)])
+    if len(behaviours) > 1:
+        index = behaviours.index(behaviour)
+        return f'emg_repeat_cnt_{behaviour.name}_{str(automaton)}_{index}'
+    elif len(behaviours) == 1:
+        return f'emg_repeat_cnt_{behaviour.name}_{str(automaton)}'
+    else:
+        raise NotImplementedError
+
+
+def __subprocess_code(automaton, initial_action):
 
     def _serialize_action(behaviour, tab):
         v, f = [], []
 
         if isinstance(behaviour, Behaviour) and behaviour.kind is Subprocess:
-            f += [
+            base_jump = [
                 '\t' * tab + '/* Jump to a subprocess {!r} initial state */'.format(behaviour.name),
                 '\t' * tab + 'goto emg_{}_{};'.format(behaviour.name, str(automaton))
             ]
+
+            if isinstance(behaviour.repeat, int):
+                var = __repeate_subprocess_var_name(automaton, behaviour)
+
+                base_jump = ['\t' * tab + f'if ({var} > 0)' + ' {',
+                             '\t' * (tab + 1) + f'{var}--;'] + \
+                            ['\t' + s for s in base_jump] + \
+                            ['\t' * tab + '} else {',
+                             '\t' * (tab + 1) + 'ldv_assume(0);',
+                             '\t' * tab + '}']
+            elif isinstance(behaviour.repeat, str):
+                access = automaton.process.resolve_access(f'%{behaviour.repeat}%')
+                if not access or not access.label:
+                    raise ValueError(f"Unknown label '{behaviour.repeat}' in process '{str(automaton.process)}'")
+                var = automaton.determine_variable(access.label)
+                base_jump = ['\t' * tab + f'if ({var.name})' + ' {'] + \
+                            ['\t' + s for s in base_jump] + \
+                            ['\t' * tab + '} else {',
+                             '\t' * (tab + 1) + 'ldv_assume(0);',
+                             '\t' * tab + '}']
+
+            f += base_jump
         if isinstance(behaviour, Behaviour):
             my_v, my_f = automaton.code[hash(behaviour)]
             v += my_v

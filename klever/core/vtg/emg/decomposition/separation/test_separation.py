@@ -19,11 +19,11 @@ import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
+from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset, source_preset
 
@@ -84,6 +84,16 @@ def specific_model():
             "b": {"comment": "", "statements": [], "condition": []}
         }
     }
+    entry = {
+        "identifier": "entryy",
+        "comment": "Entry process.",
+        "process": "<a>.(<b> | <c>)",
+        "actions": {
+            "a": {"comment": "", "statements": [], "condition": []},
+            "b": {"comment": "", "statements": [], "condition": []},
+            "c": {"comment": "", "statements": [], "condition": []}
+        }
+    }
     spec = {
         "name": 'test_model',
         "functions models": {},
@@ -91,7 +101,8 @@ def specific_model():
             "c1/p1": c1p1,
             "c1/p2": c1p2,
             "c2/p1": c2p1
-        }
+        },
+        "main process": entry
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
                                                                               json.loads(json.dumps(spec)),
@@ -126,21 +137,18 @@ def model_with_savepoint_requirements():
                     "s1": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p1": True},
                             "actions": {"c1/p1": ["b", "c", "g"]}
                         }
                     },
                     "s2": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p1": True},
                             "actions": {"c1/p1": ["e"]}
                         }
                     },
                     "s3": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p1": True},
                             "actions": {"c1/p1": ["a"]}
                         }
                     }
@@ -165,21 +173,18 @@ def model_with_savepoint_requirements():
                     "s4": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p2": True},
                             "actions": {"c1/p2": ["b", "c", "g"]}
                         }
                     },
                     "s5": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p2": True},
                             "actions": {"c1/p2": ["e"]}
                         }
                     },
                     "s6": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p2": True},
                             "actions": {"c1/p2": ["a"]}
                         }
                     }
@@ -199,21 +204,19 @@ def model_with_savepoint_requirements():
                     "s7": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p3": True},
                             "actions": {"c1/p3": ["probe"]}
                         }
                     },
                     "s8": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p3": True},
                             "actions": {"c1/p3": ["probe", "remove", "read"]}
                         }
                     },
                     "s9": {
                         "statements": [],
                         "require": {
-                            "processes": {"c1/p3": True, "c1/p1": True},
+                            "processes": {"c1/p1": True},
                             "actions": {
                                 "c1/p3": ["probe", "fail"],
                                 "c1/p1": ["b", "c", "g"]
@@ -231,13 +234,47 @@ def model_with_savepoint_requirements():
             "write": {"comment": "", "statements": []}
         }
     }
+    entry = {
+        "comment": "Entry process.",
+        "process": "<a>.(<b>.(<d> | <e>) | <c>)",
+        "actions": {
+            "a": {
+                "comment": "",
+                "statements": [],
+                "condition": [],
+                "savepoints": {
+                    "s10": {
+                        "statements": []
+                    },
+                    "s11": {
+                        "statements": [],
+                        "require": {
+                            "actions": {"entry_point/main": ["d"]}
+                        }
+                    },
+                    "s12": {
+                        "statements": [],
+                        "require": {
+                            "processes": {"c1/p1": True},
+                            "actions": {"c1/p1": ["b", "c", "g"]}
+                        }
+                    },
+                }
+            },
+            "b": {"comment": "", "statements": [], "condition": []},
+            "c": {"comment": "", "statements": [], "condition": []},
+            "d": {"comment": "", "statements": [], "condition": []},
+            "e": {"comment": "", "statements": [], "condition": []}
+        }
+    }
     spec = {
         "functions models": {},
         "environment processes": {
             "c1/p1": c1p1,
             "c1/p2": c1p2,
             "c1/p3": c1p3
-        }
+        },
+        "main process": entry
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
                                                                               json.loads(json.dumps(spec)),
@@ -249,6 +286,7 @@ def test_default_scenario_extraction(model, default_separator):
     c1p1 = model.environment['c1/p1']
     c1p2 = model.environment['c1/p2']
     c2p1 = model.environment['c2/p1']
+    entry = model.entry
 
     s1 = default_separator(c1p1, model)
     assert len(s1) == 2
@@ -262,6 +300,9 @@ def test_default_scenario_extraction(model, default_separator):
 
     s3 = default_separator(c2p1, model)
     assert len(s3) == 1
+
+    se = default_separator(entry, model)
+    assert len(se) == 1
 
 
 def _compare_scenario_with_actions(scenarios, actions):
@@ -405,6 +446,21 @@ def test_linear_c2_p1(specific_model, linear_separator):
     assert scenarios['level_one'].actions.sequence == '(!register_c2p1).<a>.<b>'
 
 
+def test_linear_entry(specific_model, linear_separator):
+    entry = specific_model.entry
+    scenarios = linear_separator(entry, specific_model)
+    _check_linear_actions(scenarios, entry.actions)
+
+    assert len(scenarios) == 2, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
+
+    scenarios = {s.name: s for s in scenarios}
+    assert 'b' in scenarios
+    assert 'c' in scenarios
+    assert scenarios['b'].actions.sequence == '<a>.<b>'
+    assert scenarios['c'].actions.sequence == '<a>.<c>'
+
+
 def _check_linear_actions(scenarios, actions):
     # Savepoints are covered
     first_actions = actions.first_actions()
@@ -433,12 +489,13 @@ def _check_linear_actions(scenarios, actions):
                 assert False, f'Do not expect choice in the scenario: {repr(beh)}'
 
     # Have registration or savepoint
-    registrations = {a.name for a in actions.filter(include={Receive})}.intersection(first_actions)
-    assert len(registrations) == 1, f'The process should have a single registration instead of:' \
-                                    f' {", ".join(registrations)}'
-    registration = registrations.pop()
-    for scenario in scenarios:
-        assert scenario.savepoint or registration in scenario.actions.first_actions()
+    if str(scenarios[-1].process) != f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}":
+        registrations = {a.name for a in actions.filter(include={Receive})}.intersection(first_actions)
+        assert len(registrations) == 1, f'The process should have a single registration instead of:' \
+                                        f' {", ".join(registrations)}'
+        registration = registrations.pop()
+        for scenario in scenarios:
+            assert scenario.savepoint or registration in scenario.actions.first_actions()
 
     # No blocks with conditions
     for scenario in scenarios:
@@ -446,18 +503,38 @@ def _check_linear_actions(scenarios, actions):
             assert not action.condition, "Blocks must be moved to statements as assumptions"
 
 
+def test_reqs_entry(model_with_savepoint_requirements, requirements_driven_separator):
+    entry = model_with_savepoint_requirements.entry
+    scenarios = requirements_driven_separator(entry, model_with_savepoint_requirements)
+
+    assert len(scenarios) == len(entry.actions['a'].savepoints)
+
+    scenario_dict = {s.name: s for s in scenarios}
+    s10 = scenario_dict['s10 with base']
+    s11 = scenario_dict['s11 with d']
+    s12 = scenario_dict['s12 with base']
+
+    s10_removed = {}
+    _check_removed_actions(set(entry.actions.keys()).difference(s10_removed), s10_removed, s10)
+    s11_removed = {'e'}
+    _check_removed_actions(set(entry.actions.keys()).difference(s11_removed), s11_removed, s11)
+    s12_removed = {}
+    _check_removed_actions(set(entry.actions.keys()).difference(s12_removed), s12_removed, s12)
+
+
 def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separator):
     c1p1 = model_with_savepoint_requirements.environment['c1/p1']
     scenarios = requirements_driven_separator(c1p1, model_with_savepoint_requirements)
 
     # There should be an extra scenario which is created for savepoint 9
-    assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 1
+    assert len(scenarios) == len(c1p1.actions['register'].savepoints) + 2
 
     scenario_dict = {s.name: s for s in scenarios}
     s1 = scenario_dict['s1 with b_c_g']
     s2 = scenario_dict['s2 with e']
     s3 = scenario_dict['s3 with a']
-    s4 = list(set(scenarios).difference({s1, s2, s3})).pop()
+    s4 = scenario_dict['b_c_g for s9']
+    s5 = scenario_dict['b_c_g for s9']
 
     s1_removed = {'a', 'd', 'e', 'f'}
     _check_removed_actions(set(c1p1.actions.keys()).difference(s1_removed), s1_removed, s1)
@@ -468,6 +545,8 @@ def test_reqs_p1(model_with_savepoint_requirements, requirements_driven_separato
 
     assert not s4.savepoint
     _check_removed_actions(set(c1p1.actions.keys()).difference(s1_removed), s1_removed, s4)
+    assert not s5.savepoint
+    _check_removed_actions(set(c1p1.actions.keys()).difference(s1_removed), s1_removed, s5)
 
 
 def test_reqs_p2(model_with_savepoint_requirements, requirements_driven_separator):
