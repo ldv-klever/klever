@@ -64,7 +64,8 @@ class ScenarioCollection(ProcessCollection):
     def non_models(self):
         """Return environment processes with an entry process"""
         ret = dict(self.environment)
-        ret[str(self.original_model.entry)] = self.entry
+        if self.original_model.entry:
+            ret[str(self.original_model.entry)] = self.entry
         return ret
 
     @property
