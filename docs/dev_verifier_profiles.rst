@@ -29,11 +29,12 @@ There is an example below with three described options:
 
   "add options": [
     {"-setprop": "cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function"},
-    {"-setprop": "shutdown.timeout=100"},
+    {"-ldv-bam": ""}
     {"-heap": "%ldv:memory size:0.8:MB%m"}
   ]
 
-Each entry is an object that has a single entry providing an option name and its value. Some options have empty strings as values.
+Each entry is an object that has a single entry providing an option name and its value.
+Some options have empty strings as values.
 The last option in the list has a specific format that allows Klever to adjust the amount of memory for the heap.
 It equals to 80% of memory allocated for the verification tool in the example.
 

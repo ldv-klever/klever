@@ -82,7 +82,7 @@ Let's consider the content of the :file:`Linux.json` file to make it clear how d
   }
 
 The specification has two parts: *tactics* and *fragmentation sets*.
-The former contains set of configuration parameters for the tactic that can be chosen by the "fragmentation tactic* in :file:`job.json` file.
+The former contains set of configuration parameters for the tactic that can be chosen by the *fragmentation tactic* in :file:`job.json` file.
 Options are specific to implementation of the tactic. There are several modes in the above provided example:
 
 * **separate modules** extracts loadable modules from the Linux kernel as individual fragments.
