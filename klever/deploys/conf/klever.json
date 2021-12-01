@@ -16,8 +16,8 @@
       "executable path": "bin"
     },
     "CIL": {
-      "version": "57c4604",
-      "path": "https://forge.ispras.ru/attachments/download/8899/frama-c-cil-57c4604.tar.xz",
+      "version": "f1aab7d",
+      "path": "https://forge.ispras.ru/attachments/download/9382/frama-c-cil-f1aab7d.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -33,8 +33,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "klever_fixes:38771",
-        "path": "https://forge.ispras.ru/attachments/download/9350/CPAchecker-38771.tar.xz",
+        "version": "klever_fixes:38949",
+        "path": "https://forge.ispras.ru/attachments/download/9383/CPAchecker-38949.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {

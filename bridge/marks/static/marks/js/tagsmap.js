@@ -107,7 +107,7 @@ TagsTree.prototype.init_edit_tag = function () {
     edit_tag_icon.click(function () {
         let tag_url = $(this).closest('.tag-popup').data('url');
         $.ajax({
-            url: tag_url + '?fields=description&fields=parents&fields=shortname',
+            url: tag_url + '?fields=description&fields=parents&fields=shortname&fields=parent',
             type: 'GET',
             success: function(resp) {
                 $('#edit_tag_name').val(resp['shortname']);
@@ -115,6 +115,7 @@ TagsTree.prototype.init_edit_tag = function () {
 
                 let parent_dropdown = $('#edit_tag_parent');
                 parent_dropdown.empty();
+                console.log(resp);
                 $.each(resp['parents'], function (i, value) {
                     let option_data = {'value': value['id'], 'text': value['name']};
                     if (value['id'] === resp['parent']) option_data['selected'] = true;
