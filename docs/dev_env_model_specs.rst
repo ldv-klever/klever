@@ -349,7 +349,8 @@ The example demonstrates the usage of conditions in first base block actions of 
 
 A user may need to attempt an action several times in a row.
 There is an additional form to describe such repeated actions.
-Imagine, there is a base block action *x*, then the process should contain it in the following form to repeat it twice: *<x[2]>*.
+Imagine, there is a base block action *x*, then the process should contain it in the following form to repeat it twice:
+*<x[2]>*.
 It is possible to provide only numbers in square brackets.
 
 Jumps have the same notation but the semantics is a bit different.
@@ -689,9 +690,10 @@ Signaling action description can have the following attributes:
   * - require
     - The object has *processes* and *actions* attributes.
       The latter lists actions required for this one.
-      Processes contains a map from process identifiers to True/False values that means inclusion or exclusion of these
+      Processes contain a map from process identifiers to True/False values that means inclusion or exclusion of these
       processes.
-      It is not necessary to include the identifier of the process which is a host to the action with the *require* attribute.
+      It is not necessary to include the identifier of the process which is a host to the action with the *require*
+      attribute.
       Actions contain a map from process identifiers to corresponding lists of names of actions that are required.
 
       {"require": {"actions": {"c/p1": ["probe", "success"]}, "processes": {"c/p1": true}}}
@@ -1276,11 +1278,11 @@ It extracts savepoint requirements and looks into lists of provided actions.
 These actions are used to select first actions of required branches in choices.
 The tactic starts from the first process's action and traverses actions moving to leaf actions.
 Thus, the order of actions in requirements matters, as it influences processing of choices.
-The tactic generates much fewer scenarios than the linear one because it reduces branches only for those choices for which
-there are provided actions in requirements.
+The tactic generates much fewer scenarios than the linear one because it reduces branches only for those choices for
+which there are provided actions in requirements.
 Moreover, it does not generate scenarios for branches that are excluded by requirements.
-
-The tactic generates specific scenarios for each requirement with provided actions for each process given in every savepoint requirement.
+The tactic generates specific scenarios for each requirement with provided actions for each process given in every
+savepoint requirement.
 So a process may have several scenarios generated for certain savepoints exclusively.
 
 The next step of decomposition of an IEM is scenario selection.
@@ -1335,13 +1337,14 @@ There are additional configuration parameters to manage the decomposition listed
     - It is relevant for default and combinatorial factories to generate models.
       If the flag is set, then no extra models with savepoint scenarios will be outputted.
   * - savepoints
-    - A map from process identifiers to either list of savepoint names or bool flag. True value means that all savepoints
-      can be included. False means no savepoints should be included. A list just enumerates savepoints to include. Omitted
-      processes are ignored.
+    - A map from process identifiers to either list of savepoint names or bool flag.
+      True value means that all savepoints can be included. False means no savepoints should be included.
+      A list just enumerates savepoints to include.
+      Omitted processes are ignored.
       {"c1/p1": true, "c1/p2": ["sp1"]}
     - False
-    - The configuration parameter is intended only for the *savepoints-based* tactic. It allows to filter savepoints for which
-      models should be prepared.
+    - The configuration parameter is intended only for the *savepoints-based* tactic.
+      It allows to filter savepoints for which models should be prepared.
 
 The *selective* tactic allows a user to select scenarios for IEMs for each process.
 Names of scenarios are generated automatically, so they are assumed to be unknown to users.
