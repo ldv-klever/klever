@@ -71,7 +71,7 @@ We distinguish specifications and environment models:
 
 * The environment model is a file in an intermediate EMG notation or in C.
   The former is a file in the internal representation which is called an *intermediate environment model (IEM)*.
-  The former is called the *final environment model (FEM)*.
+  The latter is called the *final environment model (FEM)*.
 
 * Environment model specifications can describe IEMs for specific program fragments, models’ templates, parts, or even
   configuration parameters.
