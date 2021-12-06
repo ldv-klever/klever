@@ -351,13 +351,21 @@ A user may need to attempt an action several times in a row.
 There is an additional form to describe such repeated actions.
 Imagine, there is a base block action *x*, then the process should contain it in the following form to repeat it twice:
 *<x[2]>*.
-It is possible to provide only numbers in square brackets.
+It is possible to provide only positive integer numbers in square brackets (if by some reason you would like to use 0,
+you should likely get rid of this action at all).
 
 Jumps have the same notation but the semantics is a bit different.
-The number means the maximum number of jumps that can be done on a single path through this action.
+Here an integer number means the number of jumps that will be done on a single path through this action.
+For instance, *{my_jump[2]}* will return to this jump twice.
 There is an another kind of guards to restrict passing through a jump: *{my_jump[%flag%]}*.
-This jump depends on the evaluation of *%flag%* label that serves as a guard.
+This jump depends on the evaluation of the *%flag%* label that serves as a guard.
 A user may choose any defined process label as a guard.
+It is worth noting that one has to change the *%flag%* label manually in other actions of the process, so that it
+should become 0 at the end of the day.
+The current implementation stops execution when the guard label is evaluated to 0.
+Thus, following actions will not be executed at all.
+Taking all this into account, it may be better to use dedicated counters and conditions for restricting the number of
+possible iterations through jump actions.
 
 Model Description
 -----------------
@@ -412,8 +420,8 @@ The root object has the following attributes:
       {"name1, ..., nameN": {process description},
       "name": {process description}}
 
-    - A name of the member is a string which is an enumeration of function names.
-      These functions will be replaced by models generated from the provided process descriptions.
+    - A name of the attribute is a string which is an enumeration of function names.
+      All these functions will be replaced by the same model generated from the provided process description.
     - No
 
 The model’s name is not necessary but the EMG component can generate several models per program fragment and such models
