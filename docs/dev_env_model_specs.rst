@@ -131,9 +131,10 @@ There are the following main configuration parameters of the EMG plugin:
   * - specifications set
     - String
     - None
-    - The value is an identifier of the specification set.For example, an identifier can
-      correspond to a particular Linux kernel version.
-      The LinuxModule generator expects one of the following values: 3.14, 4.6.7, 4.14, 4.16, 5.5.
+    - The value is an identifier of the specification set.
+      For example, an identifier can correspond to a particular Linux kernel version.
+      The LinuxModule generator expects one of the following values: 2.6.33, 3.14 (the default value), 4.6.7, 4.15,
+      4.17, 5.5.
       The parameter can be provided directly in the :file:`job.json` file.
   * - generators options
     - Object
