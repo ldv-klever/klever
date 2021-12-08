@@ -686,7 +686,7 @@ Signaling action description can have the following attributes:
       It is also allowed to use incoming parameters of the signal at receive actions: use *$ARG1*, ..., *$ARGN*
       expressions.
     - The condition restricts the acceptance of signals with the proper name but unexpected values.
-    -
+    - No
   * - parameters
     - A list of label names to save received values or send values from.
 
@@ -707,22 +707,27 @@ Signaling action description can have the following attributes:
       This field is used only at the decomposition of models, which is considered in the following chapters.
     - No
   * - savepoints
-    - Map of savepoint names to savepoint objects.
+    - It is a map from savepoint names to their descriptions.
+      {"name": {...}}
     - Savepoints are used at decomposition, and they are considered in the following sections in detail.
-    - No
+      Any action can have this attribute, but it must be the first one in the process.
+      All savepoints across all environment model processes should have unique names.
+      You should use short names for savepoints as they are shown in the web-interface.
+      Savepoint descriptions are considered below.
+    - Not
 
 The examples of register and deregister action descriptions from the example above are given below:
 
 .. code-block:: json
 
   "register": {
-      "comment": "Register the platform callbacks in the kernel.",
-      "parameters": ["%driver%"]
-    },
-    "deregister": {
-      "comment": "Finish platform callbacks calling.",
-      "condition": ["%driver% == $ARG1"],
-      "parameters": ["%driver%"]
+    "comment": "Register the platform callbacks in the kernel.",
+    "parameters": ["%driver%"]
+  },
+  "deregister": {
+    "comment": "Finish platform callbacks calling.",
+    "condition": ["%driver% == $ARG1"],
+    "parameters": ["%driver%"]
   }
 
 The registering action does not have any condition and just saves the received pointer to the platform_driver structure
@@ -1194,8 +1199,7 @@ Then after decomposition the B process becomes a new main one and the A process 
 
 .. figure:: ./media/env/savepoint-example-of-decomposing.png
 
-The *savepoints* member has been mentioned before.
-Description of savepoints should follow the following table:
+Description of each savepoint for a given action should follow the following table:
 
 .. list-table:: Savepoint description.
   :widths: 12 40 40 8
@@ -1211,15 +1215,6 @@ Description of savepoints should follow the following table:
     - String
     - Comments help users to understand error traces better.
     - Yes
-  * - savepoints
-    - It is a map from savepoint names to their descriptions.
-      {"name": {...}}
-    - Any action can have this attribute.
-      The action must be the first one in the process.
-      All savepoints across all environment model processes should have unique names.
-      Each savepoint description may have attributes given below.
-      Use short names for savepoints as they are shown in the web-interface.
-    - Not
   * - statements
     - A list of strings
     - Statements contain the code of the process initialization if the process with the savepoint becomes the main one.
