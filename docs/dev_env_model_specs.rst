@@ -528,8 +528,19 @@ There is an example of a process description with simplified values below:
 .. code-block:: json
 
   {
-    "headers": ["linux/platform_device.h"],
+    "comment": "Invoke platform driver callbacks.",
+    "process": "(!register).<probe>.(<ok>.{pm_jump} | <fail>).<free>.(deregister)",
+    "actions": {
+        "deregister": {},
+        "fail": {},
+        "free": {},
+        "ok": {},
+        "pm_jump": {},
+        "probe": {},
+        "register": {}
+    },
     "labels": {},
+    "headers": ["linux/platform_device.h"],
     "declarations": {
         "environment model": {
             "get_dev_id": "const struct platform_device_id *get_dev_id(struct platform_driver *drv);"
@@ -543,26 +554,14 @@ There is an example of a process description with simplified values below:
                 "}"
             ]
         }
-    },
-    "process": "(!register).<probe>.(<ok>.{pm_jump} | <fail>).<free>.(deregister)",
-    "actions": {
-        "pm_jump": {},
-        "register": {},
-        "deregister": {},
-        "probe": {},
-        "ok": {},
-        "fail": {},
-        "free": {},
-        "pm": {},
-        "release": {}
     }
   }
 
+We will describe labels and actions below with more discussion.
 The *headers* member has a single header to add.
 It is necessary to allocate memory and dereference pointers to :c:struct:`platform_driver` and
 :c:struct:`platform_device` structures.
-We will describe labels and actions below with more discussion.
-*Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` to use in actions.
+*Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` that can be used in actions.
 Its definition and declaration will be added to the main C file of the FEM.
 We suggest users to implement more complicated functions in separate C files and provide a path to them instead of the
 list of strings.
