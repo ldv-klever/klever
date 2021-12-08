@@ -34,7 +34,7 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :param collection: ProcessCollection object.
     :param abstract_task_desc: Description dict.
     :param source: Source collection object.
-    :return: Reports dict.
+    :return: None
     """
     # In a specific order start process generators
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
@@ -49,14 +49,13 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['specifications dir']))] + \
                          list(get_search_dirs(conf['main working directory']))
 
-    reports = dict()
     for index, (shortname, generator_module) in enumerate(modules):
         # Set debug option
         configurations[index]['keep intermediate files'] = conf.get('keep intermediate files')
 
         generator = generator_module.ScenarioModelgenerator(logger, configurations[index])
         specifications = generator.import_specifications(specifications_set, possible_locations)
-        reports.update(generator.make_scenarios(abstract_task_desc, collection, source, specifications))
+        generator.make_scenarios(abstract_task_desc, collection, source, specifications)
 
         # Now save specifications
         if conf.get('keep intermediate files'):
@@ -71,5 +70,3 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
 
             # Save images of processes
             collection.save_digraphs('images')
-
-    return reports

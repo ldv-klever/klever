@@ -37,7 +37,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         functions_collection = sortedcontainers.SortedDict()
 
@@ -100,8 +100,6 @@ class ScenarioModelgenerator(AbstractGenerator):
             collection.establish_peers()
         else:
             collection.entry = self.__generate_calls_together(functions_collection)
-
-        return {}
 
     def __generate_separate_processes(self, functions_collection):
         """

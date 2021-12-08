@@ -63,7 +63,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
 
         # Import Specifications
@@ -82,8 +82,6 @@ class ScenarioModelgenerator(AbstractGenerator):
         self.logger.info('Generate initializing scenario')
         insmod = self.__generate_insmod_process(source, inits, exits, kernel_initializations)
         collection.entry = insmod
-
-        return {}
 
     def __import_inits_exits(self, avt, source):
         _inits = collections.OrderedDict()
