@@ -121,8 +121,8 @@ class CollectionEncoder(json.JSONEncoder):
         ict_action['category'] = process.category
         ict_action['comment'] = process.comment
         ict_action['process'] = repr(process.actions.initial_action)
-        ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
-        ict_action['actions'] = {str(action): self.default(action) for action in process.actions.values()}
+        ict_action['labels'] = {str(label): self.default(label) for label in sorted(process.labels.values())}
+        ict_action['actions'] = {str(action): self.default(action) for action in sorted(process.actions.values())}
         ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
 
         if len(process.headers) > 0:
