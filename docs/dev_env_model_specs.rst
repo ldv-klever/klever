@@ -1510,8 +1510,8 @@ We highly recommend everybody who wants to apply Klever to his/her software.
 Modeling for Linux device drivers does not require writing specifications from scratch but allows practice in many steps
 of modeling.
 
-Prepare the UDMS
-----------------
+Prepare the UDEMS
+-----------------
 
 Klever’s installation has several examples to try.
 One of those is a *Loadable kernel modules sample* preset.
