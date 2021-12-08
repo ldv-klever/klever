@@ -64,7 +64,7 @@ class CollectionEncoder(json.JSONEncoder):
         }
 
     def _serialize_label(self, label):
-        dict_repr = sortedcontainers.SortedDict()
+        dict_repr = {}
         if label.declaration:
             dict_repr['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
         if label.value:
@@ -72,12 +72,11 @@ class CollectionEncoder(json.JSONEncoder):
         return dict_repr
 
     def _serialize_savepoint(self, point):
-        sp = sortedcontainers.SortedDict()
-        sp.setdefault("statements", list())
-        if point.statements:
-            sp["statements"] = point.statements
+        sp = {}
+
         if point.comment:
             sp["comment"] = point.comment
+        sp["statements"] = point.statements if point.statements else list()
         if point.requirements:
             sp['require'] = dict(point.requirements)
         if point.weak_requirements:
