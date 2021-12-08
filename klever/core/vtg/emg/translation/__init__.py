@@ -79,7 +79,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Save processes
     model_file = os.path.join(model_path, 'input model.json')
     with open(model_file, mode='w', encoding='utf-8') as fp:
-        json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+        json.dump(collection, fp, cls=CollectionEncoder, indent=2)
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))
