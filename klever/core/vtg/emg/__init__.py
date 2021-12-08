@@ -58,6 +58,10 @@ class EMG(Plugin):
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
         used_attributed_names = set()
+        data_report = {
+            "type": "EMG",
+            "UDEMSES": {}
+        }
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
             if model.attributed_name in used_attributed_names:
@@ -65,7 +69,7 @@ class EMG(Plugin):
             else:
                 used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
-                                                           model)
+                                                           model, data_report["UDEMSES"])
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
@@ -74,5 +78,9 @@ class EMG(Plugin):
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')
+
+        self.logger.info("Send UDEMSes to the server")
+        report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
+               self.vals['report id'], get_or_die(self.conf, "main working directory"))
 
     main = generate_environment

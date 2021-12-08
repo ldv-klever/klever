@@ -41,7 +41,7 @@ DEFAULT_INCLUDE_HEADERS = (
 )
 
 
-def translate_intermediate_model(logger, conf, avt, source, collection):
+def translate_intermediate_model(logger, conf, avt, source, collection, udemses):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
@@ -52,6 +52,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     :param avt: Verification task dictionary.
     :param source: Source object.
     :param collection: ProcessCollection object.
+    :param udemses: Dictionary with UDEMSes to put the new one.
     :return: None.
     """
     # Prepare main configuration properties
@@ -80,6 +81,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     model_file = os.path.join(model_path, 'input model.json')
     with open(model_file, mode='w', encoding='utf-8') as fp:
         json.dump(collection, fp, cls=CollectionEncoder, indent=2)
+    udemses[collection.name] = json.dumps(collection, cls=CollectionEncoder, indent=2)
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))
