@@ -41,7 +41,7 @@ DEFAULT_INCLUDE_HEADERS = (
 )
 
 
-def translate_intermediate_model(logger, conf, avt, source, collection, udemses):
+def translate_intermediate_model(logger, conf, avt, source, collection, udemses, program_fragment):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
@@ -53,6 +53,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses)
     :param source: Source object.
     :param collection: ProcessCollection object.
     :param udemses: Dictionary with UDEMSes to put the new one.
+    :param program_fragment: Name of program fragment for which EMG generates environment models.
     :return: None.
     """
     # Prepare main configuration properties
@@ -81,7 +82,14 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses)
     model_file = os.path.join(model_path, 'input model.json')
     with open(model_file, mode='w', encoding='utf-8') as fp:
         json.dump(collection, fp, cls=CollectionEncoder, indent=2)
-    udemses[collection.name] = json.dumps(collection, cls=CollectionEncoder, indent=2)
+
+    udems = {
+        "specification set": [{
+            "fragments": [program_fragment],
+            "model": collection
+        }]
+    }
+    udemses[collection.name] = json.dumps(udems, cls=CollectionEncoder, indent=2)
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))

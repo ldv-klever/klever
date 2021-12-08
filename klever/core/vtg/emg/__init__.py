@@ -55,6 +55,7 @@ class EMG(Plugin):
         self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
+        program_fragment = self.abstract_task_desc['fragment']
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
         used_attributed_names = set()
@@ -69,7 +70,7 @@ class EMG(Plugin):
             else:
                 used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
-                                                           model, data_report["UDEMSes"])
+                                                           model, data_report["UDEMSes"], program_fragment)
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
