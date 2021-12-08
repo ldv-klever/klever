@@ -60,7 +60,7 @@ class EMG(Plugin):
         used_attributed_names = set()
         data_report = {
             "type": "EMG",
-            "UDEMSES": {}
+            "UDEMSes": {}
         }
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
@@ -69,7 +69,7 @@ class EMG(Plugin):
             else:
                 used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
-                                                           model, data_report["UDEMSES"])
+                                                           model, data_report["UDEMSes"])
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
