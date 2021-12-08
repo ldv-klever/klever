@@ -693,6 +693,15 @@ Signaling action description can have the following attributes:
       ["%ret%, "%struct%"]
     - Labels to save or send data.
     - Yes
+  * - savepoints
+    - It is a map from savepoint names to their descriptions.
+      {"name": {...}}
+    - Savepoints are used at decomposition, and they are considered in the following sections in detail.
+      Any action can have this attribute, but it must be the first one in the process.
+      All savepoints across all environment model processes should have unique names.
+      You should use short names for savepoints as they are shown in the web-interface.
+      Savepoint descriptions are considered below.
+    - Not
   * - require
     - The object has *processes* and *actions* attributes.
       The latter lists actions required for this one.
@@ -706,15 +715,6 @@ Signaling action description can have the following attributes:
     - The attribute says that the action requires another process that should have specific actions in turn.
       This field is used only at the decomposition of models, which is considered in the following chapters.
     - No
-  * - savepoints
-    - It is a map from savepoint names to their descriptions.
-      {"name": {...}}
-    - Savepoints are used at decomposition, and they are considered in the following sections in detail.
-      Any action can have this attribute, but it must be the first one in the process.
-      All savepoints across all environment model processes should have unique names.
-      You should use short names for savepoints as they are shown in the web-interface.
-      Savepoint descriptions are considered below.
-    - Not
 
 The examples of register and deregister action descriptions from the example above are given below:
 

@@ -85,20 +85,17 @@ class CollectionEncoder(json.JSONEncoder):
         return sp
 
     def _serialize_action(self, action):
-        ict_action = sortedcontainers.SortedDict()
+        ict_action = {}
+
         if action.comment:
             ict_action['comment'] = action.comment
         if action.condition:
             ict_action['condition'] = self.default(action.condition)
-        if action.trace_relevant:
-            ict_action['trace relevant'] = action.trace_relevant
+
         if action.savepoints:
             ict_action['savepoints'] = {
                 str(point): self.default(point) for point in action.savepoints}
-        if action.requirements:
-            ict_action['require'] = dict(action.requirements)
-        if action.weak_requirements:
-            ict_action['weak require'] = dict(action.weak_requirements)
+
         if isinstance(action, Subprocess):
             if action.action:
                 ict_action['process'] = repr(action.action)
@@ -113,6 +110,15 @@ class CollectionEncoder(json.JSONEncoder):
         elif isinstance(action, Block):
             if action.statements:
                 ict_action["statements"] = self.default(action.statements)
+
+        if action.requirements:
+            ict_action['require'] = dict(action.requirements)
+        if action.weak_requirements:
+            ict_action['weak require'] = dict(action.weak_requirements)
+
+        if action.trace_relevant:
+            ict_action['trace relevant'] = action.trace_relevant
+
         return ict_action
 
     def _serialize_process(self, process):
