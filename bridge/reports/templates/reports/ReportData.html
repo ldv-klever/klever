@@ -175,23 +175,29 @@
         </tbody>
     </table>
 {% elif type == 'EMG' %}
-    <h5 class="ui brown header">{% trans 'User-defined environment model specifications' %}</h5>
-    <table class="ui compact brown table">
-        <thead>
-            <tr>
-                <th>{% trans 'Name' %}</th>
-                <th>{% trans 'Specification' %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for name, desc in data.UDEMSes.items|sort_list %}
+    <h5 class="ui brown header">{% trans 'User-defined environment model specification(s)' %}</h5>
+    {% if data.UDEMSes.items|length == 1 %}
+        {% for name, desc in data.UDEMSes.items %}
+            <pre>{{ desc }}</pre>
+        {% endfor %}
+    {% else %}
+        <table class="ui compact brown table">
+            <thead>
                 <tr>
-                    <td>{{ name }}</td>
-                    <td><pre>{{ desc }}</pre></td>
+                    <th>{% trans 'Name' %}</th>
+                    <th>{% trans 'Specification' %}</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for name, desc in data.UDEMSes.items|sort_list %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td><pre>{{ desc }}</pre></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 {% else %}
 <pre>{{ data }}</pre>
 {% endif %}
