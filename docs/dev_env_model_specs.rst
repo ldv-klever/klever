@@ -462,17 +462,15 @@ A process description has the following attributes:
     - The comment is used at error-trace visualization.
       It should describe what the process implements.
     - Yes
-  * - headers
-    - A list of relative paths to header files:
-
-      ["stdio.h", "pthread.h"]
-    - Headers are included in the main C file of an environment model to bring type definitions and function
-      declarations to the main C file of the FEM.
-    - No
-  * - relevant
-    - Bool
-    - If the flag is true, then the process description will be used for other specification sets.
-    - No
+  * - process
+    - Process transition relation (see its description below).
+    - Transition relation describes the possible order of actions performed by the process.
+    - Yes
+  * - actions
+    - The object maps action names to action descriptions.
+      Action names should be C identifiers.
+    - Actions describe the behavior of the environment model.
+    - Yes
   * - labels
     - The object maps label names to label descriptions.
       Label names should be C identifiers.
@@ -481,15 +479,13 @@ A process description has the following attributes:
       "ret": {...}}
     - Labels represent the state of a process.
     - No
-  * - actions
-    - The object maps action names to action descriptions.
-      Action names should be C identifiers.
-    - Actions describe the behavior of the environment model.
-    - Yes
-  * - process
-    - Process transition relation (see its description below).
-    - Transition relation describes the possible order of actions performed by the process.
-    - Yes
+  * - headers
+    - A list of relative paths to header files:
+
+      ["stdio.h", "pthread.h"]
+    - Headers are included in the main C file of an environment model to bring type definitions and function
+      declarations to the main C file of the FEM.
+    - No
   * - declarations
     - The option maps names of program source files or *environment model* (meaning the main C file) to maps from C
       identifiers to declarations to add.

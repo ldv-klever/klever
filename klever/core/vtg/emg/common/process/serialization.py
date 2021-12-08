@@ -117,13 +117,12 @@ class CollectionEncoder(json.JSONEncoder):
         return ict_action
 
     def _serialize_process(self, process):
-        ict_action = sortedcontainers.SortedDict()
-        ict_action['category'] = process.category
-        ict_action['comment'] = process.comment
-        ict_action['process'] = repr(process.actions.initial_action)
-        ict_action['labels'] = {str(label): self.default(label) for label in sorted(process.labels.values())}
-        ict_action['actions'] = {str(action): self.default(action) for action in sorted(process.actions.values())}
-        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
+        ict_action = {
+            'comment': process.comment,
+            'process': repr(process.actions.initial_action),
+            'actions': {str(action): self.default(action) for action in sorted(process.actions.values())},
+            'labels': {str(label): self.default(label) for label in sorted(process.labels.values())}
+        }
 
         if len(process.headers) > 0:
             ict_action['headers'] = self.default(list(process.headers))
@@ -131,6 +130,9 @@ class CollectionEncoder(json.JSONEncoder):
             ict_action['declarations'] = self.default(process.declarations)
         if len(process.definitions.keys()) > 0:
             ict_action['definitions'] = self.default(process.definitions)
+
+        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
+        ict_action['category'] = process.category
 
         return ict_action
 
