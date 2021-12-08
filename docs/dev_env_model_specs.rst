@@ -535,9 +535,11 @@ There is an example of a process description with simplified values below:
         "fail": {},
         "free": {},
         "ok": {},
+        "pm": {},
         "pm_jump": {},
         "probe": {},
-        "register": {}
+        "register": {},
+        "release": {}
     },
     "labels": {},
     "headers": ["linux/platform_device.h"],
