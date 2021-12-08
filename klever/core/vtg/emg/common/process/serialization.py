@@ -111,9 +111,9 @@ class CollectionEncoder(json.JSONEncoder):
             if action.statements:
                 ict_action["statements"] = self.default(action.statements)
 
-        if action.requirements:
+        if action.requirements and not action.requirements.is_empty:
             ict_action['require'] = dict(action.requirements)
-        if action.weak_requirements:
+        if action.weak_requirements and not action.weak_requirements.is_empty:
             ict_action['weak require'] = dict(action.weak_requirements)
 
         if action.trace_relevant:
