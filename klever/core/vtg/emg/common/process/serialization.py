@@ -56,13 +56,12 @@ class CollectionEncoder(json.JSONEncoder):
             raise TypeError(f"Cannot serialize object '{str(o)}' of type '{type(o).__name__}'")
 
     def _serialize_collection(self, collection):
-        data = {
+        return {
             "name": str(collection.name),
-            "functions models": {p.name: self.default(p) for p in collection.models.values()},
+            "main process": self.default(collection.entry) if collection.entry else None,
             "environment processes": {str(p): self.default(p) for p in collection.environment.values()},
-            "main process": self.default(collection.entry) if collection.entry else None
+            "functions models": {p.name: self.default(p) for p in collection.models.values()}
         }
-        return data
 
     def _serialize_label(self, label):
         dict_repr = sortedcontainers.SortedDict()
