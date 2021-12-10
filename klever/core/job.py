@@ -683,7 +683,7 @@ class Job(klever.core.components.Component):
                 if cmd['out']:
                     for out_file in cmd['out']:
                         # Like above.
-                        if not out_file.startswith('/tmp') and in_file != '/dev/null':
+                        if not out_file.startswith('/tmp') and out_file != '/dev/null':
                             out_files.append(os.path.join(cmd['cwd'], out_file))
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
             self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))

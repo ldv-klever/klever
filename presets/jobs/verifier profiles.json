@@ -115,10 +115,15 @@
       "inherit": "CPAchecker SMG memory checking",
       "add options": [{"-setprop": "cpa.smg.enableHeapAbstraction=false"}]
     },
-    "CPALockator lightweight": {
+    "CPALockator base": {
       "description": "CPAchecker for checking races",
       "inherit": "CPALockator races",
       "add options": [{"-lockator-linux": ""}]
+    },
+    "CPALockator lightweight": {
+      "description": "Lightweight CPAchecker for checking races",
+      "inherit": "CPALockator races",
+      "add options": [{"-lockator-linux-lightweight": ""}]
     },
     "CPALockator thread-modular": {
       "description": "CPAchecker for checking races with powerful theory",
@@ -149,6 +154,9 @@
     },
     "CPAchecker BAM BusyBox": {
       "CPAchecker": {"klever_fixes:38949": {"inherit": "CPAchecker BAM BusyBox"}}
+    },
+    "race checking base": {
+      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator base"}}
     },
     "race checking lightweight": {
       "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator lightweight"}}
