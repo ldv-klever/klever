@@ -191,6 +191,7 @@
     },
     {
       "build base": "linux/testing/environment model specifications/fedc1e",
+      "specifications set": "3.14",
       "targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
@@ -357,6 +358,7 @@
     },
     {
       "build base": "linux/testing/environment model specifications/fedc1e",
+      "specifications set": "3.14",
       "targets": [
         "ext-modules/timer_v.1",
         "ext-modules/workqueue_v.1",

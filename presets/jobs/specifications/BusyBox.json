@@ -1,4 +1,5 @@
 {
+  "specification sets": ["1.28.3"],
   "templates": {
     "applets": {
       "plugins": [

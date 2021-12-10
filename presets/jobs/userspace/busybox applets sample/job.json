@@ -2,6 +2,7 @@
   "project": "BusyBox",
   "build base": "userspace/busybox applets sample",
   "targets": ["wall", "ssl_client"],
+  "specifications set": "1.28.3",
   "requirement specifications": [
     "open",
     "memory safety"

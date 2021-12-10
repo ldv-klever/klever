@@ -1,5 +1,6 @@
 {
   "project": "Linux",
+  "specifications set": "3.14",
   "extra results processing": "validation",
   "sub-jobs": [
     {
@@ -287,7 +288,7 @@
           "drivers/leds/leds-lp55xx-common.ko",
           "drivers/leds/leds-lp5521.ko"
         ]
-      },  
+      },
       "requirement specifications": ["kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ac4de081312a~"}
@@ -314,7 +315,7 @@
           "sound/pci/emu10k1/snd-emu10k1.ko",
           "sound/pci/emu10k1/snd-emu10k1-synth.ko"
         ]
-      }, 
+      },
       "specifications set": "3.2",
       "requirement specifications": ["kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],

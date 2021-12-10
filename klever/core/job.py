@@ -112,8 +112,15 @@ def start_jobs(core_obj, vals):
     if 'project' in common_components_conf:
         project = common_components_conf['project']
     else:
-        raise KeyError('Specify project within job.json')
+        raise KeyError('Specify attribute "project" within job.json')
     core_obj.logger.debug('Project is "{0}"'.format(project))
+
+    core_obj.logger.info('Get specifications set')
+    if 'specifications set' in common_components_conf:
+        spec_set = common_components_conf['specifications set']
+    else:
+        raise KeyError('Specify attribute "specifications set" within job.json')
+    core_obj.logger.debug('Specifications set is "{0}"'.format(spec_set))
 
     # Save bases for components.
     common_components_conf['specifications dir'] = os.path.abspath(
@@ -129,6 +136,14 @@ def start_jobs(core_obj, vals):
 
     common_components_conf['code coverage details'] = CODE_COVERAGE_DETAILS_MAP[
         common_components_conf['code coverage details']]
+
+    # Check that specifications set is supported.
+    with open(common_components_conf['specifications base'], encoding='utf-8') as fp:
+        req_spec_base = json.load(fp)
+
+    if spec_set not in req_spec_base['specification sets']:
+        raise ValueError("Klever does not support specifications set {!r} yet, available options are: {}"
+                         .format(spec_set, ', '.join(req_spec_base['specification sets'])))
 
     subcomponents = []
     try:
