@@ -1513,8 +1513,10 @@ of modeling.
 Prepare the UDEMS
 -----------------
 
+.. note:: It works only for the development installation of Klever.
+
 Klever’s installation has several examples to try.
-One of those is a *Loadable kernel modules sample* preset.
+One of those is the *Loadable kernel modules sample* preset.
 Let us just simplify the :file:`job.json` of this sample a bit and start verification:
 
 .. code-block:: json
@@ -1532,21 +1534,22 @@ rule.
 The empty rule does not check anything but it allows to estimate the coverage of the source code roughly and check that
 the model generation works well.
 The check of the empty rule is the fastest possible.
-
 The Klever should report the *Safe* verdict.
-Then we go to the installation directory of the Klever and copy file
+
+Then you can either open the appropriate EMG page in the web UI using the following sequence of components
+:menuselection:`Core --> Job --> VTG --> EMGW --> EMG`, get the prepared in advance, complete content of UDEMS from
+that page and put it to, say, :file:`presets/jobs/specifications/linux/pata user model.json` in :term:`$KLEVER_SRC` 
+or do this in the way described below.
+
+You can go to the installation directory of the Klever and copy file
 :file:`klever-core-work-dir/job/vtg/drivers/ata/pata_arasan_cf.ko/empty/emg/0/input model.json` in
 :file:`klever-work/native-scheduler/scheduler/jobs/<job ID>/` of :term:`$KLEVER_DEPLOY_DIR` with an IEM to the directory
 with Klever specifications :file:`presets/jobs/specifications/linux` in :term:`$KLEVER_SRC`.
-It works for the development installation of Klever.
-If you have a production one, then just modify files as we described below in your favorite editor and provide them
-using the web-interface directly.
-
 The model should be correct.
 Just add framing members as the format of UDEMS requires.
 Note, that the file should be renamed by adding a user model suffix to it.
 Let us name the file :file:`pata user model.json`.
-The file should look like this:
+The file should look like this where *3.14* is the name of the specifications set:
 
 .. code-block:: json
 
@@ -1560,8 +1563,6 @@ The file should look like this:
       }
     ]
   }
-
-The *3.14* member is the name of the specification set.
 
 Then we have to change options of the EMG to run only genericManual generator to prepare our model.
 Find the proper template in the :file:`Linux.json` file (it is the first one that contains the EMG value) and fix the
