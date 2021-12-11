@@ -50,7 +50,6 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/e4c7f259c5be~",
       "targets": ["drivers/net/usb/kaweth.ko"],
-      "specifications set": "3.5",
       "requirement specifications": ["alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "e4c7f259c5be~"}
@@ -58,7 +57,6 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/e4c7f259c5be",
       "targets": ["drivers/net/usb/kaweth.ko"],
-      "specifications set": "3.5",
       "requirement specifications": ["alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "e4c7f259c5be~"}
@@ -444,7 +442,6 @@
         "commit": "bcb4a75bde38~",
         "loadable kernel modules": ["drivers/hid/hid.ko"]
       },
-      "specifications set": "3.5",
       "requirement specifications": ["fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
@@ -453,7 +450,6 @@
         "commit": "bcb4a75bde38",
         "loadable kernel modules": ["drivers/hid/hid.ko"]
       },
-      "specifications set": "3.5",
       "requirement specifications": ["fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     }
