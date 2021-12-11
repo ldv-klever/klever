@@ -152,6 +152,10 @@ class SSH:
             rsync_flags,
             '--del',
             '-e', f'ssh -o StrictHostKeyChecking=no -i {self.args.ssh_rsa_private_key_file}',
+            # Exclude Python build directories since rsync can fail to remove them. Indeed, this is a workaround that is
+            # necessary due to we incorrectly install Klever on OpenStack instances using the superuser rather than the
+            # virtual environment.
+            '--exclude', 'build', '--exclude', 'klever.egg-info',
             host_path,
             f'{OS_USER}@{self.floating_ip}:{instance_path}',
             stderr=subprocess.DEVNULL

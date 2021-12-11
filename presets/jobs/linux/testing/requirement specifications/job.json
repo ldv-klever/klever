@@ -1,6 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/requirement specifications/1de383",
+  "specifications set": "3.14",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
