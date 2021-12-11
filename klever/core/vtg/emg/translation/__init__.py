@@ -84,7 +84,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
         json.dump(collection, fp, cls=CollectionEncoder, indent=2)
 
     udems = {
-        "specification set": [{
+        conf["specifications set"]: [{
             "fragments": [program_fragment],
             "model": collection
         }]

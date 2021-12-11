@@ -40,7 +40,7 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
                        [list(e.keys())[0] for e in get_or_die(conf, "generators options")])
     configurations = [list(e.values())[0] for e in get_or_die(conf, "generators options")]
-    specifications_set = conf.get('specifications set')
+    specifications_set = get_or_die(conf, "specifications set")
 
     # Find generators
     modules = [(shortname, importlib.import_module(name, 'klever.core')) for shortname, name in generator_names]

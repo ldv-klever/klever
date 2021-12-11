@@ -86,7 +86,7 @@ class AbstractGenerator:
                 new_content = json.load(fp)
 
             for spec_set in new_content:
-                if specifications_set and spec_set == specifications_set:
+                if spec_set == specifications_set:
                     # This is our specification
                     for title in new_content[spec_set]:
                         merged_specification.setdefault(title, sortedcontainers.SortedDict())
