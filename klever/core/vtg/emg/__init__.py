@@ -69,7 +69,8 @@ class EMG(Plugin):
                 raise ValueError(f"The model with name '{model.attributed_name}' has been already been generated")
             else:
                 used_attributed_names.add(model.attributed_name)
-            new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
+            new_description = translate_intermediate_model(self.id, self.logger, self.conf,
+                                                           copy.deepcopy(abstract_task), sa,
                                                            model, data_report["UDEMSes"], program_fragment)
 
             new_description["environment model attributes"] = model.attributes

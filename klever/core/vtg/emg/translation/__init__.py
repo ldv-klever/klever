@@ -20,6 +20,7 @@ import shutil
 import json
 import sortedcontainers
 
+import klever.core.session
 from klever.core.vtg.utils import find_file_or_dir
 from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
@@ -41,12 +42,13 @@ DEFAULT_INCLUDE_HEADERS = (
 )
 
 
-def translate_intermediate_model(logger, conf, avt, source, collection, udemses, program_fragment):
+def translate_intermediate_model(component_id, logger, conf, avt, source, collection, udemses, program_fragment):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
     code printing and adds necessary information to the (abstract) verification task description.
 
+    :param component_id: Component identifier for uploading data to Bridge.
     :param logger: Logger object.
     :param conf: Configuration dictionary for the whole EMG.
     :param avt: Verification task dictionary.
@@ -93,6 +95,21 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))
+
+    session = klever.core.session.Session(logger, conf['Klever Bridge'], conf['identifier'])
+    for root, _, filenames in os.walk(os.path.join(model_path, 'images')):
+        for fname in filenames:
+            if os.path.splitext(fname)[-1] != '.dot':
+                continue
+            dot_file = os.path.join(root, fname)
+            image_file = os.path.join(root, fname + '.png')
+            if os.path.isfile(image_file):
+                session.create_image(component_id,
+                                     'Environment process "{0}"'
+                                     .format(os.path.splitext(os.path.basename(dot_file))[0]),
+                                     dot_file, image_file)
+            else:
+                logger.warn('Image "{0}" does not exist'.format(image_file))
 
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")

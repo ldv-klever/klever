@@ -181,3 +181,16 @@ class Session:
                                      for archive_name, archive_path in archives.items()},
                               stream=True)
         return resp.json()
+
+    def create_image(self, component_id, title, dot_file, image_file):
+        self.logger.info('Upload image "{0}"'.format(title))
+        data = {
+            'decision': self.job_id,
+            'report': component_id,
+            'title': title
+        }
+        self.logger.info('Upload image "{0}"'.format(data))
+        with open(image_file, mode='rb') as image_fp:
+            with open(dot_file, mode='rb') as dot_fp:
+                self.__request('reports/api/component/images-create/'.format(), 'POST', data=data,
+                               files=[('image', image_fp), ('data', dot_fp)])
