@@ -78,6 +78,17 @@
                 </tr>
             </tbody>
         </table>
+
+        <br>
+        <div class="ui buttons">
+            {% if report.log %}
+                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
+            {% endif %}
+            {% if report.verifier_files %}
+                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
+            {% endif %}
+        </div>
+
         {% if SelfAttrsData.values|length %}
             <h4 class="header ui violet">{% trans 'Attributes' %}</h4>
             <div style="overflow-x: auto">
@@ -151,15 +162,7 @@
             </div>
         {% endif %}
 
-        <br>
-        <div class="ui buttons">
-            {% if report.log %}
-                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
-            {% endif %}
-            {% if report.verifier_files %}
-                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
-            {% endif %}
-        </div>
+
         {% if images|length %}
             <h3>{% trans 'Report images' %}</h3>
             <table class="ui compact selectable violet table">
