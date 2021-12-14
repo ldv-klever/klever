@@ -101,9 +101,12 @@ class TagSerializer(DynamicFieldsModelSerializer):
                 parents.append({'id': t.id, 'name': t.name})
         return parents
 
-    def validate_name(self, value):
+    def __validate_shortname(self, value, parent):
         if value.__contains__(" - "):
             self.fail('name_invalid')
+        if parent is not None:
+            value = '{} - {}'.format(parent.name, value)
+
         qs_filter = Q(name=value)
         if self.instance:
             qs_filter &= ~Q(id=self.instance.id)
@@ -115,10 +118,7 @@ class TagSerializer(DynamicFieldsModelSerializer):
         if 'shortname' in attrs:
             if 'parent' not in attrs:
                 self.fail('parent_required')
-            full_name = attrs.pop('shortname')
-            if attrs['parent'] is not None:
-                full_name = '{} - {}'.format(attrs['parent'].name, full_name)
-            attrs['name'] = self.validate_name(full_name)
+            attrs['name'] = self.__validate_shortname(attrs.pop('shortname'), attrs['parent'])
         return attrs
 
     class Meta:

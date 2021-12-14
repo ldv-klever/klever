@@ -46,7 +46,7 @@ def prepare_node_info(node_info):
     if "available for tasks" not in result:
         raise KeyError("Provide configuration property 'node configuration''available for tasks'")
 
-    # TODO: extract this to the common library. Add debug printing in particular warn if specified values are out of bouds. Try to use some mathematical functions like min and max.
+    # TODO: extract this to the common library. Add debug printing in particular warn if specified values are out of bounds. Try to use some mathematical functions like min and max.
     # Do magic transformations like in get_parallel_threads_num() from klever.core/utils.py to dynamically adjust available
     # resources if they are specified as decimals.
     if isinstance(result["available CPU number"], float):
@@ -94,7 +94,7 @@ def setup_consul(conf, logger):
     # Make consul working directory
     os.makedirs(consul_work_dir.encode("utf-8"))
 
-    # Prepare ndde info
+    # Prepare node info
     conf["node configuration"] = prepare_node_info(conf["node configuration"])
 
     # TODO: Create main config

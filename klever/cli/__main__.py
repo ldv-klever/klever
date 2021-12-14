@@ -30,7 +30,7 @@ def get_args_parser(desc):
 
 
 def download_job():
-    parser = get_args_parser('Download ZIP archive of verificaiton job.')
+    parser = get_args_parser('Download ZIP archive of verification job.')
     parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
     parser.add_argument('-o', '--out', help='ZIP archive name.')
     args = parser.parse_args()
@@ -69,7 +69,7 @@ def download_progress():
 
 
 def download_results():
-    parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
+    parser = get_args_parser('Download JSON file with verification results of verification job.')
     parser.add_argument('decision', type=UUID, help='Verification job decision identifier (uuid).')
     parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
     args = parser.parse_args()
@@ -80,7 +80,7 @@ def download_results():
     with open(args.out, mode='w', encoding='utf-8') as fp:
         json.dump(results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
+    print('JSON file with verification results of verification job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.decision, args.out))
 
 

@@ -1,6 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/verifiers/606cdb",
+  "specifications set": "3.14",
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {

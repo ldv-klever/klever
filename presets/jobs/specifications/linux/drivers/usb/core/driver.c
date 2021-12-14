@@ -22,8 +22,8 @@
 /* There are 2 possible model states. */
 enum
 {
-	LDV_PROBE_ZERO_STATE = 0, /* No error occured. */
-	LDV_PROBE_ERROR = 1,	  /* Error occured. probe() should return error code (or at least not zero). */
+	LDV_PROBE_ZERO_STATE = 0, /* No error occurred. */
+	LDV_PROBE_ERROR = 1,	  /* Error occurred. probe() should return error code (or at least not zero). */
 };
 
 /* NOTE Model automaton state (one of two possible ones) */
@@ -31,7 +31,7 @@ int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
 void ldv_failed_usb_register_driver(void)
 {
-	/* NOTE Error occured */
+	/* NOTE Error occurred */
 	ldv_probe_state = LDV_PROBE_ERROR;
 }
 

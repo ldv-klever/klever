@@ -50,7 +50,7 @@ class AbstractGenerator:
         :param directories: List with directories where to find JSON files.
         :return:
         """
-        # This is too verbous, use only for manual debugging
+        # This is too verbose, use only for manual debugging
         # self.logger.debug('Search for specifications in: {}'.format(', '.join(directories)))
 
         # First collect all files
@@ -76,7 +76,7 @@ class AbstractGenerator:
         """
         specification = specification
         with open(file_name, 'w', encoding='utf-8') as fp:
-            self.logger.debug('save specification %s' % file_name)
+            self.logger.debug('Save specification %s' % file_name)
             json.dump(specification, fp, indent=2, sort_keys=True)
 
     def _merge_specifications(self, specifications_set, files):
@@ -86,7 +86,7 @@ class AbstractGenerator:
                 new_content = json.load(fp)
 
             for spec_set in new_content:
-                if specifications_set and spec_set == specifications_set:
+                if spec_set == specifications_set:
                     # This is our specification
                     for title in new_content[spec_set]:
                         merged_specification.setdefault(title, sortedcontainers.SortedDict())

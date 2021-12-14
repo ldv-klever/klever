@@ -30,7 +30,7 @@ size_t ldv_strlen(const char *s)
 
 int ldv_strcmp(const char *cs, const char *ct)
 {
-	for (; *cs; cs++, ct++)
+	for (; *cs && *ct; cs++, ct++)
 		if (*cs != *ct)
 			break;
 
@@ -42,7 +42,7 @@ int ldv_strncmp(const char *cs, const char *ct, __kernel_size_t count)
 	if (!count)
 		return 0;
 
-	for (; *cs; cs++, ct++) {
+	for (; *cs && *ct; cs++, ct++) {
 		if (*cs != *ct)
 			break;
 

@@ -36,15 +36,15 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         functions_collection = OrderedDict()
 
         # Import Specifications
-        self.logger.info("Generate an entry process on base of given funcitons list")
+        self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
-            raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
-                             'configuration')
+            raise ValueError(
+                "Do not expect any main process already attached to the model, reorder EMG generators in configuration")
 
         # Read configuration in abstract task
         self.logger.info("Determine functions to call in the environment model")
@@ -60,7 +60,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 func_obj = re.compile(expr[1])
                 expressions.append((file_obj, func_obj))
             else:
-                raise ValueError('Unknown element given instead of a file and function regular expressions pair: {!r}'.
+                raise ValueError("Unknown element given instead of a file and function regular expressions pair: {!r}".
                                  format(str(expr)))
 
         for file_expr, func_expr in expressions:
@@ -121,7 +121,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             caller_func.body.append(indented_line(tab, "{}".format(expr)))
             cnt += 1
 
-        ep.add_condition('function_calls', [], ["{}();".format(caller_func.name)],
+        ep.actions.add_condition('function_calls', [], ["{}();".format(caller_func.name)],
                          'Call all initialization functions in asc order of level.')
         ep.process = "<function_calls>"
         ep.add_definition("environment model", caller_func.name, caller_func.define() + ["\n"])

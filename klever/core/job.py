@@ -112,7 +112,7 @@ def start_jobs(core_obj, vals):
     if 'project' in common_components_conf:
         project = common_components_conf['project']
     else:
-        raise KeyError('Specify project within job.json')
+        raise KeyError('Specify attribute "project" within job.json')
     core_obj.logger.debug('Project is "{0}"'.format(project))
 
     # Save bases for components.
@@ -560,6 +560,21 @@ class Job(klever.core.components.Component):
         # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
         self.common_components_conf['sub-job identifier'] = self.id[1:]
 
+        self.logger.info('Get specifications set')
+        if 'specifications set' in self.common_components_conf:
+            spec_set = self.common_components_conf['specifications set']
+        else:
+            raise KeyError('Specify attribute "specifications set" within job.json')
+        self.logger.debug('Specifications set is "{0}"'.format(spec_set))
+
+        # Check that specifications set is supported.
+        with open(self.common_components_conf['specifications base'], encoding='utf-8') as fp:
+            req_spec_base = json.load(fp)
+        spec_set = self.common_components_conf['specifications set']
+        if spec_set not in req_spec_base['specification sets']:
+            raise ValueError("Klever does not support specifications set {!r} yet, available options are: {}"
+                             .format(spec_set, ', '.join(req_spec_base['specification sets'])))
+
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
         self.clade = Clade(self.common_components_conf['build base'])
@@ -683,7 +698,7 @@ class Job(klever.core.components.Component):
                 if cmd['out']:
                     for out_file in cmd['out']:
                         # Like above.
-                        if not out_file.startswith('/tmp') and in_file != '/dev/null':
+                        if not out_file.startswith('/tmp') and out_file != '/dev/null':
                             out_files.append(os.path.join(cmd['cwd'], out_file))
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
             self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))

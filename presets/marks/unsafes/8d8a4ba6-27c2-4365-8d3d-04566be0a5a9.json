@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/ata/pata_arasan_cf.ko"
+    }
+  ],
+  "description": "ata_host_alloc() allocates memory for host, so, we need to model it.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "arasan_cf_remove": [
+                {
+                  "platform_get_drvdata": [
+                    {
+                      "Instrumented function 'dev_get_drvdata'": [
+                        {
+                          "LDV model 'dev_get_drvdata'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "API models - Linux kernel",
+    "API models"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

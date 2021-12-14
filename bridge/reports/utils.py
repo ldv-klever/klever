@@ -1224,6 +1224,10 @@ class ReportData:
             self.data = self.data[0]
             # Do not visualize data type. Before this type was already saved explicitly.
             del self.data['type']
+        elif self.type == 'EMG':
+            # Like for PFG above
+            self.data = self.data[0]
+            del self.data['type']
         elif self.type == 'unknown' and self.data:
             self.data = json.dumps(self.data, ensure_ascii=True, sort_keys=True, indent=4)
 

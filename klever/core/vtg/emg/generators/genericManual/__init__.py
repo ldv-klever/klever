@@ -39,7 +39,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         self.conf.setdefault("enforce replacement", True)
 
@@ -49,12 +49,12 @@ class ScenarioModelgenerator(AbstractGenerator):
         descriptions = None
         for imap in all_instance_maps:
             if fragment_name in imap.get('fragments', []):
-                self.logger.info(f'Found model for the fragment {fragment_name}')
+                self.logger.info(f"Found model for the fragment '{fragment_name}'")
                 descriptions = imap.get("model", None)
 
                 contains = ', '.join([i for i in ("functions models", "environment processes", "main process")
                                       if i in descriptions and descriptions[i]])
-                self.logger.debug(f'The model contains sections: {contains}')
+                self.logger.debug(f"The model contains sections: '{contains}'")
 
         # Import manual process
         if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or
@@ -97,8 +97,6 @@ class ScenarioModelgenerator(AbstractGenerator):
             collection.establish_peers()
         else:
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
-
-        return {}
 
     def _merge_specifications(self, specifications_set, files):
         merged_specification = list()

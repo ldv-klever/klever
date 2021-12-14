@@ -44,7 +44,7 @@ void *ldv_create_class(void)
 	ldv_assume(is_got);
 
 	if (!ldv_is_err(is_got) && ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
-		/* ASSERT Registring usb gadget class is only allowed if usb gadget is not registered */
+		/* ASSERT Registering usb gadget class is only allowed if usb gadget is not registered */
 		ldv_assert();
 
 	/* NOTE Return obtained blk request */

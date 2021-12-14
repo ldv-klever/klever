@@ -6,6 +6,7 @@
     "drivers/idle/i7300_idle.ko",
     "drivers/uwb/hwa-rc.ko"
   ],
+  "specifications set": "3.14",
   "requirement specifications": [
     "arch:mm:ioremap",
     "drivers:clk1",

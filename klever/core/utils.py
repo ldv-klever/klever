@@ -171,7 +171,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
         stream_q.join()
 
     if p.poll():
-        logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+        logger.error('"{0}" exited with "{1}"'.format(cmd, p.poll()))
         with open('problem desc.txt', 'a', encoding='utf-8') as fp:
             out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
@@ -456,7 +456,7 @@ class ArchiveFiles:
                                 file = os.path.join(root, file)
                                 zfp.write(file, arcname=make_relative_path([file_or_dir], file))
                     else:
-                        raise NotImplementedError("Cannot interprete a kind of an object {!r}".format(file_or_dir))
+                        raise NotImplementedError("Cannot interpret a kind of an object {!r}".format(file_or_dir))
 
                 os.fsync(zfp.fp)
 

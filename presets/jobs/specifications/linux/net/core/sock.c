@@ -31,12 +31,12 @@ void ldv_past_lock_sock_nested(void)
 
 bool ldv_lock_sock_fast(void)
 {
-	/* NOTE we dont know lock this socket or not */
+	/* NOTE we don't know lock this socket or not */
 	if (ldv_undef_int()) {
 		/* NOTE locking socket*/
 		locksocknumber++;
 		/* NOTE Socket lock */
-		return true; 
+		return true;
 	}
 	/* NOTE Cant lock socket */
 	return false;

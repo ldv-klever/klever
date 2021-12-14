@@ -85,7 +85,7 @@ def __populate_resources(collection):
 def __fulfill_function_interfaces(logger, collection, interface, category=None):
     """
     Check an interface declaration (function or function pointer) and try to match its return value type and
-    parameters arguments types with existing interfaces. The algorythm should be the following:
+    parameters arguments types with existing interfaces. The algorithm should be the following:
 
     * Match explicitly stated interface References (only if they meet given category).
     * Match rest parameters:
@@ -107,7 +107,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         :param decl: Declaration object
         :return: True - it is primitive, False - otherwise
         """
-        # todo: Implement check agains arrays of primitives
+        # todo: Implement check against arrays of primitives
         return isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
             decl == 'void *' or decl == 'void **'
 
@@ -117,7 +117,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
     elif isinstance(interface, FunctionInterface):
         declaration = interface.declaration
     else:
-        raise TypeError('Expect pointer to function or function declaration but got {!r}'.
+        raise TypeError("Expect pointer to function or function declaration but got {!r}".
                         format(str(type(interface.declaration).__name__)))
 
     # Second match rest types
@@ -176,7 +176,7 @@ def __complement_interfaces(logger, collection):
                     return None
 
             if len(strict_candidates) > 1:
-                raise RuntimeError('There are several interfaces with the same declaration {}'.
+                raise RuntimeError("There are several interfaces with the same declaration {!r}".
                                    format(signature.to_string('a')))
 
             # Filter of resources
@@ -293,7 +293,7 @@ def __refine_categories(logger, conf, collection, sa):
                     relevant_interfaces.add(container)
                     add_cnt += 1
             else:
-                raise TypeError('Expect structure or array container')
+                raise TypeError("Expect structure or array container")
 
     interfaces_to_delete = [str(i) for i in [collection.get_intf(name) for name in collection.interfaces]
                             if i not in relevant_interfaces]
@@ -312,7 +312,7 @@ def __refine_categories(logger, conf, collection, sa):
             if not allowed_categories.intersection(relevant_categories):
                 interfaces_to_delete.append(str(function_intf))
 
-    logger.debug("Delete unrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
+    logger.debug("Delete irrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
     for interface_name in interfaces_to_delete:
         collection.del_intf(interface_name)
 
@@ -322,4 +322,4 @@ def __refine_categories(logger, conf, collection, sa):
             getter = getattr(collection, interface_kind)
             interface_names = tuple(map(str, getter(category)))
             if interface_names:
-                logger.debug(f'{interface_kind.capitalize()} of {category} : {", ".join(interface_names)}')
+                logger.debug(f"{interface_kind.capitalize()} of '{category}': {', '.join(interface_names)}")

@@ -44,7 +44,7 @@ tokens = (
     'BLOCK_CLOSE',
     'COMMA',
     'DOTS',
-    'BIT_SIZE_DELEMITER',
+    'BIT_SIZE_DELIMITER',
     'NUMBER',
     'END',
     'IDENTIFIER',
@@ -75,7 +75,7 @@ t_DOTS = r"\.\.\."
 
 t_UNKNOWN = r"\$"
 
-t_BIT_SIZE_DELEMITER = r'[:]'
+t_BIT_SIZE_DELIMITER = r'[:]'
 
 t_END = r'[;]'
 
@@ -141,17 +141,17 @@ def t_IDENTIFIER(t):
 
 
 def t_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    raise TypeError("Unknown token '%s'" % (t.value,))
 
 
 def p_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    raise TypeError("Unknown token '%s'" % (t.value,))
 
 
 def p_full_declaration(p):
     """
-    full_declaration : parameter_declaration BIT_SIZE_DELEMITER NUMBER END
-                     | parameter_declaration BIT_SIZE_DELEMITER NUMBER
+    full_declaration : parameter_declaration BIT_SIZE_DELIMITER NUMBER END
+                     | parameter_declaration BIT_SIZE_DELIMITER NUMBER
                      | parameter_declaration END
                      | parameter_declaration
     """
@@ -181,17 +181,17 @@ def p_declaration_specifiers_list(p):
 
     declaration_specifiers_list = sortedcontainers.SortedDict()
     if len(values) == 1:
-        type_specififier, = values
+        type_specifier, = values
         specifiers = None
     elif len(values) == 2 and isinstance(unknown_specifier, list):
-        specifiers, type_specififier = values
+        specifiers, type_specifier = values
     elif len(values) == 2 and isinstance(unknown_specifier, dict):
-        type_specififier, specifiers = values
+        type_specifier, specifiers = values
     else:
-        prefix_specifiers_list, type_specififier, suffix_specifiers_list = values
+        prefix_specifiers_list, type_specifier, suffix_specifiers_list = values
         specifiers = prefix_specifiers_list + suffix_specifiers_list
 
-    declaration_specifiers_list['type specifier'] = type_specififier
+    declaration_specifiers_list['type specifier'] = type_specifier
     if specifiers:
         new_specifiers = []
         new_qualifiers = []
@@ -420,8 +420,8 @@ def p_struct_declaration_list(p):
 
 def p_struct_declaration(p):
     """
-    struct_declaration : parameter_declaration BIT_SIZE_DELEMITER NUMBER END
-                       | parameter_declaration BIT_SIZE_DELEMITER NUMBER
+    struct_declaration : parameter_declaration BIT_SIZE_DELIMITER NUMBER END
+                       | parameter_declaration BIT_SIZE_DELIMITER NUMBER
                        | parameter_declaration END
     """
     parameter_declaration = p[1]
@@ -758,7 +758,7 @@ def direct_declarator_processing(p):
         else:
             declarator, *data = p[1:]
             if isinstance(data[0], str):
-                # inside parenthenses
+                # inside parentheses
                 # PARENTH_OPEN PARENTH_CLOSE
                 # PARENTH_OPEN function_parameters_list PARENTH_CLOSE
                 function_parameters_list = data[1:-1]

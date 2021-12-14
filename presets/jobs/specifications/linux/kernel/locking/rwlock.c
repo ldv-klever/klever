@@ -19,15 +19,15 @@
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
 
-/* NOTE Read lock is not aquired at the beginning */
+/* NOTE Read lock is not acquired at the beginning */
 int ldv_rlock = 1;
-/* NOTE Write lock is not aquired at the beginning */
+/* NOTE Write lock is not acquired at the beginning */
 int ldv_wlock = 1;
 
 void ldv_read_lock(void)
 {
 	if (ldv_wlock != 1)
-		/* ASSERT Write lock should not be aquired */
+		/* ASSERT Write lock should not be acquired */
 		ldv_assert();
 
 	/* NOTE Acquire read lock */
@@ -47,7 +47,7 @@ void ldv_read_unlock(void)
 void ldv_write_lock(void)
 {
 	if (ldv_wlock != 1)
-		/* ASSERT Write lock should not be aquired */
+		/* ASSERT Write lock should not be acquired */
 		ldv_assert();
 
 	/* NOTE Acquire write lock */
@@ -57,7 +57,7 @@ void ldv_write_lock(void)
 void ldv_write_unlock(void)
 {
 	if (ldv_wlock == 1)
-		/* ASSERT Write lock should be aquired */
+		/* ASSERT Write lock should be acquired */
 		ldv_assert();
 
 	/* NOTE Release write lock */

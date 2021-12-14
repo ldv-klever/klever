@@ -35,7 +35,7 @@ def test_detailed_parsing():
     process.actions['d'].action = next_action
     check_parsed_object(process.actions)
 
-    # Then export, import and repeate checks
+    # Then export, import and repeat checks
     desc = CollectionEncoder()._serialize_process(process)
     process = Process('test')
     assert parse_process(process, desc['process'])
@@ -187,11 +187,15 @@ def test_multiple_operators():
 
 
 @parse_assert
-def _test_indexes():
-    # todo: unsupported
+def test_indexes():
     return [
+        "[a[2]]",
+        "(a[2])",
+        "<a[2]>",
+        "{jump[5]}",
         "([a[2]])",
-        "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)"
+        "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
+        "(!register).{jump[%k%]}"
     ]
 
 

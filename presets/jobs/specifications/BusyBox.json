@@ -1,4 +1,5 @@
 {
+  "specification sets": ["1.28.3"],
   "templates": {
     "applets": {
       "plugins": [
@@ -60,7 +61,7 @@
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:38277"
+              "version": "klever_fixes:38949"
             }
           }
         }
@@ -89,7 +90,7 @@
               "verifier profile": "memory checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "klever_fixes:38277"
+                "version": "klever_fixes:38949"
               }
             }
           }

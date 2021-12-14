@@ -23,10 +23,10 @@
 /* NOTE USB lock is not acquired at the beginning */
 int ldv_lock = 1;
 
-void ldv_check_alloc_flags(gfp_t flags) 
+void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (ldv_lock == 2 && flags != GFP_NOIO && flags != GFP_ATOMIC)
-		/* ASSERT GFP_NOIO or GFP_ATOMIC flag should be used when USB lock is aquired */
+		/* ASSERT GFP_NOIO or GFP_ATOMIC flag should be used when USB lock is acquired */
 		ldv_assert();
 }
 

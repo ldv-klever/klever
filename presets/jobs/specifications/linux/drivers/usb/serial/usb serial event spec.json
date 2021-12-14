@@ -89,7 +89,7 @@
             ]
           },
           "not_opened": {
-            "comment": "The tty line attachement has failed.",
+            "comment": "The tty line attachment has failed.",
             "condition": [
               "%ret% != 0"
             ]
@@ -662,7 +662,7 @@
             ]
           },
           "not_opened": {
-            "comment": "The tty line attachement has failed.",
+            "comment": "The tty line attachment has failed.",
             "condition": [
               "%ret% != 0"
             ]
@@ -1023,7 +1023,7 @@
             ]
           },
           "not_opened": {
-            "comment": "The tty line attachement has failed.",
+            "comment": "The tty line attachment has failed.",
             "condition": [
               "%ret% != 0"
             ]

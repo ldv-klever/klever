@@ -18,7 +18,7 @@
 #ifndef __LDV_VERIFIER_GCC_H
 #define __LDV_VERIFIER_GCC_H
 
-/* Explicit model for GCC function __builin_expect(). Without this model
+/* Explicit model for GCC function __builtin_expect(). Without this model
  * return value of __builtin_expect() will be treated as nondetermined by
  * verifiers.
  */

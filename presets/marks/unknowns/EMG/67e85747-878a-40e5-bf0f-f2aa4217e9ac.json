@@ -1,6 +1,6 @@
 {
   "attrs": [],
-  "description": "EMG cannot call callback becouse it has unexpected declaration which differs from the expected one based on a container member.",
+  "description": "EMG cannot call callback because it has unexpected declaration which differs from the expected one based on a container member.",
   "function": "Cannot adjust declaration",
   "is_regexp": false,
   "link": "http://forge.ispras.ru/issues/7117",

@@ -18,18 +18,11 @@
 before: file("$this")
 {
 #include <ldv/linux/err.h>
-} 
-
-around: execution(static inline long IS_ERR(..))
-{
-	return ldv_is_err($arg1);
 }
 
-around: execution(static inline bool IS_ERR(..))
+around: execution(static inline long IS_ERR(..)) || execution(static inline bool IS_ERR(..))
 {
-	long ret;
-	ret = ldv_is_err($arg1);
-	return (bool)ret;
+	return ldv_is_err($arg1);
 }
 
 around: execution(static inline void *ERR_PTR(..))
@@ -42,14 +35,7 @@ around: execution(static inline long PTR_ERR(..))
 	return ldv_ptr_err($arg1);
 }
 
-around: execution(static inline long IS_ERR_OR_NULL(..))
+around: execution(static inline long IS_ERR_OR_NULL(..)) || execution(static inline bool IS_ERR_OR_NULL(..))
 {
 	return ldv_is_err_or_null($arg1);
-}
-
-around: execution(static inline bool IS_ERR_OR_NULL(..))
-{
-	long ret;
-	ret = ldv_is_err_or_null($arg1);
-	return (bool)ret;
 }

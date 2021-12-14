@@ -48,7 +48,7 @@ class Coverage(Abstract):
         # Extract information on functions
         self._func_coverage = coverage.get('functions statistics')
         if not self._func_coverage or not self._func_coverage.get('statistics'):
-            raise ValueError("There is no statictics about functions in the given coverage archive")
+            raise ValueError("There is no statistics about functions in the given coverage archive")
         self._func_coverage = {p.replace('source files/', ''): v
                                for p, v in self._func_coverage.get('statistics').items()}
         self._func_coverage.pop('overall')

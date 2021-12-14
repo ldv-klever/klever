@@ -44,7 +44,7 @@ class Program:
         self.__divide(skip_missing_files)
         if not memory_efficient_mode:
             self.logger.info("Extract dependencies between files from the program callgraph")
-            # This is very memory unefficient operation, so for Linux this is an optional step to prevent consuming
+            # This is very memory inefficient operation, so for Linux this is an optional step to prevent consuming
             # gigabytes of memory
             self.__establish_dependencies()
 
@@ -140,26 +140,26 @@ class Program:
         result = dict()
         for root_kind in root_kinds:
             for root_id, root_desc in roots[root_kind].items():
-                leafs = set()
-                non_leafs = [root_desc]
+                leaves = set()
+                non_leaves = [root_desc]
                 self.logger.debug(f'Get {root_kind} command {root_desc["id"]}')
 
-                # Search for leafs traversing commands
-                while non_leafs:
-                    desc = non_leafs.pop()
+                # Search for leaves traversing commands
+                while non_leaves:
+                    desc = non_leaves.pop()
 
                     using = self.clade.get_root_cmds(desc['id'])
                     if using:
                         self.logger.debug(f'Cmd {desc["out"][0]} has {len(using)} children')
-                        non_leafs.extend([self.clade.get_cmd(identifier) for identifier in using])
+                        non_leaves.extend([self.clade.get_cmd(identifier) for identifier in using])
                     else:
                         # This is likely a compilation out
                         self.logger.debug(f'No children {desc["out"][0]}')
                         files = self.collect_files_from_commands(compilation_kind, (desc,))
-                        leafs.update(files)
+                        leaves.update(files)
 
                 # Save the result
-                result[root_id] = leafs
+                result[root_id] = leaves
 
         return result
 

@@ -1,6 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/common models/6e6e1c",
+  "specifications set": "3.14",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
@@ -20,6 +21,7 @@
         "ext-modules/linux/lib/string/safe.ko",
         "ext-modules/linux/mm/gfp/safe.ko",
         "ext-modules/linux/mm/slab/safe.ko",
+        "ext-modules/linux/mm/slab-memory-safety/safe.ko",
         "ext-modules/linux/mm/util/safe.ko",
         "ext-modules/linux/mm/vmalloc/safe.ko",
         "ext-modules/linux/mm/vmalloc-memory-safety/safe.ko",
@@ -45,6 +47,7 @@
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
         "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
       ],
@@ -56,8 +59,10 @@
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/nondet/*"
       ],
       "requirement specifications": ["test:memory safety"]
     }

@@ -265,7 +265,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
     """
     Execute given command in a separate process catching its stderr if necessary.
 
-    :param args: Command erguments.
+    :param args: Command arguments.
     :param env: Environment variables.
     :param cwd: Current working directory to run the command.
     :param timeout: Timeout for the command.
@@ -293,10 +293,10 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
     def handler(arg1, arg2):
         def terminate():
-            print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid))
+            print("{}: Cancellation of {} is successful, exiting".format(os.getpid(), pid))
             os._exit(-1)
 
-        # Repeate until it dies
+        # Repeat until it dies
         if p and p.pid:
             pid = p.pid
             print("{}: Cancelling process {}".format(os.getpid(), pid))
@@ -501,7 +501,7 @@ def extract_cpu_cores_info():
 
 def __converter(value, table, kind, outunit):
     """
-    Converts units to uits.
+    Converts units to units.
 
     :param value: Given value as an integer, float or a string with units or without them.
     :param table: Table to translate units.
@@ -608,7 +608,7 @@ def kv_get_solution(logger, scheduler_type, identifier):
     Upload data to controller storage.
 
     :param logger: Logger object.
-    :param scheduler_type: Type of the scheduler to avoif races.
+    :param scheduler_type: Type of the scheduler to avoid races.
     :param identifier: Task identifier.
     :return: None
     """
@@ -625,7 +625,7 @@ def kv_clear_solutions(logger, scheduler_type, identifier=None):
     Upload data to controller storage.
 
     :param logger: Logger object.
-    :param scheduler_type: Type of the scheduler to avoif races.
+    :param scheduler_type: Type of the scheduler to avoid races.
     :param identifier: Task identifier.
     :return: None
     """

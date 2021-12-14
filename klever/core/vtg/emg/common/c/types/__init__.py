@@ -61,7 +61,7 @@ def extract_name(declaration):
         try:
             ast = parse_declaration(declaration)
         except Exception:
-            raise ValueError("Cannot parse declaration: {}".format(declaration))
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
     else:
         ast = declaration
 
@@ -94,7 +94,7 @@ def import_typedefs(tds, dependencies):
         try:
             ast = parse_declaration(decl)
         except Exception:
-            raise ValueError(f"Cannot parse typedef declaration: {decl}")
+            raise ValueError(f"Cannot parse typedef declaration: '{decl}'")
         name = extract_name(decl)
 
         add_file(ast, name, dep)
@@ -140,7 +140,7 @@ def import_declaration(declaration, ast=None, track_typedef=False):
         try:
             ast = parse_declaration(declaration)
         except Exception:
-            raise ValueError("Cannot parse declaration: {}".format(declaration))
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
 
     if not ast.get('declarator', []):
         ast_class = ast.get('specifiers', {}).get('type specifier', {}).get('class')
@@ -313,7 +313,7 @@ class Declaration:
 
     def add_parent(self, parent):
         """
-        Specify that the given declaration object contains this one (in terms of structure fields or array alements).
+        Specify that the given declaration object contains this one (in terms of structure fields or array elements).
 
         :param parent: Declaration object.
         :return: None.
@@ -560,7 +560,7 @@ class Function(Declaration):
 
     def define_with_args(self, replacement, typedef='none', scope=None):
         """
-        Prints function dewclaration with arguments given with declarators. As argument declarators it prints
+        Prints function declaration with arguments given with declarators. As argument declarators it prints
         expressions like 'arg1', 'arg2', ....
 
         :param replacement: Function name or any other declarator.

@@ -1,0 +1,99 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/kpc2000/kpc_dma/kpc_dma.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-14-g8ce8668bfb64"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kpc_dma_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "setup_dma_engine": [
+                    {
+                      "Instrumented function 'request_irq'": [
+                        {
+                          "Allocate an interrupt line for a managed device. (Relevant to 'ndd_irq_handler')": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "ndd_irq_worker": [
+            {
+              "GetEngineCompletePtr": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "ndd_irq_handler": [
+                {
+                  "Instrumented function 'schedule_work'": [
+                    {
+                      "Flush work.": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}

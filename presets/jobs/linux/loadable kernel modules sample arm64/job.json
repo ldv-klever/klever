@@ -5,6 +5,7 @@
   "targets": [
     "drivers/ata/pata_arasan_cf.ko"
   ],
+  "specifications set": "3.14",
   "requirement specifications": [
     "drivers:clk1"
   ]

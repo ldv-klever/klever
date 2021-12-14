@@ -28,7 +28,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import exceptions
 
 from bridge.vars import JOB_UPLOAD_STATUS, DECISION_STATUS, PRESET_JOB_TYPE
-from bridge.utils import BridgeException, extract_archive
+from bridge.utils import BridgeException, RequreLock, extract_archive
 
 from jobs.models import JOBFILE_DIR, PresetJob, UploadedJobArchive
 from reports.models import (
@@ -220,12 +220,13 @@ class JobArchiveUploader:
         if not orig_data:
             return
         for src_id, src_path in orig_data.items():
-            try:
-                src_obj = OriginalSources.objects.get(identifier=src_id)
-            except OriginalSources.DoesNotExist:
-                src_obj = OriginalSources(identifier=src_id)
-                with open(self.__full_path(src_path), mode='rb') as fp:
-                    src_obj.add_archive(fp, save=True)
+            with RequreLock(OriginalSources):
+                try:
+                    src_obj = OriginalSources.objects.get(identifier=src_id)
+                except OriginalSources.DoesNotExist:
+                    src_obj = OriginalSources(identifier=src_id)
+                    with open(self.__full_path(src_path), mode='rb') as fp:
+                        src_obj.add_archive(fp, save=True)
             self._original_sources[src_id] = src_obj.id
 
     def __upload_reports(self):

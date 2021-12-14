@@ -18,9 +18,11 @@
 from logging import Logger
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
+from klever.core.vtg.emg.decomposition.modelfactory.savepoints import SavepointsFactory
 from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 
 
@@ -34,40 +36,46 @@ def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessColle
     :return: An iterator over models.
     """
     if not conf.get('single environment model per fragment', True):
-        logger.info(f'Decompose environment model {model.name}')
-        algorythm = Decomposition(logger, conf,
+        logger.info(f"Decompose environment model '{model.name}'")
+        algorithm = Decomposition(logger, conf,
                                   model=model,
                                   separator=_choose_separator(logger, conf),
                                   factory=_choose_factory(logger, conf))
-        for new_model in algorythm():
-            logger.info(f'Generated a new model {new_model.attributed_name}')
+        for new_model in algorithm():
+            logger.info(f"Generated a new model '{new_model.attributed_name}'")
             yield new_model
     else:
-        logger.info(f"Do not decompose the provided model {model.name}")
+        logger.info(f"Do not decompose the provided model '{model.name}'")
         yield model
 
 
 def _choose_separator(logger, conf):
     if conf.get('scenario separation') == 'linear':
-        logger.info('Split processes into lienar sequences of actions')
+        logger.info("Split processes into linear sequences of actions")
         return LinearStrategy(logger, conf)
+    elif conf.get('scenario separation') == 'savepoint_requirements':
+        logger.info("Split processes into scenarios according to requirements in savepoints")
+        return ReqsStrategy(logger, conf)
     else:
-        logger.info('Do not split processes at separation stage of model decomposition')
+        logger.info("Do not split processes at separation stage of model decomposition")
         return SeparationStrategy(logger, conf)
 
 
 def _choose_factory(logger, conf):
     if isinstance(conf.get('select scenarios'), str) and conf['select scenarios'] == 'use all scenarios combinations' :
-        logger.info('Choose the combinatorial factory')
+        logger.info("Choose the combinatorial factory")
         return CombinatorialFactory(logger, conf)
     elif isinstance(conf.get('select scenarios'), dict):
         if 'cover scenarios' not in conf['select scenarios']:
             raise ValueError("Provide configuration parameter 'cover scenarios' inside 'select scenarios'")
         conf.update(conf.get('select scenarios', dict()))
-        logger.info('Activate the selection of scenarios according to the provided configuration')
+        logger.info("Activate the selection of scenarios according to the provided configuration")
         return SelectiveFactory(logger, conf)
+    elif conf.get('select scenarios') == 'select savepoints':
+        logger.info("Generate models according to requirements in savepoints")
+        return SavepointsFactory(logger, conf)
     else:
-        logger.info('Choose the default model factory')
+        logger.info("Choose the default model factory")
         return ModelFactory(logger, conf)
 
 
@@ -82,10 +90,10 @@ class Decomposition:
 
     def __call__(self, *args, **kwargs):
         processes_to_scenarios = dict()
-        self.logger.info('Generating models ...')
-        for process in self.model.environment.values():
-            scenarios = list(self.separator(process))
-            self.logger.debug(f'Generated {len(scenarios)} scenarios for the process {str(process)}')
+        self.logger.info("Generating models ...")
+        for process in self.model.non_models.values():
+            scenarios = list(self.separator(process, self.model))
+            self.logger.debug(f"Generated {len(scenarios)} scenarios for the process '{str(process)}'")
             processes_to_scenarios[str(process)] = scenarios
 
         yield from self.modelfactory(processes_to_scenarios, self.model)

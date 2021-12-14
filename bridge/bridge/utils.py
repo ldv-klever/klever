@@ -30,8 +30,9 @@ from urllib.parse import quote
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
-from django.db import connection, transaction
+from django.db import connection
 from django.db.models import FileField
+from django.db.transaction import Atomic
 from django.http import HttpResponseBadRequest, Http404
 from django.template import loader
 from django.template.defaultfilters import filesizeformat
@@ -88,14 +89,24 @@ class InfoFilter(logging.Filter):
         return log_record.levelno == self.__level and super(InfoFilter, self).filter(log_record)
 
 
+class RequreLock(Atomic):
+    def __init__(self, model, lock='EXCLUSIVE'):
+        self._model = model
+        if lock not in LOCK_MODES:
+            raise ValueError('%s is not a PostgreSQL supported lock mode.')
+        self._lock = lock
+        super(RequreLock, self).__init__(None, None)
+
+    def __enter__(self):
+        super(RequreLock, self).__enter__()
+        cursor = connection.cursor()
+        cursor.execute('LOCK TABLE {} IN {} MODE'.format(getattr(self._model, '_meta').db_table, self._lock))
+
+
 def require_lock(model, lock='EXCLUSIVE'):
     def require_lock_decorator(func):
         def wrapper(*args, **kwargs):
-            if lock not in LOCK_MODES:
-                raise ValueError('%s is not a PostgreSQL supported lock mode.')
-            with transaction.atomic():
-                cursor = connection.cursor()
-                cursor.execute('LOCK TABLE {} IN {} MODE'.format(getattr(model, '_meta').db_table, lock))
+            with RequreLock(model, lock=lock):
                 return func(*args, **kwargs)
         return wrapper
     return require_lock_decorator
@@ -148,12 +159,13 @@ def file_get_or_create(fp, filename, model, check_size=False, **kwargs):
 
     fp.seek(0)
     hash_sum = file_checksum(fp)
-    try:
-        return model.objects.get(hash_sum=hash_sum)
-    except model.DoesNotExist:
-        db_file = model(hash_sum=hash_sum, **kwargs)
-        db_file.file.save(filename, File(fp), save=True)
-        return db_file
+    with RequreLock(model):
+        try:
+            return model.objects.get(hash_sum=hash_sum)
+        except model.DoesNotExist:
+            db_file = model(hash_sum=hash_sum, **kwargs)
+            db_file.file.save(filename, File(fp), save=True)
+            return db_file
 
 
 class WithFilesMixin:

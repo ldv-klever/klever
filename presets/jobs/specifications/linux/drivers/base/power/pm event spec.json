@@ -222,7 +222,7 @@
             "process": "[resume].(<resume_ok>.{compl} | <resume_bad>.{res})"
           },
           "fr": {
-            "comment": "Begin freeaing.",
+            "comment": "Begin freeing.",
             "process": "[freeze].(<freeze_ok>.({fnoirq} | {flate}) | <freeze_bad>.{fr})"
           },
           "fnoirq": {

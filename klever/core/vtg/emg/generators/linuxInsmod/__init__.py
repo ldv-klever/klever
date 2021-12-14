@@ -63,7 +63,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
 
         # Import Specifications
@@ -82,8 +82,6 @@ class ScenarioModelgenerator(AbstractGenerator):
         self.logger.info('Generate initializing scenario')
         insmod = self.__generate_insmod_process(source, inits, exits, kernel_initializations)
         collection.entry = insmod
-
-        return {}
 
     def __import_inits_exits(self, avt, source):
         _inits = collections.OrderedDict()
@@ -192,7 +190,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         elif kernel_initializations and not inits:
             process += "<kernel_initialization>.(<kernel_initialization_success> | <kernel_initialization_fail>)"
         elif not inits and not kernel_initializations:
-            raise NotImplementedError("There is no both kernel initilization functions and module initialization "
+            raise NotImplementedError("There is no both kernel initialization functions and module initialization "
                                       "functions")
 
         # This populates all actions
@@ -246,11 +244,11 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             ki_failed = ep.actions['kerninit_failed']
             ki_failed.condition = ["%ret% != 0"]
-            ki_failed.commnet = "Kernel initialization is unsuccessful."
+            ki_failed.comment = "Kernel initialization is unsuccessful."
         if len(inits) > 0:
             # Generate init subprocess
             for filename, init_name in inits:
-                self.logger.debug("Found init function {}".format(init_name))
+                self.logger.debug("Found init function {!r}".format(init_name))
                 new_name = self.__generate_alias(ep, init_name, filename, True)
                 init_subprocess = ep.actions[init_name]
                 init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
@@ -268,7 +266,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             self.logger.debug("There is no exit function found")
         else:
             for filename, exit_name in exits:
-                self.logger.debug("Found exit function {}".format(exit_name))
+                self.logger.debug("Found exit function {!r}".format(exit_name))
                 new_name = self.__generate_alias(ep, exit_name, filename, False)
                 exit_subprocess = ep.actions[exit_name]
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)

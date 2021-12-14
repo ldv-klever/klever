@@ -42,7 +42,7 @@ class EMG(Plugin):
 
         :return: None
         """
-        self.logger.info("Start environment model generator {}".format(self.id))
+        self.logger.info("Start environment model generator {!r}".format(self.id))
 
         # Initialization of EMG
         self.logger.info("Import results of source analysis")
@@ -51,35 +51,37 @@ class EMG(Plugin):
         # Generate processes
         self.logger.info("Generate processes of an environment model")
         collection = ProcessCollection()
-        reports = generate_processes(self.logger, self.conf, collection, self.abstract_task_desc, sa)
-
-        # Send data to the server
-        if reports:
-            self.logger.info("Send data about generated instances to the server")
-            report(self.logger, 'patch', {'identifier': self.id, 'data': reports}, self.mqs['report files'],
-                   self.vals['report id'], get_or_die(self.conf, "main working directory"))
-
+        generate_processes(self.logger, self.conf, collection, self.abstract_task_desc, sa)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
+        program_fragment = self.abstract_task_desc['fragment']
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
         used_attributed_names = set()
+        data_report = {
+            "type": "EMG",
+            "UDEMSes": {}
+        }
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
             if model.attributed_name in used_attributed_names:
-                raise ValueError(f'The model with name "{model.attributed_name}" has been already been generated')
+                raise ValueError(f"The model with name '{model.attributed_name}' has been already been generated")
             else:
                 used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
-                                                           model)
+                                                           model, data_report["UDEMSes"], program_fragment)
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
             self.abstract_task_desc.append(new_description)
-            self.logger.info(f"An environment model {model.attributed_name} has been generated successfully")
+            self.logger.info(f"An environment model '{model.attributed_name}' has been generated successfully")
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')
+
+        self.logger.info("Send UDEMSes to the server")
+        report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
+               self.vals['report id'], get_or_die(self.conf, "main working directory"))
 
     main = generate_environment

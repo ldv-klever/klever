@@ -86,7 +86,7 @@ class OSKleverInstance:
         instance.reboot()
 
     def remove(self):
-        # TODO: wait for successfull deletion everywhere.
+        # TODO: wait for successful deletion everywhere.
         instance = self.client.get_instance(self.name)
         volumes = self.client.get_volumes(instance)
 

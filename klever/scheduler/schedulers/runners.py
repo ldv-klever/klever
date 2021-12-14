@@ -27,13 +27,13 @@ def incmean(prevmean, n, x):
 
 
 def incsum(prevsum, prevmean, mean, x):
-    """Caclulate incremental sum of square deviations"""
+    """Calculate incremental sum of square deviations"""
     newsum = prevsum + abs((x - prevmean) * (x - mean))
     return newsum
 
 
 def devn(cursum, n):
-    """Caclulate incremental standart deviation"""
+    """Calculate incremental standard deviation"""
     deviation = int(round(math.sqrt(cursum / n)))
     return deviation
 
@@ -88,7 +88,7 @@ class Runner:
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
+        :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
         # Runners must implement the method
         raise NotImplementedError
@@ -199,7 +199,7 @@ class Runner:
         rescheduling.
 
         :param identifier: Job identifier.
-        :param item: Job descitption.
+        :param item: Job description.
         :return: Bool.
         """
         try:
@@ -344,7 +344,7 @@ class Runner:
         :param identifier: Verification job ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         # Runners must implement the method
         raise NotImplementedError
@@ -380,7 +380,7 @@ class Runner:
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         # Runners must implement the method
         raise NotImplementedError
@@ -423,7 +423,7 @@ class SpeculativeSimple(Runner):
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
         super(SpeculativeSimple, self).init()
-        # Timout tasks
+        # Timeout tasks
         self._problematic = dict()
         # Data about job tasks
         self._jdata = dict()
@@ -449,7 +449,7 @@ class SpeculativeSimple(Runner):
         rescheduling.
 
         :param identifier: Job identifier.
-        :param item: Job descitption.
+        :param item: Job description.
         :return: Bool.
         """
         successful = super(SpeculativeSimple, self).solve_job(identifier, item)
@@ -572,7 +572,7 @@ class SpeculativeSimple(Runner):
         if job_identifier in self._jdata and attribute in self._jdata[job_identifier]["limits"] and \
                 identifier in self._jdata[job_identifier]["limits"][attribute]["tasks"] and \
                 self._jdata[job_identifier]["limits"][attribute]["tasks"][identifier]["status"] in \
-                ('OUT OF MEMORY', 'TIMEOUT'):
+                ('OUT OF MEMORY', 'TIMEOUT', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)'):
             return True
         return False
 

@@ -291,6 +291,6 @@ class ErrorTraceParser:
         for edge_to_remove in edges_to_remove:
             self.error_trace.remove_edge_and_target_node(edge_to_remove)
 
-        self.error_trace.remove_unreffered_files(referred_file_ids)
+        self.error_trace.remove_non_referred_files(referred_file_ids)
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))

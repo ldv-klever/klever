@@ -97,17 +97,17 @@ class ErrorTrace:
             notes = []
             hide = False
 
-            # Split all notes into backets with appropriate levels.
+            # Split all notes into buckets with appropriate levels.
             for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
                 level_notes[note_level] = []
             for note in edge['notes']:
                 level_notes[note['level']].append(note)
                 min_notes_level = min(note['level'], min_notes_level)
 
-            # Add notes from backets according to comment above.
+            # Add notes from buckets according to comment above.
             for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
                 # Try to find note that hides sources. If there are several such notes than it is not defined what
-                # note will be choosen.
+                # note will be chosen.
                 note_with_hide = None
                 if note_level == min_notes_level:
                     for note in level_notes[note_level]:
@@ -297,7 +297,7 @@ class ErrorTrace:
                 if 'assumption' in edge:
                     decl_or_stmt_node['assumption'] = edge['assumption']
 
-                # Declarations are added alltogether as a block after it is completely handled.
+                # Declarations are added altogether as a block after it is completely handled.
                 if 'declaration' in edge:
                     if not declarations_node:
                         declarations_node = {
@@ -379,7 +379,11 @@ class ErrorTrace:
 
     def add_file(self, file_name):
         if file_name not in self._files:
-            if not os.path.isfile(file_name):
+            # Violation witnesses can refer auxiliary files created at weaving in all aspect files for models. But these
+            # auxiliary files could be removed if one will not keep intermediate files. Taking into account that
+            # auxiliary files are not very important, we can silently work further. You can see
+            # https://forge.ispras.ru/issues/10994 for more details.
+            if not file_name.endswith(".aux") and not os.path.isfile(file_name):
                 raise FileNotFoundError("There is no file {!r}".format(file_name))
             self._files.append(file_name)
             return self.resolve_file_id(file_name)
@@ -429,8 +433,8 @@ class ErrorTrace:
 
     def trace_iterator(self, begin=None, end=None, backward=False):
         # todo: Warning! This does work only if you guarantee:
-        # *having no nore than one input edge for all nodes
-        # *existance of at least one violation node and at least one input node
+        # *having no more than one input edge for all nodes
+        # *existence of at least one violation node and at least one input node
         if backward:
             if not begin:
                 begin = [node for identifier, node in self.violation_nodes][0]['in'][0]
@@ -526,11 +530,11 @@ class ErrorTrace:
 
         del target
 
-    def remove_unreffered_files(self, reffered_file_ids):
+    def remove_non_referred_files(self, referred_file_ids):
         for file_id in range(len(self._files)):
-            if file_id not in reffered_file_ids:
+            if file_id not in referred_file_ids:
                 # This is not a complete removing. But error traces will not hold absolute paths of files that are not
-                # reffered by witness.
+                # referred by witness.
                 self._files[file_id] = ''
 
     @staticmethod
@@ -568,7 +572,7 @@ class ErrorTrace:
 
                     continue
 
-            # Everything else comprizes violation path.
+            # Everything else comprises violation path.
             self._violation_edges.insert(0, edge)
 
     def parse_model_comments(self):
@@ -576,8 +580,13 @@ class ErrorTrace:
         emg_comment = re.compile('/\*\sEMG_ACTION\s(.*)\s\*/')
 
         for file_id, file in self.files:
-            # Files without names are not reffered by witness.
+            # Files without names are not referred by witness.
             if not file:
+                continue
+
+            # Like for klever.core.vrp.et.error_trace.ErrorTrace.add_file. BTW, there is a data race here since the
+            # necessary file can be removed after this check will pass. Let's hope that this will not happen ever.
+            if file.endswith(".aux") and not os.path.isfile(file):
                 continue
 
             self._logger.debug('Parse model comments from {!r}'.format(file))
@@ -722,7 +731,7 @@ class ErrorTrace:
     def merge_func_entry_and_exit(self):
         # For each function call with return there is an edge corresponding to function entry and an edge
         # corresponding to function exit. Both edges are located at a function call. The second edge can contain an
-        # assigment of result to some variable.
+        # assignment of result to some variable.
         # This is good for analysis, but this is redundant for visualization. Let's merge these edges together.
         edges_to_remove = []
         for edge in self.trace_iterator():
@@ -741,7 +750,7 @@ class ErrorTrace:
             next_to_exit_edge = self.next_edge(exit_edge)
 
             # Do not overwrite source code of function entry with the one of function exit when function is
-            # called within if statement. In that case there is no useful assigments most likely while source
+            # called within if statement. In that case there is no useful assignments most likely while source
             # code of function exit includes some part of this if statement.
             if not next_to_exit_edge \
                     or 'condition' not in next_to_exit_edge \
@@ -834,7 +843,7 @@ class ErrorTrace:
                         edge['notes'] = []
 
                     # Model comments are rather essential and they are designed to hide model implementation details.
-                    # That's why corresponding experssions and statements are hidden.
+                    # That's why corresponding expressions and statements are hidden.
                     # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make
                     # some workarounds to encourage developers of bad model comments.
                     edge['notes'].append({

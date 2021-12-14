@@ -103,7 +103,7 @@
             ]
           },
           "success": {
-            "comment": "Registration successfull.",
+            "comment": "Registration successful.",
             "statements": [
               "return %parport%;"
             ]

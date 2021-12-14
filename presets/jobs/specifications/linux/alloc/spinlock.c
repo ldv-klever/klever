@@ -24,7 +24,7 @@ extern int ldv_exclusive_spin_is_locked(void);
 void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (ldv_exclusive_spin_is_locked() && !CHECK_WAIT_FLAGS(flags))
-		/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
+		/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is acquired */
 		ldv_assert();
 }
 

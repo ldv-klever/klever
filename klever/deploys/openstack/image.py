@@ -102,7 +102,7 @@ class OSKleverBaseImage:
                     True
                 ):
                     self.__install_sys_deps(ssh)
-                    self.__install_klever_pyton(ssh)
+                    self.__install_klever_python(ssh)
                     self.__install_python_packages(ssh)
 
             instance.create_image()
@@ -119,7 +119,7 @@ class OSKleverBaseImage:
         ssh.execute_cmd('cat klever/klever/deploys/conf/debian-packages.txt | sudo xargs apt-get install -y',
                         timeout=3)
 
-    def __install_klever_pyton(self, ssh):
+    def __install_klever_python(self, ssh):
         ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz', timeout=1)
         ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
         ssh.execute_cmd('rm python-3.7.6.tar.xz')

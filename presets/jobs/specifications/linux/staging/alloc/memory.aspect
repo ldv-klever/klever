@@ -126,7 +126,7 @@ around: ZALLOC_UNKNOWN_SIZE
 pointcut ALLOC_UNKNOWN_SIZE:
 	call(char *kstrdup(..))
 	|| call(char *kasprintf(..))
-	// This function allocs a buffer through function fb_do_probe_ddc_edid().
+	// This function allocates a buffer through function fb_do_probe_ddc_edid().
 	|| call(unsigned char *fb_ddc_read(..))
 	/* Be careful! Sometimes the internal macros is expanded to kmalloc,
 	 * sometimes - to kzalloc. May be there will be a need in more precise model.
@@ -139,7 +139,7 @@ pointcut ALLOC_UNKNOWN_SIZE:
 	// Calls kmalloc and set the result to the second argument.
 	|| call(acpi_status acpi_get_object_info(..))
 	/* Calls kzalloc and set the result to the third argument.
-	 * Now it doesn't work - the third argument is an adress.
+	 * Now it doesn't work - the third argument is an address.
      */
 	|| call(size_t pcmcia_get_tuple(..))
 	// Calls kmalloc.

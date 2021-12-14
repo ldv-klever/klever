@@ -7,7 +7,10 @@
       "targets": ["drivers/media/pci/bt8xx/bttv.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Timeout."
+      }],
       "data": {"bug identifier": "7b817585b730~"}
     },
     {
@@ -153,7 +156,7 @@
       "requirement specifications": ["drivers:usb:core:usb:dev"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "False alarm due to \"EMG - Specs - Bad parameters\". CPAchecker assumes that interface_to_usbdev(intf) may be both NULL and not NULL since EMG does not accurately initializes USB interfaces."
+        "comment": "CPAchecker AssertionError Exception."
       }],
       "data": {"bug identifier": "bf65f8aabdb3~"}
     },

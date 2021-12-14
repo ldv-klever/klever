@@ -302,7 +302,7 @@ Klever Core Run/Debug Configuration
 This run/debug configuration is only useful if you are going to debug Klever Core.
 
 * Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
-  Aspectator (:file:`aspectator`) and CIL (:file:`toplever.opt`) binaries could be found (edit value of field
+  Aspectator (:file:`aspectator`) and CIL (:file:`toplevel.opt`) binaries could be found (edit value of field
   :guilabel:`Environment variables`).
 * Specify the absolute path to the working directory in field :guilabel:`Working directory`.
 
@@ -316,7 +316,7 @@ This run/debug configuration is only useful if you are going to debug Klever Cor
 Documentation Run/Debug Configuration
 """""""""""""""""""""""""""""""""""""
 
-Specify another representation of documenation in field :guilabel:`Command` if you need it.
+Specify another representation of documentation in field :guilabel:`Command` if you need it.
 
 Testing
 ^^^^^^^
@@ -351,6 +351,32 @@ Additional documentation
 
 A lot of useful documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
+
+Using Visual Studio Code
+------------------------
+
+Klever includes quite much C stuff such as models and tests.
+You may want to use VS Code to develop it since VS Code can find errors, suggest proper entity names and so on.
+First of all you need to install an appropriate extension for support of C/C++.
+
+There is a basic configuration for VS Code in Klever already.
+It excludes some directories from search and indexing, refers Klever directories with auxiliary headers and so on.
+If you use headers (functions, types, macros, etc.) from your project within models and tests, you need to configure
+VS Code appropriately.
+This strongly depends on particular project and its build process.
+We suggest to refer headers that are placed to directory *Storage* of the Clade's build base since there will be only
+those ones that are suitable for those configuration and architecture of the target program, that you are going to
+verify.
+For instance, for common models, requirement specifications and their tests you can specify following directories
+to search for headers as a value of option *C_Cpp.default.includePath* for your local user's settings:
+
+* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/include/
+* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/
+* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/uapi/
+* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/generated/
+
+Moreover, to resolve some conflicts you may have to set "CONFIG_SMP" as a value of option *C_Cpp.default.defines*.
+Please, do not include project-specific settings to the common settings of VS Code stored within directory *.vscode*.
 
 Extended Violation Witness Format
 ---------------------------------

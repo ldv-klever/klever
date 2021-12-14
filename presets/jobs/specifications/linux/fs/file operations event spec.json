@@ -205,7 +205,7 @@
         "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
-            "comment": "Allocate memory for extrnal model dentry and inode.",
+            "comment": "Allocate memory for external model dentry and inode.",
             "trace relevant": true,
             "statements": [
               "$ALLOC(%dentry%);",
@@ -237,7 +237,10 @@
         "reference": true
       },
       "debugfs_create_file": {
-        "headers": ["linux/fs.h"],
+        "headers": [
+          "linux/fs.h",
+          "ldv/common/list.h"
+        ],
         "actions": {
           "assign": {
             "comment": "Allocate memory for model dentry and inode.",
@@ -246,10 +249,11 @@
               "$ALLOC(%dentry%);",
               "$ALLOC(%inode%);",
               "%inode%->i_mode = $ARG2;",
-	          "%dentry%->d_parent = $ARG3;",
+              "%dentry%->d_parent = $ARG3;",
               "%inode%->i_private = $ARG4;",
               "%file_operations% = $ARG5;",
-              "%dentry%->d_inode = %inode%;"
+              "%dentry%->d_inode = %inode%;",
+              "ldv_save_allocated_memory_to_list(%dentry%);"
             ]
           },
           "fail": {

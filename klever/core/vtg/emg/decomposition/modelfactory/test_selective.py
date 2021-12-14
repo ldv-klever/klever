@@ -15,317 +15,48 @@
 # limitations under the License.
 #
 
-import sys
-import json
 import pytest
 import logging
-from klever.core.vtg.emg.common.c import Function
-from klever.core.vtg.emg.common.c.source import Source
-from klever.core.vtg.emg.common.process import ProcessCollection
-from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
+from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
-
-
-MAIN = {
-    "comment": "Main process.",
-    "labels": {},
-    "process": "<root>",
-    "actions": {
-        "root": {
-            "comment": "Some action",
-            "statements": []
-        }
-    }
-}
-REGISTER = {
-    "comment": "",
-    "labels": {"container": {"declaration": "struct validation *var"}},
-    "process": "[register_p1]",
-    "actions": {
-        "register_p1": {"parameters": ["%container%"]}
-    }
-}
-DEREGISTER = {
-    "comment": "",
-    "labels": {"container": {"declaration": "struct validation *var"}},
-    "process": "[deregister_p1]",
-    "actions": {
-        "deregister_p1": {"parameters": ["%container%"]}
-    }
-}
-B1 = {
-    "comment": "",
-    "labels": {
-        "container": {"declaration": "struct validation *var"},
-        "ret": {"declaration": "int x", "value": "0"}
-    },
-    "process": "(!register_p1).{main}",
-    "actions": {
-        "main": {
-            "comment": "",
-            "process": "<probe>.(<success>.[register_p2] | <fail>.<remove>).{main} | (deregister_p1)"
-        },
-        "register_p1": {
-            "condition": ["$ARG1 != 0"],
-            "parameters": ['%container%'],
-            "savepoints": {'s1': {"statements": []}}
-        },
-        "probe": {
-            "comment": "Do probing.",
-            "statements": ["%ret% = f4(%container%);"]
-        },
-        "success": {
-            "comment": "Successful probing.",
-            "condition": ["%ret% == 0"]
-        },
-        "fail": {
-            "comment": "Failed probing.",
-            "condition": ["%ret% != 0"]
-        },
-        "deregister_p1": {
-            "parameters": ['%container%']
-        },
-        "remove": {
-            "comment": "Removing.",
-            "statements": ["$FREE(%container%);"]
-        },
-        "register_p2": {
-            "parameters": ['%container%']
-        }
-    }
-}
-B2 = {
-    "comment": "",
-    "labels": {
-        "container": {"declaration": "struct validation *var"}
-    },
-    "process": "(!register_p2).([read] | [write])",
-    "actions": {
-        "register_p2": {
-            "parameters": ['%container%'],
-            "savepoints": {'s2': {"statements": []}},
-            "require": {"c/p1": {"include": ["probe", "success"]}}
-        },
-        "read": {"comment": "", "statements": []},
-        "write": {"comment": "Do write.", "statements": []}
-    }
-}
+import klever.core.vtg.emg.decomposition.modelfactory.decomposition_models as models
 
 
 @pytest.fixture()
 def model():
-    files = ['test.c']
-    functions = {
-        'f1': "static int f1(struct test *)",
-        'f2': "static void f2(struct test *)"
-    }
-    source = Source(files, [], dict())
-    for name, declaration_str in functions.items():
-        new = Function(name, declaration_str)
-        new.definition_file = files[0]
-        source.set_source_function(new, files[0])
-    spec = {
-        "name": 'base',
-        "functions models": {
-            "f1": REGISTER,
-            "f2": DEREGISTER,
-        },
-        "environment processes": {
-            "c/p1": B1,
-            "c/p2": B2
-        },
-        "main process": MAIN
-    }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
-                                                                              json.loads(json.dumps(spec)),
-                                                                              ProcessCollection())
-    return collection
-
-
-P1 = {
-    "comment": "",
-    "labels": {},
-    "process": "(!register_p1).<init>.(<exit> | <init_failed>)",
-    "actions": {
-        "register_p1": {
-            "parameters": [],
-            "savepoints": {
-                'sp_init_first': {"statements": []},
-                'sp_init_second': {"statements": []},
-                'sp_init_third': {"statements": []}
-            }
-        },
-        "init": {"comment": ""},
-        "exit": {"comment": ""},
-        "init_failed": {"comment": ""}
-    }
-}
-REGISTER_P2 = {
-    "comment": "",
-    "labels": {},
-    "process": "[register_p2]",
-    "actions": {"register_p2": {}}
-}
-DEREGISTER_P2 = {
-    "comment": "",
-    "labels": {},
-    "process": "[deregister_p2]",
-    "actions": {"deregister_p2": {}}
-}
-P2 = {
-    "comment": "",
-    "labels": {"ret": {"declaration": "int x"}},
-    "process": "(!register_p2).{main}",
-    "actions": {
-        "main": {
-            "comment": "Test initialization.",
-            "process": "<probe>.(<success>.[register_p3].[deregister_p3] | <fail>.<remove>).{main} | (deregister_p2)"
-        },
-        "register_p2": {
-            "parameters": [],
-            "require": {
-                "c/p1": {"include": ["init", "exit"]}
-            }
-        },
-        "deregister_p2": {"parameters": []},
-        "probe": {"comment": ""},
-        "success": {"comment": "", "condition": ["%ret% == 0"]},
-        "fail": {"comment": "Failed probing.", "condition": ["%ret% != 0"]},
-        "remove": {"comment": ""},
-        "register_p3": {"parameters": []},
-        "deregister_p3": {"parameters": []}
-    }
-}
-P3 = {
-    "comment": "",
-    "labels": {},
-    "process": "(!register_p3).<init>.{scenario1}",
-    "actions": {
-        "register_p3": {
-            "parameters": [],
-            "savepoints": {
-                'sp_init_p3': {"statements": [], "comment": "test comment"}
-            },
-            "require": {
-                "c/p2": {"include": ["register_p3", "deregister_p3"]}
-            }
-        },
-        "deregister_p3": {"parameters": []},
-        "free": {"comment": ""},
-        "terminate": {"comment": "", "process": "<free>.(deregister_p3)"},
-        "init": {"comment": ""},
-        "create": {"comment": ""},
-        "create_fail": {"comment": ""},
-        "create2": {"comment": ""},
-        "create2_fail": {"comment": ""},
-        "success": {"comment": ""},
-        "work1": {"comment": ""},
-        "work2": {"comment": ""},
-        "register_p4": {"parameters": []},
-        "deregister_p4": {"parameters": []},
-        "create_scenario": {
-            "comment": "",
-            "process": "<create>.(<success>.({work_scenario} | {p4_scenario}) | <create_fail>.{terminate})"
-        },
-        "create2_scenario": {"comment": "", "process": "<create2>.(<create2_fail> | <success>).{terminate}"},
-        "work_scenario": {"comment": "", "process": "(<work1> | <work2>).{terminate}"},
-        "p4_scenario": {"comment": "", "process": "[register_p4].[deregister_p4].{terminate}"},
-        "scenario1": {"comment": "", "process": "{create_scenario} | {create2_scenario}"}
-    }
-}
-P4 = {
-    "comment": "",
-    "labels": {},
-    "process": "(!register_p4).<write>.(deregister_p4)",
-    "actions": {
-        "register_p4": {
-            "parameters": [],
-            "require": {
-                "c/p3": {"include": ["register_p4"]}
-            }
-        },
-        "deregister_p4": {"parameters": []},
-        "write": {"comment": ""}
-    }
-}
-P5 = {
-    "comment": "",
-    "labels": {},
-    "process": "(!register_p2).(<w1> | <w2>).(deregister_p2)",
-    "actions": {
-        "register_p2": {
-            "parameters": [],
-            "savepoints": {
-                'sp_p5': {"statements": []}
-            }
-        },
-        "deregister_p2": {"parameters": []},
-        "w1": {"comment": ""},
-        "w2": {"comment": ""}
-    }
-}
+    return models.driver_model()
 
 
 @pytest.fixture()
 def advanced_model():
-    files = ['test.c']
-    functions = {
-        'f1': "static int f1(struct test *)",
-        'f2': "static void f2(struct test *)"
-    }
-    source = Source(files, [], dict())
-    for name, declaration_str in functions.items():
-        new = Function(name, declaration_str)
-        new.definition_file = files[0]
-        source.set_source_function(new, files[0])
-    spec = {
-        "functions models": {
-            "f1": REGISTER_P2,
-            "f2": DEREGISTER_P2,
-        },
-        "environment processes": {
-            "c/p1": P1,
-            "c/p2": P2,
-            "c/p3": P3,
-            "c/p4": P4
-        }
-    }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
-                                                                              json.loads(json.dumps(spec)),
-                                                                              ProcessCollection())
-    return collection
+    return models.fs_model()
+
+
+@pytest.fixture()
+def advanced_model_with_unique():
+    return models.fs_with_unique_process()
 
 
 @pytest.fixture()
 def model_with_independent_process():
-    files = ['test.c']
-    functions = {
-        'f1': "static int f1(struct test *)",
-        'f2': "static void f2(struct test *)"
-    }
-    source = Source(files, [], dict())
-    for name, declaration_str in functions.items():
-        new = Function(name, declaration_str)
-        new.definition_file = files[0]
-        source.set_source_function(new, files[0])
-    spec = {
-        "functions models": {
-            "f1": REGISTER_P2,
-            "f2": DEREGISTER_P2,
-        },
-        "environment processes": {
-            "c/p1": P1,
-            "c/p2": P2,
-            "c/p5": P5
-        },
-        "main process": MAIN
-    }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
-                                                                              json.loads(json.dumps(spec)),
-                                                                              ProcessCollection())
-    return collection
+    return models.fs_simplified()
+
+
+@pytest.fixture()
+def double_init_model():
+    return models.driver_double_init()
+
+
+@pytest.fixture()
+def fs_deps_model():
+    return models.fs_savepoint_deps()
+
+
+@pytest.fixture()
+def fs_init_deps_model():
+    return models.fs_savepoint_init_deps()
 
 
 @pytest.fixture()
@@ -342,7 +73,8 @@ def logger():
 def _obtain_model(logger, model, specification):
     separation = SelectiveFactory(logger, specification)
     scenario_generator = SeparationStrategy(logger, dict())
-    processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
+    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
@@ -350,8 +82,33 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
     separation = SelectiveFactory(logger, specification)
     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
-    processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
+    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+                              for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+
+
+def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
+    separation = SelectiveFactory(logger, specification)
+    scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
+                                                {'add scenarios without dispatches': True})
+    processes_to_scenarios = {str(process): list(scenario_generator(process, model))
+                              for process in model.non_models.values()}
+    return processes_to_scenarios, list(separation(processes_to_scenarios, model))
+
+
+def _to_sorted_attr_str(attrs):
+    return ", ".join(f"{k}: {attrs[k]}" for k in sorted(attrs.keys()))
+
+
+def _expect_models_with_attrs(models, attributes):
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    attrs = {_to_sorted_attr_str(attrs) for attrs in attributes}
+
+    unexpected = model_attrs.difference(attrs)
+    assert len(unexpected) == 0, f"There are unexpected models: {unexpected}"
+
+    missing = attrs.difference(model_attrs)
+    assert len(missing) == 0, f"There are missing models: {missing}"
 
 
 def test_default_coverage(logger, advanced_model):
@@ -458,22 +215,25 @@ def test_complex_restrictions(logger, model):
     assert all([True if p1_withsavepoint.actions != m.entry.actions else False for m in models])
 
 
-def test_contraversal_conditions(logger, model):
+def test_controversial_conditions1(logger, model):
     spec = {
         "must contain": {"c/p2": {}},
         "must not contain": {"c/p1": {}},
         "cover scenarios": {"c/p1": {}}
     }
     with pytest.raises(ValueError):
-        _obtain_linear_model(logger, model, spec)
+        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
+
+def test_controversial_conditions2(logger, model):
     spec = {
         "must contain": {"c/p2": {}},
-        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": []}},
+        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": ["s2"]}},
         "cover scenarios": {"c/p2": {}}
     }
     with pytest.raises(ValueError):
-        _obtain_linear_model(logger, model, spec)
+        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+        pass
 
 
 def test_complex_exclusion(logger, model):
@@ -489,14 +249,14 @@ def test_complex_exclusion(logger, model):
     # Test the number of models
     assert len(models) == len(relevant_scenarios)
 
-    # Test that threre is a p1 model in models
+    # Test that there is a p1 model in models
     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
               [m.entry.actions for m in models if 'c/p1' not in m.environment]
 
-    # Test allscenarios of p1 are covered
+    # Test all scenarios of p1 are covered
     assert len(actions) == len(relevant_scenarios)
-    for scneario_actions in relevant_scenarios:
-        assert scneario_actions in actions
+    for scenario_actions in relevant_scenarios:
+        assert scenario_actions in actions
 
 
 def test_cover_actions(logger, model):
@@ -776,6 +536,24 @@ def test_all_process_savepoints_and_actions_without_base(logger, advanced_model)
         assert {s.name for s in scenarios}.issubset(model_scenarios)
 
 
+def test_advanced_model_with_unique_processes(logger, advanced_model_with_unique):
+    spec = {
+        "cover scenarios": {
+            "c/p6": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model_with_unique, spec,
+                                                          separate_dispatches=True)
+    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
+    expected = [
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w1"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w2"},
+        {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_1 with w1"}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
 def test_process_without_deps(logger, model_with_independent_process):
     spec = {
         "must not contain": {"c/p1": {"savepoints": ["sp_init_first", "sp_init_second", "sp_init_third"]}},
@@ -792,7 +570,7 @@ def test_process_without_deps(logger, model_with_independent_process):
         assert scenario.name in names
 
 
-def test_process_ignoring_freee_process(logger, model_with_independent_process):
+def test_process_ignoring_free_process(logger, model_with_independent_process):
     spec = {
         "cover scenarios": {
             "c/p1": {"savepoints only": True},
@@ -830,3 +608,152 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
     names = [m.attributes['c/p2'] for m in models if m.attributes.get('c/p2')]
     for scenario in s2:
         assert scenario.name in names
+
+
+def test_double_sender_model_single_init(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_double_sender_model(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c1/p1': 'Removed', 'c2/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'},
+        {'c2/p2': 'v2', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed', 'c2/p1': 'base'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_double_sender_model_full_list(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p1": {},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    expected = [
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with fail'},
+        {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
+        {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v1', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'},
+        {'c2/p2': 'v2', 'c2/p1': 'base', 'c1/p1': 's1 with ok', 'c1/p2': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_linear(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    expected = [
+        {"c/p1": "sp1 with exit", "c/p2": "deregister_p2", "c/p3": "Removed", "c/p4": "Removed"},
+        {"c/p1": "sp2 with exit", "c/p2": "success_probe_deregister_p2", "c/p3": "create_scenario_p4_scenario_success", "c/p4": "base"},
+        {"c/p1": "sp1 with init_failed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed"},
+        {'c/p1': 'sp5 with exit', 'c/p4': 'base', 'c/p3': 'create_scenario_p4_scenario_success',
+         'c/p2': 'success_probe_deregister_p2'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_linear_p3(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p3": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    expected = [
+        {'c/p3': 'sp3 with create_scenario_p4_scenario_success', 'c/p4': 'base', 'c/p2': 'Removed', 'c/p1': 'Removed'},
+        {'c/p3': 'sp4 with create_scenario_p4_scenario_success', 'c/p4': 'Removed', 'c/p2': 'Removed',
+         'c/p1': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_p1(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    # todo: hmm, maybe it is required to have scenario with s5 there
+    expected = [
+        {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'Removed'},
+        {'c/p1': 'sp2 with base', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
+         'c/p2': 'success for sp2'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_p3(logger, fs_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p3": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    expected = [
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_init_linear(logger, fs_init_deps_model):
+    spec = {
+        "cover scenarios": {
+            "entry_point/main": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'c/p2': 'success_probe_deregister_p2', 'c/p3': 'create_scenario_p4_scenario_success', 'c/p4': 'base',
+         'entry_point/main': 'sp5 with exit'},
+        {'c/p2': 'success_probe_deregister_p2', 'c/p3': 'create_scenario_p4_scenario_success', 'c/p4': 'base',
+         'entry_point/main': 'sp2 with exit'},
+        {'c/p2': 'deregister_p2', 'c/p3': 'Removed', 'c/p4': 'Removed', 'entry_point/main': 'sp1 with exit'},
+        {'c/p2': 'Removed', 'c/p3': 'Removed', 'c/p4': 'Removed', 'entry_point/main': 'sp1 with init_failed'}
+    ]
+    _expect_models_with_attrs(models, expected)
+
+
+def test_fs_reqs_init_cover_init(logger, fs_init_deps_model):
+    spec = {
+        "cover scenarios": {
+            "c/p3": {"savepoints only": True}
+        }
+    }
+    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    expected = [
+        {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
+        {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'}
+    ]
+    _expect_models_with_attrs(models, expected)

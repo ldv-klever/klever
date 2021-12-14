@@ -42,5 +42,5 @@ void *ldv_vzalloc(unsigned long size)
 
 void ldv_vfree(const void *addr)
 {
-    ldv_free(addr);
+    ldv_free((void *)addr);
 }

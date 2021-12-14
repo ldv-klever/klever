@@ -86,7 +86,7 @@
         },
         "actions": {
           "call": {
-            "comment":"Call the model.",
+            "comment": "Call the model.",
             "statements": [
               "return ldv_iget_locked($ARG1, $ARG2);"
             ],
@@ -96,8 +96,29 @@
         "process": "<call>",
         "reference": true
       },
+      "iput": {
+        "comment": "Decrement reference counter for inode and release its memory if it is not used anymore.",
+        "headers": ["linux/fs.h"],
+        "labels": {},
+        "declarations": {
+          "environment model": {
+            "ldv_iput": "void ldv_iput(struct inode *inode);"
+          }
+        },
+        "actions": {
+          "call": {
+            "comment": "Call the model.",
+            "statements": [
+              "return ldv_iput($ARG1);"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>",
+        "reference": true
+      },
       "inode_init_once": {
-        "comment": "Init inode fields at cration.",
+        "comment": "Init inode fields at creation.",
         "headers": ["linux/fs.h"],
         "labels": {},
         "declarations": {
@@ -118,7 +139,7 @@
         "reference": true
       },
       "clear_inode": {
-        "comment": "Crear inode before deletion.",
+        "comment": "Clear inode before deletion.",
         "headers": ["linux/fs.h"],
         "labels": {},
         "declarations": {
@@ -168,7 +189,7 @@
             ]
           },
           "inode_operations": {
-            "countainer": true,
+            "container": true,
             "interface": [
               "inode.inode_operations"
             ]

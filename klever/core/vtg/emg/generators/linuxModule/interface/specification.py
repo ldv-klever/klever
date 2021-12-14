@@ -89,10 +89,10 @@ def import_interface_specification(logger, collection, sa, specification):
     category = 'functions models'
     for identifier in (i for i in specification.get("functions models", {}) if i in sa.source_functions):
         if "declaration" not in specification["functions models"][identifier]:
-            raise TypeError("Specify 'signature' for function {} at {}".format(identifier, category))
+            raise TypeError("Specify 'signature' for function {!r} at {!r}".format(identifier, category))
         elif "header" not in specification[category][identifier] and \
                 "headers" not in specification[category][identifier]:
-            raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category))
+            raise TypeError("Specify 'header' for kernel interface {!r} at {!r}".format(identifier, category))
         interface = FunctionInterface(category, identifier)
         if "declaration" in specification["functions models"][identifier]:
             d, _ = import_interface_declaration(collection, interface,
@@ -181,7 +181,7 @@ def import_interface_declaration(collection, interface, declaration):
             # Reimport to get proper object
             declaration = import_declaration(obj)
         except Exception:
-            raise ValueError("Cannot parse declaration: {}".format(declaration))
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
 
         return declaration, intf
 

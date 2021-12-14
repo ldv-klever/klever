@@ -20,7 +20,7 @@ from klever.core.vtg.emg.common.c import Variable
 
 class Automaton:
     """
-    This is a more abstract representation of FSA. It contins both FSA object generated for the process object and
+    This is a more abstract representation of FSA. It contains both FSA object generated for the process object and
     process object itself. It also contains variables generated for labels of the process and simplifies work with
     them.
     """

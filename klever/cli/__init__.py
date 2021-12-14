@@ -141,15 +141,15 @@ class Cli:
                     new_files = json.load(fp)
                 except Exception as e:
                     logging.exception(e)
-                    raise ValueError("Wrong json file with replacement was provided: {}".format(replacement))
+                    raise ValueError("Wrong JSON file with replacement was provided: {}".format(replacement))
         else:
             try:
                 new_files = json.loads(replacement)
             except Exception as e:
                 logging.exception(e)
-                raise ValueError("Wrong json data with replacement was provided: {}".format(replacement))
+                raise ValueError("Wrong JSON data with replacement was provided: {}".format(replacement))
         if not isinstance(new_files, dict):
-            raise ValueError('Json with replacement data should be a dictionary')
+            raise ValueError('JSON with replacement data should be a dictionary')
         return new_files
 
     def download_job(self, job_uuid, archive):
@@ -173,20 +173,20 @@ class Cli:
 
     def decision_progress(self, identifier):
         """
-        Get decision progress in json format.
+        Get decision progress in JSON format.
         :param identifier: decision identifier (uuid).
         :param filename: path where to save the file.
-        :return: json encoded prgress
+        :return: JSON encoded progress
         """
         resp = self.__request('service/progress/{}/'.format(identifier))
         return resp.json()
 
     def decision_results(self, identifier):
         """
-        Get job decision results in json format.
+        Get job decision results in JSON format.
         :param identifier: decision identifier (uuid).
         :param filename: path where to save the file.
-        :return: json encoded results
+        :return: JSON encoded results
         """
         resp = self.__request('jobs/api/decision-results/{0}/'.format(identifier))
         return resp.json()
@@ -206,7 +206,7 @@ class Cli:
         Start job decision.
         :param job_uuid: job identifier.
         :param rundata: path to configuration file, optional (provide None).
-        :param replacement: path to json with replacement info or json string with it, optional (provide None).
+        :param replacement: path to JSON with replacement info or JSON string with it, optional (provide None).
         :return: decision primary key and identifier
         """
         with RequestFilesProcessor() as rfp:
@@ -230,7 +230,7 @@ class Cli:
             resp_json = resp.json()
         except Exception as e:
             logging.exception(
-                "Can't parse json response of starting decision request (code {}): {}".format(resp.status_code, e)
+                "Can't parse JSON response of starting decision request (code {}): {}".format(resp.status_code, e)
             )
             raise BridgeError("Decision wasn't started")
         return resp_json['id'], resp_json['identifier']

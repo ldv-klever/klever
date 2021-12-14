@@ -19,7 +19,7 @@
 
 int registered;
 int probed;
-int supress;
+int suppress;
 
 void ldv_initialize(void)
 {
@@ -30,8 +30,8 @@ void ldv_initialize(void)
 
 void ldv_invoke_test(void)
 {
-	/* NOTE This test is intended to only the fact that callbacks are called. Supress rest warnings. */
-	int supress = 1;
+	/* NOTE This test is intended to only the fact that callbacks are called. suppress rest warnings. */
+	int suppress = 1;
 }
 
 void ldv_invoke_callback(void)
@@ -63,13 +63,13 @@ void ldv_invoke_reached(void) {
 
 void ldv_deregister(void)
 {
-	/* NOTE Deregistration has happend. */
+	/* NOTE Deregistration has happened. */
 	registered = 0;
 }
 
 void ldv_register(void)
 {
-	/* NOTE Registration has happend. */
+	/* NOTE Registration has happened. */
 	registered = 1;
 }
 
@@ -101,11 +101,11 @@ void ldv_release_completely(void)
 
 void ldv_check_final_state(void)
 {
-	if (probed && !supress)
+	if (probed && !suppress)
 		/* ASSERT At the end of the test all resources should be released. */
 		ldv_assert();
 
-	if (registered && !supress)
+	if (registered && !suppress)
 		/* ASSERT At the end of the test all callbacks should be deregistered. */
 		ldv_assert();
 }

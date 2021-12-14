@@ -14,7 +14,7 @@
             ]
           },
           "deregister": {
-            "comment": "Stop PCI callbacks invocating.",
+            "comment": "Stop PCI callbacks invocation.",
             "condition": [
               "%container% == $ARG1"
             ],
@@ -32,7 +32,7 @@
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
               "$ALLOC(%resource%);",
-              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 1) : 0;",
               "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
@@ -61,13 +61,13 @@
             ]
           },
           "probe_success": {
-            "comment": "Probing of PCI driver has been successfull.",
+            "comment": "Probing of PCI driver has been successful.",
             "condition": [
               "%ret% == 0"
             ]
           },
           "register": {
-            "comment": "Begin PCI callbacks invocating.",
+            "comment": "Begin PCI callbacks invocation.",
             "parameters": [
               "%container%"
             ]
@@ -236,7 +236,7 @@
             ]
           },
           "deregister": {
-            "comment": "Stop PCI callbacks invocating.",
+            "comment": "Stop PCI callbacks invocation.",
             "condition": [
               "%container% == $ARG1"
             ],
@@ -254,7 +254,7 @@
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
               "$ALLOC(%resource%);",
-              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 1) : 0;",
               "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
@@ -283,13 +283,13 @@
             ]
           },
           "probe_success": {
-            "comment": "Probing of PCI driver has been successfull.",
+            "comment": "Probing of PCI driver has been successful.",
             "condition": [
               "%ret% == 0"
             ]
           },
           "register": {
-            "comment": "Begin PCI callbacks invocating.",
+            "comment": "Begin PCI callbacks invocation.",
             "parameters": [
               "%container%"
             ]

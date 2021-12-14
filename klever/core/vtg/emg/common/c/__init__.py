@@ -71,7 +71,7 @@ class Variable:
         Returns a string with the variable declaration.
 
         :param extern: Add an 'extern' prefix if True.
-        :return: Declartion string.
+        :return: Declaration string.
         """
         # Add extern prefix
         if extern:
@@ -142,7 +142,7 @@ class Function:
 
     def add_call(self, func, path):
         """
-        Add information that the function is called in the function privided as a parameter.
+        Add information that the function is called in the function provided as a parameter.
 
         :param func: Function that calls this one.
         :param path: File where it is happened.
@@ -194,7 +194,7 @@ class Macro:
 
     def add_parameters(self, path, parameters):
         """
-        Add informtion that this macro was used with the given parameters in the given file.
+        Add information that this macro was used with the given parameters in the given file.
 
         :param path: File where the macro was used.
         :param parameters: List of parameter strings.

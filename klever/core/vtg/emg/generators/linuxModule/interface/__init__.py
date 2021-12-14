@@ -167,7 +167,7 @@ class Implementation(Variable):
                 (self.declaration == declaration or self.declaration.pointer_alias(declaration)):
             self._declaration = declaration
         else:
-            raise RuntimeError('Cannot change declaration {!r} by {!r} for {!r} implementation'.
+            raise RuntimeError("Cannot change declaration {!r} by {!r} for {!r} implementation".
                                format(str(self.declaration), str(declaration), str(self.name)))
 
     def adjusted_value(self, declaration):

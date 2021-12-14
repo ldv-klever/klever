@@ -18,7 +18,6 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <ldv/common/test.h>
-#include <ldv/linux/slab.h>
 
 gfp_t ldv_flags;
 

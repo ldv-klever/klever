@@ -178,7 +178,7 @@ class VerifierCloud(runners.Runner):
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
+        :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
         return [pending_tasks["id"] for pending_tasks in pending_tasks], []
 
@@ -191,7 +191,7 @@ class VerifierCloud(runners.Runner):
         Abort solution of all running tasks and any other actions before termination.
         """
         self.logger.info("Terminate all runs")
-        # This is not reliable library as it is developed separaetly of Schedulers
+        # This is not reliable library as it is developed separately of Schedulers
         try:
             self.wi.shutdown()
         except Exception:
@@ -407,7 +407,7 @@ class VerifierCloud(runners.Runner):
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
 
@@ -418,7 +418,7 @@ class VerifierCloud(runners.Runner):
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
+        :raise SchedulerException: In case of exception occurred in future task.
         """
         self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
@@ -431,7 +431,7 @@ class VerifierCloud(runners.Runner):
         """
         Get user credentials from either the server or cache.
 
-        :param job_id: Job identifeir.
+        :param job_id: Job identifier.
         """
         if job_id in self.__credentials_cache:
             cred = self.__credentials_cache[job_id]

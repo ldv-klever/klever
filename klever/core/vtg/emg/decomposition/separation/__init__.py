@@ -18,7 +18,7 @@
 import copy
 import logging
 
-from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process import Process, ProcessCollection
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Concatenation, \
     Choice, Parentheses, Subprocess, Actions
@@ -30,9 +30,11 @@ class ScenarioExtractor:
     to explore actions and this is a foundation for the next implementations.
     """
 
-    def __init__(self, logger, actions: Actions):
+    def __init__(self, logger, process: Process, model: ProcessCollection):
         self.logger = logger
-        self._actions = actions
+        self._process = process
+        self._actions = process.actions
+        self._model = model
         self._roots = {self._actions.initial_action}
 
     def __call__(self):
@@ -81,7 +83,7 @@ class ScenarioExtractor:
                 yield new
 
     def _new_scenario(self, root: Operator, savepoint: Savepoint = None):
-        nsc = Scenario(savepoint)
+        nsc = Scenario(self._process, savepoint)
         nsc.initial_action = root
         for child in root:
             self._fill_top_down(nsc, child, nsc.initial_action)
@@ -138,6 +140,6 @@ class SeparationStrategy:
         self.logger = logger
         self.conf = conf
 
-    def __call__(self, process: Process):
-        new = self.strategy(self.logger, process.actions)
+    def __call__(self, process: Process, model: ProcessCollection):
+        new = self.strategy(self.logger, process, model)
         return new()

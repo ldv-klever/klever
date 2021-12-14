@@ -30,12 +30,12 @@ class FSATranslator:
 
     def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         """
-        Initialize new FSA translation object. During the initialization an enviornment model in form of finite
+        Initialize new FSA translation object. During the initialization an environment model in form of finite
         state machines with process-like actions is translated to C code. Translation includes the following steps:
         each pair label-interface is translated in a separate variable, each action is translated in code blocks
         (aux functions can be additionally generated), for each automaton a control function is generated, control
         functions for event modeling are called in a specific entry point function and control functions for function
-        modeling are called insted of modelled functions. This class has an abstract methods to provide ability to
+        modeling are called instead of modelled functions. This class has an abstract methods to provide ability to
         implement different translation.
 
         :param logger: Logger object.
@@ -61,14 +61,14 @@ class FSATranslator:
         conf.setdefault('do not skip signals', False)
 
         # Get from unused interfaces
-        for process in (a.process for a in self._model_fsa + self._event_fsa + [entry_fsa] 
+        for process in (a.process for a in self._model_fsa + self._event_fsa + [entry_fsa]
                         if len(a.process.headers) > 0):
             self._cmodel.add_headers(process.file, sorted(process.headers, key=len))
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
-            self._logger.debug("Generate code for instance {!r} of process {!r} of categorty {!r}".
+            self._logger.debug("Generate code for instance {!r} of process {!r} of category {!r}".
                                format(str(automaton), automaton.process.name, automaton.process.category))
             for beh in automaton.process.actions.behaviour():
                 if isinstance(beh, Behaviour):
@@ -298,11 +298,12 @@ class FSATranslator:
                     '{}({});'.format(df.name, ', '.join(df_parameters))
                 ])
             else:
-                # This is becouse translation can have specific restrictions
-                self._logger.debug(f'No block to implement signal receive of actioon {str(action)} in {str(automaton)}')
+                # This is because translation can have specific restrictions
+                self._logger.debug(
+                    f"No block to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
-            self._logger.debug(f'No peers to implement signal receive of actioon {str(action)} in {str(automaton)}')
+            self._logger.debug(f"No peers to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
@@ -310,7 +311,7 @@ class FSATranslator:
     def _condition(self, action, automaton):
         """
         Always translate a conditional action boolean expression or statement string into a corresponding boolean
-        cnditional expression or C statement string correspondingly. Each such conditional expression or statement is
+        conditional expression or C statement string correspondingly. Each such conditional expression or statement is
         parsed and all entries of labels and the other model expressions are replaced by particular C implementation.
         Note, that if a label with different interface matches is used than each string can be translated into several
         ones depending on the number of interfaces but keeping the original order with a respect to the other statements
@@ -471,12 +472,12 @@ class FSATranslator:
 
         return self._control_functions[automaton]
 
-    def _relevant_checks(self, relevent_automata):
+    def _relevant_checks(self, relevant_automata):
         """
         This function allows to add your own additional conditions before function calls and dispatches. The
         implementation in your translation is required.
 
-        :param relevent_automata: {'Automaton identifier string': {'automaton': Automaton object,
+        :param relevant_automata: {'Automaton identifier string': {'automaton': Automaton object,
                'states': set of Action objects peered with the considered action}}
         :return: List with additional C logic expressions.
         """
@@ -569,6 +570,13 @@ class FSATranslator:
             final_code = list()
             final_code.append(comments[0])
 
+            if isinstance(beh.repeat, int):
+                code = ([''] + code) * beh.repeat
+                code = code[1:]
+            elif isinstance(beh, str) and not isinstance(action, Subprocess):
+                raise ValueError(f"The translator does not support labels to set the number of regular actions "
+                                 f"repeating. Fix the process {str(automaton.process)}.")
+
             # Skip or assert action according to conditions
             if conditions and (isinstance(beh.my_operator, Choice) or
                                (isinstance(beh.my_operator, Concatenation) and not beh.my_operator.index(beh))):
@@ -579,7 +587,9 @@ class FSATranslator:
                               ['\t{}'.format(s) for s in code] + \
                               ['}']
             elif conditions:
-                raise ValueError('Cannot print assume or if statement')
+                raise ValueError(
+                    f"Action '{str(beh.description)}' should have either both condition and statements attributes, "
+                    f"or a statements attribute or at least it can be used in a choice operator.")
             else:
                 final_code += code
 
@@ -599,7 +609,7 @@ class FSATranslator:
         elif action is None:
             code_generator = self._art_action
         else:
-            raise TypeError('Unknown action type: {!r}'.format(type(action).__name__))
+            raise TypeError("Unknown action type: {!r}".format(type(action).__name__))
 
         c, vc, grds, cmmnts = code_generator(action, automaton)
         compose_single_action(behaviour, c, vc, grds, cmmnts)

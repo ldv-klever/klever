@@ -188,8 +188,11 @@ def solve_task(logger, conf, srv):
 
     decision_results = process_task_results(logger)
     decision_results['resource limits'] = conf["resource limits"]
+    logger.info("The speculative flag is: {}".format(conf.get('speculative')))
+    logger.info("The solution status is: {}".format(decision_results.get('status', True)))
     if conf.get('speculative', False) and \
-            decision_results.get('status', True) in ('OUT OF MEMORY', 'TIMEOUT', 'SEGMENTATION FAULT') and \
+            decision_results.get('status', True) in ('OUT OF JAVA MEMORY', 'OUT OF MEMORY', 'TIMEOUT',
+                                                     'SEGMENTATION FAULT', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
             decision_results["resources"]["memory size"] >= 0.7 * decision_results['resource limits']['memory size']:
         logger.info("Do not upload solution since limits are reduced and we got: {!r}".
                     format(decision_results['status']))
@@ -210,7 +213,7 @@ def solve_job(logger, conf):
     Perfrom preparation of job run and start it using RunExec in either container or no-container mode.
 
     :param logger: Logger object.
-    :param conf: Donfiguration dictionary.
+    :param conf: Configuration dictionary.
     :return: RunExec exit code.
     """
 

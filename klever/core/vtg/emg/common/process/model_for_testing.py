@@ -45,7 +45,13 @@ c1p1 = {
         "register_c1p1": {
             "parameters": ['%container%'],
             "savepoints": {
-                'p1s1': {"statements": ["$ALLOC(%container%);"]},
+                'p1s1': {
+                    "statements": ["$ALLOC(%container%);"],
+                    "require": {
+                        "actions": {"c1/p1": ["register_c1p2", "deregister_c1p1"]},
+                        "processes": {"c1/p1": True, "c1/p2": True}
+                    }
+                },
                 'p1s2': {"statements": ["$ALLOC(%container%);"]}
             }
         },
@@ -95,7 +101,7 @@ c1p2 = {
                 'p2s1': {"statements": ["$ALLOC(%container%);"]},
                 'p2s2': {"statements": ["$ALLOC(%container%);"]}
             },
-            "require": {"c1/p1": {}}
+            "require": {"processes": {"c1/p1": True}}
         },
         "alloc": {
             "comment": "Alloc memory for the container.",
@@ -294,7 +300,10 @@ main = {
     "actions": {
         "root": {
             "comment": "Some action",
-            "statements": "f5();"
+            "statements": "f5();",
+            "savepoints": {
+                "entry_sp": {"statements": []}
+            }
         }
     }
 }

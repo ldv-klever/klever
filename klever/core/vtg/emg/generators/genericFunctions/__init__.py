@@ -37,15 +37,15 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         functions_collection = sortedcontainers.SortedDict()
 
         # Import Specifications
-        self.logger.info("Generate an entry process on base of given funcitons list")
+        self.logger.info("Generate an entry process on base of given functions list")
         if collection.entry:
-            raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
-                             'configuration')
+            raise ValueError(
+                "Do not expect any main process already attached to the model, reorder EMG generators in configuration")
 
         # Read configuration in abstract task
         self.logger.info("Determine functions to call in the environment model")
@@ -61,7 +61,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 func_obj = re.compile(expr[1])
                 expressions.append((file_obj, func_obj))
             else:
-                raise ValueError('Unknown element given instead of a file and function regular expressions pair: {!r}'.
+                raise ValueError("Unknown element given instead of a file and function regular expressions pair: {!r}".
                                  format(str(expr)))
 
         strict = self.conf.get("prefer not called")
@@ -74,7 +74,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                         (obj.declaration.static and statics or not obj.declaration.static) and obj.definition_file:
                     for file_expr, func_expr in expressions:
                         if func_expr.fullmatch(func) and (not file_expr or file_expr.fullmatch(obj.definition_file)):
-                            self.logger.debug('Add function {!r} from {!r}'.format(func, obj.definition_file))
+                            self.logger.debug("Add function {!r} from {!r}".format(func, obj.definition_file))
                             suits.append(obj)
                             break
 
@@ -91,7 +91,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         #     for func in (f for f in set(headers_map.keys).intersection(set(functions_list))):
         #         functions_collection[func].headers.extend(headers_map[func])
 
-        # Genrate scenario
+        # Generate scenario
         self.logger.info('Generate main scenario')
         if self.conf.get("process per call"):
             processes, main_process = self.__generate_separate_processes(functions_collection)
@@ -101,14 +101,12 @@ class ScenarioModelgenerator(AbstractGenerator):
         else:
             collection.entry = self.__generate_calls_together(functions_collection)
 
-        return {}
-
     def __generate_separate_processes(self, functions_collection):
         """
         Generate the main process and child processes. The main process registers child processes and
         each of which calls a separate function. This would allow to spawn a thread per process.
 
-        :param functions_collection: Dictionary: function name -> a list of Function obects.
+        :param functions_collection: Dictionary: function name -> a list of Function objects.
         :return: name -> child Process, main Process object.
         """
         processes = dict()
@@ -126,7 +124,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             func, obj = pair
             self.logger.info("Call function {!r} from {!r}".format(func, obj.definition_file))
             decl = obj.declaration.to_string(func, typedef='none', scope={obj.definition_file})
-            self.logger.debug(f"Function has the signature: {decl}")
+            self.logger.debug(f"Function has the signature: '{decl}'")
             child_process = self.__generate_process(obj, identifier)
             processes[str(child_process)] = child_process
 
@@ -140,7 +138,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 raise RuntimeError("There is no any functions to call")
 
         process = ".".join(reg_list + dereg_list)
-        self.logger.debug(f"Going to parse main process: {process}")
+        self.logger.debug(f"Going to parse main process: '{process}'")
         parse_process(main_process, process)
         main_process.actions.populate_with_empty_descriptions()
 
@@ -152,14 +150,14 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     def __generate_process(self, func_obj, identifier):
         """
-        Generate a separte process with a function call.
+        Generate a separate process with a function call.
 
         :param func_obj: Function object.
         :param identifier: Identifier of the function.
         :return: a new Process object.
         """
         child_proc = Process(f"{func_obj.name}_{identifier}", "manual")
-        child_proc.comment = "Call fucntion {!r}.".format(func_obj.name)
+        child_proc.comment = "Call function {!r}.".format(func_obj.name)
         child_proc.self_parallelism = False
 
         # Make register action
@@ -243,7 +241,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             code.append("}")
             tab -= 1
 
-        ep.add_condition('function_calls', [], code, 'Call all functions independently.')
+        ep.actions.add_condition('function_calls', [], code, 'Call all functions independently.')
         ep.process = "<function_calls>"
         parse_process(ep, ep.process)
         ep.actions.populate_with_empty_descriptions()

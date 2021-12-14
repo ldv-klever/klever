@@ -54,6 +54,11 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # solution of verification tasks from time to time.
         env['LDV_C_BACKEND_OMIT_TYPE_QUALS'] = "1"
 
+        # It would be better to enable it in the development mode, but there is no any specific marker for it, so let's
+        # use keeping intermediate files as an indicator.
+        if self.conf['keep intermediate files']:
+            env['LDV_PRINT_SIGNATURE_OF_MATCHED_BY_NAME'] = "1"
+
         # Put all extra CC descriptions into the queue prior to launching parallel workers.
         self.extra_ccs = []
         for grp in self.abstract_task_desc['grps']:
@@ -68,7 +73,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         extra_cc_indexes_queue.put(None)
 
-        self.logger.info('Start Wearver pull of workers')
+        self.logger.info('Start Weaver pull of workers')
 
         # Here workers will put their results, namely, paths to extra C files.
         vals = {'extra C files': multiprocessing.Manager().list()}
@@ -141,7 +146,12 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
                         with klever.core.utils.LockedOpen(new_file + '.tmp', 'w'):
                             if os.path.isfile(new_file):
-                                os.remove(new_file + '.tmp')
+                                # It looks weird but sometimes that file may not exist. Silently ignore that case.
+                                try:
+                                    os.remove(new_file + '.tmp')
+                                except OSError:
+                                    pass
+
                                 continue
 
                             shutil.copy(file, new_file)
@@ -276,8 +286,14 @@ class WeaverWorker(klever.core.components.Component):
                 self.__get_cross_refs(infile, opts, outfile_unique, cwd)
         # For non-generated models use results cache in addition.
         else:
-            cache_dir = os.path.join(self.conf['cache directory'],
-                                     klever.core.utils.get_file_name_checksum(infile))
+            cache_name = klever.core.utils.get_file_name_checksum(infile)[:32]
+
+            # Different requirement specifications can bring different sets of aspects and they can affect models when
+            # one requests for weaving in them with aspects. Let's distinguish cache directories for different aspects.
+            if aspect:
+                cache_name += klever.core.utils.get_file_checksum(aspect)[:32]
+
+            cache_dir = os.path.join(self.conf['cache directory'], cache_name)
             with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                 if os.path.exists(cache_dir):
                     self.logger.info('Get woven in C file from cache')

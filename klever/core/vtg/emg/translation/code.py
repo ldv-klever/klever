@@ -60,7 +60,7 @@ def control_function_comment_begin(function_name, comment, identifier=None):
     elif identifier is None:
         pass
     else:
-        raise ValueError('Unsupported identifier type {}'.format(str(type(identifier).__name__)))
+        raise ValueError("Unsupported identifier type {!r}".format(str(type(identifier).__name__)))
     return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
 
 
@@ -155,7 +155,7 @@ class CModel:
         :return: None.
         """
         if not func.definition_file:
-            raise RuntimeError('Always expect file to place function definition')
+            raise RuntimeError("Always expect file to place function definition")
         definitions = self._function_definitions.setdefault(func.definition_file, {})
         self._function_definitions.setdefault(self.entry_file, sortedcontainers.SortedDict())
 
@@ -177,7 +177,7 @@ class CModel:
 
     def add_global_variable(self, variable, file, extern=False, initialize=True):
         """
-        Add a global variable declararation or/and initalization to the target file.
+        Add a global variable declaration or/and initialization to the target file.
 
         :param variable: Variable object.
         :param file: File name.
@@ -190,13 +190,13 @@ class CModel:
         elif not file:
             file = self.entry_file
 
-        declarattions = self._variables_declarations.setdefault(file, sortedcontainers.SortedDict())
+        declarations = self._variables_declarations.setdefault(file, sortedcontainers.SortedDict())
         initializations = self._variables_initializations.setdefault(file, sortedcontainers.SortedDict())
 
         if extern:
-            declarattions.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
+            declarations.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
         else:
-            declarattions[variable.name] = variable.declare(extern=extern) + ";\n"
+            declarations[variable.name] = variable.declare(extern=extern) + ";\n"
             if initialize:
                 if variable.value and (
                         (isinstance(variable.declaration, Pointer) and
@@ -246,7 +246,7 @@ class CModel:
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf-8'), exist_ok=True)
 
-        if self._conf["translation options"].get("propogate headers to instrumented files", True):
+        if self._conf["translation options"].get("propagate headers to instrumented files", True):
             for file in (f for f in self.files if f in additional_lines):
                 self.add_headers(file, get_or_die(self._conf["translation options"], "additional headers"))
 
@@ -388,7 +388,7 @@ class CModel:
 
     def create_wrapper(self, wrapped_name: str, new_name: str, declaration: str) -> Function:
         """
-        Create a wrapper of a static function and return an object of newly crreated function.
+        Create a wrapper of a static function and return an object of newly created function.
 
         :param wrapped_name: function name to wrap.
         :param new_name: a name of the wrapper.
@@ -428,7 +428,7 @@ class CModel:
 
 
 class FunctionModels:
-    """Class represent common C extensions for simplifying environmen model C code generators."""
+    """Class represent common C extensions for simplifying environment model C code generators."""
 
     mem_function_template = r'\$({})\(%({})%([->.[\]\w\s]*)(?:,\s?(\w+))?\)'
     simple_function_template = r'\$({})\('
@@ -478,7 +478,13 @@ class FunctionModels:
 
                 # Bracket is required to ignore CIF expressions like $res or $arg1
                 if fn in self.mem_function_map or fn in self.free_function_map:
-                    access = self.mem_function_re.search(statement).group(2)
+                    access = self.mem_function_re.search(statement)
+                    if not access:
+                        raise ValueError("Cannot parse the {!r} statement. Ensure you provided labels as arguments and "
+                                         "do not miss '%' symbols.".format(statement))
+                    else:
+                        access = access.group(2)
+
                     if fn in self.mem_function_map:
                         replacement = self._replace_mem_call
                     else:
@@ -490,7 +496,6 @@ class FunctionModels:
                         var = automaton.determine_variable(access.label)
                         if isinstance(var.declaration, Pointer):
                             self.signature = var.declaration
-                            self.ualloc_flag = True
                             new = self.mem_function_re.sub(replacement, statement)
                             stms.append(new)
                     else:
@@ -522,8 +527,8 @@ class FunctionModels:
                                              format(stm, expression))
                         var = automaton.determine_variable(access.label)
                         if not var:
-                            raise ValueError(f'There is no variable created for '
-                                             f'label {access.label} of access {str(access)}')
+                            raise ValueError(f"There is no variable created for "
+                                             f"label '{access.label}' of access '{str(access)}'")
                         stm = stm.replace(expression, var.name)
                         stm_set.add(stm)
                     else:
@@ -546,17 +551,14 @@ class FunctionModels:
 
         # TODO: Implement this using access parser
         if suffix:
-            raise NotImplementedError(f'Provide a label to an allocation function: {func}')
+            raise NotImplementedError(f"Provide a label to an allocation function: '{func}'")
 
         if func not in self.mem_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(func))
+            raise NotImplementedError("Model of {!r} is not supported".format(func))
         elif not self.mem_function_map[func]:
-            raise NotImplementedError("Set implementation for the function {}".format(func))
+            raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         if isinstance(self.signature, Pointer):
-            if func == 'ALLOC' and self.ualloc_flag:
-                # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
-                func = 'UALLOC'
             if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
             if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
@@ -569,9 +571,9 @@ class FunctionModels:
     def _replace_free_call(self, match):
         func, label_name, suffix, flag = match.groups()
         if func not in self.free_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(func))
+            raise NotImplementedError("Model of {!r} is not supported".format(func))
         elif not self.free_function_map[func]:
-            raise NotImplementedError("Set implementation for the function {}".format(func))
+            raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         # Create function call
         if isinstance(self.signature, Pointer):

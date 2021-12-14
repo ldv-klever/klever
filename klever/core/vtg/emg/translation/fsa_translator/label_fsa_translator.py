@@ -55,7 +55,7 @@ class LabelTranslator(FSATranslator):
                 self._conf.get('pure pthread interface'):
             for var in self.__thread_variable(automaton, 'pair'):
                 self._cmodel.add_global_variable(var, automaton.process.file, extern=True)
-            # Leave the first parameter to fill twise later
+            # Leave the first parameter to fill twice later
             return 'pthread_create({}, 0, {}, {});'.\
                 format('{}', self._control_function(automaton).name, parameter)
         else:
@@ -168,7 +168,7 @@ class LabelTranslator(FSATranslator):
                     v_code += ['/* Received labels */',
                                '{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')), '']
 
-                    code += ['/* Assign recieved labels */',
+                    code += ['/* Assign received labels */',
                              'if (data) {'] + \
                             ['\t{} = data->arg{};'.format(v, i) for i, v in enumerate(param_expressions)] + \
                             ['\t{}({});'.format(self._cmodel.free_function_map["FREE"], 'data'), '}']
@@ -186,7 +186,7 @@ class LabelTranslator(FSATranslator):
         return code, v_code, conditions, comments
 
     def _compose_control_function(self, automaton):
-        self._logger.info('Generate label-based control function for automaton {} based on process {}'.
+        self._logger.info("Generate label-based control function for automaton {!r} based on process {!r}".
                           format(str(automaton), str(automaton.process)))
 
         # Get function prototype

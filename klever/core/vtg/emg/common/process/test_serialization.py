@@ -20,9 +20,9 @@ import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
-from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
+from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def test_import_model(raw_model, model):
 
 def test_imported_names(raw_model, model):
     assert model.name == raw_model['name']
-    assert 'entry' == model.entry.name
+    assert str(model.entry) == f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}"
 
     for name in raw_model['functions models']:
         assert name in model.models, 'There are models: {}'.format(', '.join(sorted(model.models.keys())))
@@ -69,18 +69,19 @@ def test_export_model(source, model):
 
 def test_requirements_field(source, raw_model):
     test_raw_model = copy.deepcopy(raw_model)
-    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']
+    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']
 
     # Incorrect process
-    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c5/p4'] = dict()
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']['c5/p4'] =\
+        dict()
     with pytest.raises(ValueError):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
                                                                      ProcessCollection())
 
     # Missing action
     test_raw_model = copy.deepcopy(raw_model)
-    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c1/p1'] = \
-        {'include': ['goaway']}
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['actions'] = \
+        {'c1/p1': ['goaway']}
     with pytest.raises(ValueError):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
                                                                      ProcessCollection())
@@ -123,6 +124,12 @@ def test_failures(source, raw_model):
         CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
                                                                      ProcessCollection())
 
+    raw_model4 = copy.deepcopy(raw_model)
+    raw_model4['environment processes']['c1/p1']['process'] = '(!register_c1p1).{activate[%unknown_label%]}'
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model4)),
+                                                                     ProcessCollection())
+
 
 def _compare_models(raw1, raw2):
     _compare_process(raw1["main process"], raw2["main process"])
@@ -151,7 +158,7 @@ def _compare_actions_collections(one, two):
     assert len(one) == len(two)
     for action in one:
         _compare_actions(one[action], two[action])
-    _compare_savepoints(one, two)
+        _compare_savepoints(one[action], two[action])
 
 
 def _compare_actions(one, two):
@@ -163,20 +170,35 @@ def _compare_actions(one, two):
     if 'process' in one:
         assert 'process' in two
 
+    if 'require' in one:
+        _compare_requirements(one.get('require'), two.get('require'))
+
 
 def _compare_savepoints(desc1, desc2):
-    for action in desc1:
-        if 'savepoints' in action and len(action['savepoints']):
-            assert desc2[action]['savepoints'], f"Expect {len(action['savepoints'])} savepoints"
-            names = set(desc2[action]['savepoints'].keys())
-            keys = set(action['savepoints'].keys())
-            assert names == keys, 'Savepoints do not match: {} and {}'.format(', '.join(names), ', '.join(keys))
+    if 'savepoints' in desc1:
+        assert set(desc1['savepoints'].keys()) == set(desc2['savepoints'].keys())
 
-            for name in desc1[action]['savepoints']:
-                for i, line1 in enumerate(desc1[action]['savepoints'][name]):
-                    line2 = desc2[action]['savepoints'][name][i]
-                    assert line1 == line2, f"Line '{line1}' does not match '{line2}' at position {i} of action " \
-                                           f"{action} savepoint {name}"
+        for name in desc1['savepoints']:
+            assert desc1['savepoints'][name].get('comment') == desc2['savepoints'][name].get('comment')
+
+            for i, line1 in enumerate(desc1['savepoints'][name]['statements']):
+                line2 = desc2['savepoints'][name]['statements'][i]
+                assert line1 == line2, f"Line '{line1}' does not match '{line2}' at position {i} of savepoint {name}"
+
+            if "require" in desc1['savepoints'][name]:
+                _compare_requirements(desc1['savepoints'][name].get('require'),
+                                      desc2['savepoints'][name].get('require'))
+
+
+def _compare_requirements(desc1, desc2):
+    assert set(desc1.get('processes', dict()).keys()) == set(desc1.get('processes', dict()).keys())
+    assert set(desc1.get('actions', dict()).keys()) == set(desc1.get('actions', dict()).keys())
+
+    for name, flag in desc1.get('processes', dict()).items():
+        assert desc2.get('processes', dict())[name] == flag
+
+    for name, actions in desc1.get('actions', dict()).items():
+        assert set(desc2.get('actions', dict())[name]) == set(actions)
 
 
 def test_compare_peers(model):

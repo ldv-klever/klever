@@ -60,7 +60,7 @@ class Linux(FragmentationAlgorythm):
 
     def _determine_targets(self, program):
         """
-        There are two options: verification of modules, so all unts with .ko names can be target, and verification of
+        There are two options: verification of modules, so all units with .ko names can be target, and verification of
         kernel, so only build-in can be targets.
 
         :param program: Program object.

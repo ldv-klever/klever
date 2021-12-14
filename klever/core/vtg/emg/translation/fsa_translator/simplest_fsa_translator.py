@@ -146,11 +146,12 @@ class SimplestTranslator(FSATranslator):
                     else:
                         code.extend(blocks[0])
             else:
-                # This is becouse translation can have specific restrictions
-                self._logger.debug(f'No block to implement signal receive of actioon {str(action)} in {str(automaton)}')
+                # This is because translation can have specific restrictions
+                self._logger.debug(
+                    f"No block to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
-            self._logger.debug(f'No peers to implement signal receive of actioon {str(action)} in {str(automaton)}')
+            self._logger.debug(f"No peers to implement signal receive of action '{str(action)}' in '{str(automaton)}'")
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
@@ -210,7 +211,7 @@ class SimplestTranslator(FSATranslator):
 
                 # This should be before precondition because it may check values unpacked in this section
                 if len(param_expressions) > 0:
-                    code += ['/* Assign recieved labels */'] + \
+                    code += ['/* Assign received labels */'] + \
                             ['{} = arg{};'.format(v, i) for i, v in enumerate(param_expressions)]
             else:
                 code.append('/* Skip a non-replicative signal receiving %s */' % action.name)
@@ -224,7 +225,7 @@ class SimplestTranslator(FSATranslator):
         return code, v_code, conditions, comments
 
     def _compose_control_function(self, automaton):
-        self._logger.info('Generate label-based control function for automaton {} based on process {}'.
+        self._logger.info("Generate label-based control function for automaton {!r} based on process {!r}".
                           format(str(automaton), str(automaton.process)))
 
         # Get function prototype

@@ -27,7 +27,7 @@ def define_arch_dependent_macro(conf):
 
 
 # Many files and directories which are searched by VTG plugins are located within directory "specifications". Help to
-# discover them by addinig that directory as prefix.
+# discover them by adding that directory as prefix.
 def find_file_or_dir(logger, main_work_dir, file_or_dir):
     try:
         return klever.core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))

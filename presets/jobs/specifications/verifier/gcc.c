@@ -17,7 +17,7 @@
 
 #include <ldv/verifier/common.h>
 
-/* Explicit model for GCC function __builin_expect(). Without this model
+/* Explicit model for GCC function __builtin_expect(). Without this model
  * return value of __builtin_expect() will be treated as nondetermined by
  * verifiers.
  */

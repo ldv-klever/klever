@@ -41,7 +41,7 @@ DEFAULT_INCLUDE_HEADERS = (
 )
 
 
-def translate_intermediate_model(logger, conf, avt, source, collection):
+def translate_intermediate_model(logger, conf, avt, source, collection, udemses, program_fragment):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
@@ -52,12 +52,14 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     :param avt: Verification task dictionary.
     :param source: Source object.
     :param collection: ProcessCollection object.
+    :param udemses: Dictionary with UDEMSes to put the new one.
+    :param program_fragment: Name of program fragment for which EMG generates environment models.
     :return: None.
     """
     # Prepare main configuration properties
     logger.info(f"Translate '{collection.attributed_name}' with an identifier {collection.name}")
     conf['translation options'].setdefault('entry point', 'main')
-    conf['translation options'].setdefault('enironment model file', 'environment_model.c')
+    conf['translation options'].setdefault('environment model file', 'environment_model.c')
     conf['translation options'].setdefault('nested automata', True)
     conf['translation options'].setdefault('direct control functions calls', True)
     conf['translation options'].setdefault('code additional aspects', list())
@@ -68,9 +70,9 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Make a separate directory
     model_path = str(collection.name)
     assert model_path, 'Each environment model should have a unique name'
-    assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
+    assert not os.path.isdir(model_path), f"Model name '{model_path}' is used twice"
     if os.path.isdir(model_path):
-        logger.info(f'Clean workdir for translation "{model_path}"')
+        logger.info(f"Clean workdir for translation '{model_path}'")
         shutil.rmtree(model_path)
     os.makedirs(model_path)
     if collection.attributed_name != collection.name:
@@ -79,7 +81,15 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Save processes
     model_file = os.path.join(model_path, 'input model.json')
     with open(model_file, mode='w', encoding='utf-8') as fp:
-        json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+        json.dump(collection, fp, cls=CollectionEncoder, indent=2)
+
+    udems = {
+        conf["specifications set"]: [{
+            "fragments": [program_fragment],
+            "model": collection
+        }]
+    }
+    udemses[collection.name] = json.dumps(udems, cls=CollectionEncoder, indent=2)
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))
@@ -126,7 +136,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         if process.file == 'environment model':
             process.file = entry_file
 
-    # Initalize code representation
+    # Initialize code representation
     cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Then convert into proper format
@@ -148,7 +158,11 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
                 # Generate wrappers or do any other transformations
                 func = cmodel.create_wrapper(name, item['wrapper'], item['declaration'])
                 additional_code[file]['definitions'].extend(func.define() + ["\n"])
-                additional_code['environment model']['declarations'].append(func.declare(extern=True)[0] + "\n")
+                if isinstance(additional_code['environment model']['declarations'], list):
+                    additional_code['environment model']['declarations'].append(func.declare(extern=True)[0] + "\n")
+                elif func.name not in additional_code['environment model']['declarations']:
+                    additional_code['environment model']['declarations'][func.name] = \
+                        func.declare(extern=True)[0] + "\n"
             else:
                 raise ValueError("Expect either a list of string as a definition in intermediate model specification of"
                                  " a path name but got {!r}".format(item))
