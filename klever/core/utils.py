@@ -575,6 +575,34 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     return report_file
 
 
+def report_image(logger, component_id, title, dot_file, image_file, mq, report_id, main_work_dir):
+    logger.debug('Create image report')
+
+    with report_id.get_lock():
+        cur_report_id = report_id.value
+        report_id.value += 1
+
+    # We need to store files permanently outside of Component's directory to avoid their accidental removing.
+    permanent_dot_file = os.path.join(main_work_dir, 'reports', '{0}.dot'.format(cur_report_id))
+    permanent_image_file = os.path.join(main_work_dir, 'reports', '{0}.png'.format(cur_report_id))
+    shutil.copy(dot_file, permanent_dot_file)
+    shutil.copy(image_file, permanent_image_file)
+
+    report_data = {
+        'type': 'image',
+        'component id': component_id,
+        'title': title,
+        'dot file': permanent_dot_file,
+        'image file': permanent_image_file
+    }
+
+    report_file = os.path.join(main_work_dir, 'reports', '{0}.json'.format(cur_report_id))
+    with open(report_file, 'w', encoding='utf-8') as fp:
+        json.dump(report_data, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+    mq.put({'report file': report_file})
+
+
 def unique_file_name(file_name, suffix=''):
     if not os.path.isfile(file_name + suffix):
         return file_name

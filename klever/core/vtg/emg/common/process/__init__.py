@@ -596,10 +596,10 @@ class ProcessCollection:
 
     def save_digraphs(self, directory):
         """
-        Method saves Automaton with code in doe format in debug purposes. This functionality can be turned on by setting
-        corresponding configuration property. Each action is saved as a node and for each possible state transition
-        an edge is added. This function can be called only if code blocks for each action of all automata are already
-        generated.
+        Method saves Automaton with code in dot format for debug purposes. This functionality can be turned on by
+        setting corresponding configuration property. Each action is saved as a node and for each possible state
+        transition an edge is added. This function can be called only if code blocks for each action of all automata are
+        already generated.
 
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None

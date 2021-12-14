@@ -127,12 +127,17 @@ class Session:
                                {'identifier': src_id},
                                {'archive': src_archive})
 
-    def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
+    def upload_reports_and_report_file_archives(self, reports_and_report_file_archives, keep_reports):
         batch_reports = []
         batch_report_file_archives = []
+        image_reports = []
         for report_and_report_file_archives in reports_and_report_file_archives:
             with open(report_and_report_file_archives['report file'], encoding='utf-8') as fp:
-                batch_reports.append(json.load(fp))
+                report = json.load(fp)
+                if report['type'] == 'image':
+                    image_reports.append(report)
+                else:
+                    batch_reports.append(report)
 
             report_file_archives = report_and_report_file_archives.get('report file archives')
             if report_file_archives:
@@ -151,6 +156,24 @@ class Session:
         for report in batch_reports:
             if 'task identifier' in report:
                 self.remove_task(report['task identifier'])
+
+        # We can safely upload images only after all reports were uploaded since image reports refer component reports.
+        for image_report in image_reports:
+            self.create_image(image_report['component id'], image_report['title'], image_report['dot file'],
+                              image_report['image file'])
+
+        # Remove reports and report file archives if needed.
+        if not keep_reports:
+            for report_and_report_file_archives in reports_and_report_file_archives:
+                os.remove(report_and_report_file_archives['report file'])
+                report_file_archives = report_and_report_file_archives.get('report file archives')
+                if report_file_archives:
+                    for archive in report_file_archives:
+                        os.remove(archive)
+
+            for image_report in image_reports:
+                os.remove(image_report['dot file'])
+                os.remove(image_report['image file'])
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
@@ -189,7 +212,6 @@ class Session:
             'report': component_id,
             'title': title
         }
-        self.logger.info('Upload image "{0}"'.format(data))
         with open(image_file, mode='rb') as image_fp:
             with open(dot_file, mode='rb') as dot_fp:
                 self.__request('reports/api/component/images-create/'.format(), 'POST', data=data,

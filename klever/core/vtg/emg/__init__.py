@@ -16,7 +16,9 @@
 #
 
 import copy
-from klever.core.utils import report
+import os
+
+from klever.core.utils import report, report_image
 from klever.core.vtg.plugins import Plugin
 from klever.core.vtg.emg.common import get_or_die
 from klever.core.vtg.emg.generators import generate_processes
@@ -63,15 +65,16 @@ class EMG(Plugin):
             "type": "EMG",
             "UDEMSes": {}
         }
+        images = []
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
             if model.attributed_name in used_attributed_names:
                 raise ValueError(f"The model with name '{model.attributed_name}' has been already been generated")
             else:
                 used_attributed_names.add(model.attributed_name)
-            new_description = translate_intermediate_model(self.id, self.logger, self.conf,
+            new_description = translate_intermediate_model(self.logger, self.conf,
                                                            copy.deepcopy(abstract_task), sa,
-                                                           model, data_report["UDEMSes"], program_fragment)
+                                                           model, data_report["UDEMSes"], program_fragment, images)
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
@@ -84,5 +87,12 @@ class EMG(Plugin):
         self.logger.info("Send UDEMSes to the server")
         report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
                self.vals['report id'], get_or_die(self.conf, "main working directory"))
+
+        self.logger.info("Send images to the server")
+        for dot_file, image_file in images:
+            report_image(self.logger, self.id,
+                         'Environment process "{0}"'.format(os.path.splitext(os.path.basename(dot_file))[0]),
+                         dot_file, image_file,
+                         self.mqs['report files'], self.vals['report id'], self.conf['main working directory'])
 
     main = generate_environment
