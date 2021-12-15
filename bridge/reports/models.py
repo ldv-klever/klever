@@ -408,6 +408,9 @@ class ReportImage(WithFilesMixin, models.Model):
     class Meta:
         db_table = 'report_component_images'
 
+    def __lt__(self, other):
+        return self.title < other.title
+
 
 post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)

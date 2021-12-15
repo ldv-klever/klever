@@ -173,7 +173,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for image in images %}
+                    {% for image in images|sort_list %}
                         <tr>
                             <td>{{ image.title }}</td>
                             <td class="right aligned">
