@@ -175,6 +175,25 @@
         </tbody>
     </table>
 {% elif type == 'EMG' %}
+    {% if data.envmodel_attrs.items|length > 1 %}
+        <h5 class="ui brown header">{% trans 'Environment model attributes' %}</h5>
+        <table class="ui compact brown table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Name' %}</th>
+                    <th>{% trans 'Attributes' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, attrs in data.envmodel_attrs.items|sort_list %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td><pre>{{ attrs }}</pre></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
     <h5 class="ui brown header">{% trans 'User-defined environment model specification(s)' %}</h5>
     {% if data.UDEMSes.items|length == 1 %}
         {% for name, desc in data.UDEMSes.items %}

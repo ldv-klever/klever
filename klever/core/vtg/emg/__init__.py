@@ -16,7 +16,7 @@
 #
 
 import copy
-import os
+import json
 
 from klever.core.utils import report, report_image
 from klever.core.vtg.plugins import Plugin
@@ -63,6 +63,7 @@ class EMG(Plugin):
         used_attributed_names = set()
         data_report = {
             "type": "EMG",
+            "envmodel_attrs": {},
             "UDEMSes": {}
         }
         images = []
@@ -78,21 +79,21 @@ class EMG(Plugin):
 
             new_description["environment model attributes"] = model.attributes
             new_description["environment model pathname"] = model.name
+            data_report["envmodel_attrs"][model.name] = json.dumps(model.attributes, ensure_ascii=True, sort_keys=True,
+                                                                   indent=2)
             self.abstract_task_desc.append(new_description)
             self.logger.info(f"An environment model '{model.attributed_name}' has been generated successfully")
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')
 
-        self.logger.info("Send UDEMSes to the server")
+        self.logger.info("Send data report to the server")
         report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
                self.vals['report id'], get_or_die(self.conf, "main working directory"))
 
         self.logger.info("Send images to the server")
-        for dot_file, image_file in images:
-            report_image(self.logger, self.id,
-                         'Environment process "{0}"'.format(os.path.splitext(os.path.basename(dot_file))[0]),
-                         dot_file, image_file,
+        for name, dot_file, image_file in images:
+            report_image(self.logger, self.id, name, dot_file, image_file,
                          self.mqs['report files'], self.vals['report id'], self.conf['main working directory'])
 
     main = generate_environment

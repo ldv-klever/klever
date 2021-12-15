@@ -103,7 +103,10 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
             dot_file = os.path.join(root, fname)
             image_file = os.path.join(root, fname + '.png')
             if os.path.isfile(image_file):
-                images.append((dot_file, image_file))
+                images.append((
+                    'Model {0}/process "{1}"'
+                    .format(collection.name, os.path.splitext(os.path.basename(dot_file))[0]),
+                    dot_file, image_file))
             else:
                 logger.warn('Image "{0}" does not exist'.format(image_file))
 
