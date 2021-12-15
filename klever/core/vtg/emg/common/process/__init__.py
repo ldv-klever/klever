@@ -604,22 +604,23 @@ class ProcessCollection:
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None
         """
-        covered_subprocesses = set()
+        covered_subprocesses = dict()
 
         def process_next(prevs, action):
             if isinstance(action, Behaviour):
+                real_action = action.description.action if action.kind is Subprocess else action
                 for prev in prevs:
-                    graph.edge(str(hash(prev)), str(hash(action)))
+                    graph.edge(str(hash(prev)), str(hash(covered_subprocesses.get(real_action, action))))
 
                 if action.kind is Subprocess:
-                    if action.description.action not in covered_subprocesses:
-                        graph.node(str(hash(action.description)), r'Begin subprocess {}\l'.format(repr(a)))
-                        covered_subprocesses.add(action.description.action)
-                        process_next({action.description}, action.description.action)
-                    graph.edge(str(hash(action)), str(hash(action.description)))
-                    return {}
+                    if real_action not in covered_subprocesses:
+                        covered_subprocesses[real_action] = action
+                        process_next({action}, real_action)
+                        return {action}
+                    else:
+                        return {covered_subprocesses[real_action]}
                 else:
-                    return {action}
+                    return {real_action}
             elif isinstance(action, Parentheses):
                 return process_next(prevs, action[0])
             elif isinstance(action, Choice):
@@ -643,8 +644,15 @@ class ProcessCollection:
                 format="png"
             )
 
-            for a in process.actions.final_actions:
-                graph.node(str(hash(a)), r'{}\l'.format(repr(a)))
+            subprocesses = set()
+            for action in process.actions.final_actions:
+                if action.kind is Subprocess:
+                    if action.description.action in subprocesses:
+                        continue
+                    subprocesses.add(action.description.action)
+
+                graph.node(str(hash(action)), r'{}\l'.format(repr(action)))
+
             process_next(set(), process.actions.initial_action)
 
             # Save to dg_file
