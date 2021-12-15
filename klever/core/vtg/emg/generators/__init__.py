@@ -68,5 +68,6 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
             with open('%s intermediate model.json' % str(shortname), mode='w', encoding='utf-8') as fp:
                 json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
 
-            # Save images of processes
-            collection.save_digraphs('images')
+    if conf.get('keep intermediate files'):
+        # Save images of processes
+        collection.save_digraphs('images')
