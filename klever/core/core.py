@@ -323,17 +323,8 @@ class Reporter(klever.core.components.Component):
                         .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
                         if report_file_archives else ''))
 
-                session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
-
-                # Remove reports and report file archives if needed.
-                if not self.conf['keep intermediate files']:
-                    for report_and_report_file_archives in reports_and_report_file_archives:
-                        os.remove(report_and_report_file_archives['report file'])
-                        report_file_archives = report_and_report_file_archives.get('report file archives')
-                        if report_file_archives:
-                            for archive in report_file_archives:
-                                os.remove(archive)
-
+                session.upload_reports_and_report_file_archives(reports_and_report_file_archives,
+                                                                self.conf['keep intermediate files'])
             if is_finish:
                 break
 

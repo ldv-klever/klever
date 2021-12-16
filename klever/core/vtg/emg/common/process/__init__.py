@@ -596,43 +596,46 @@ class ProcessCollection:
 
     def save_digraphs(self, directory):
         """
-        Method saves Automaton with code in doe format in debug purposes. This functionality can be turned on by setting
-        corresponding configuration property. Each action is saved as a node and for each possible state transition
-        an edge is added. This function can be called only if code blocks for each action of all automata are already
-        generated.
+        Method saves Automaton with code in dot format for debug purposes. This functionality can be turned on by
+        setting corresponding configuration property. Each action is saved as a node and for each possible state
+        transition an edge is added. This function can be called only if code blocks for each action of all automata are
+        already generated.
 
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None
         """
-        covered_subprocesses = set()
-
-        def process_next(prevs, action):
+        def process_next(prevs, action, covered_subprocesses):
             if isinstance(action, Behaviour):
+                # Subprocesses represent auxiliary actions that correspond to jumps having normal actions as well. We
+                # skip these auxiliary actions and relate their children with corresponding jump actions.
+                real_action = action.description.action if action.kind is Subprocess else action
                 for prev in prevs:
-                    graph.edge(str(hash(prev)), str(hash(action)))
+                    graph.edge(str(hash(prev)), str(hash(covered_subprocesses.get(real_action, action))))
 
                 if action.kind is Subprocess:
-                    if action.description.action not in covered_subprocesses:
-                        graph.node(str(hash(action.description)), r'Begin subprocess {}\l'.format(repr(a)))
-                        covered_subprocesses.add(action.description.action)
-                        process_next({action.description}, action.description.action)
-                    graph.edge(str(hash(action)), str(hash(action.description)))
-                    return {}
+                    if real_action not in covered_subprocesses:
+                        covered_subprocesses[real_action] = action
+                        process_next({action}, real_action, covered_subprocesses)
+                        graph.node(str(hash(action)), r'{}\l'.format(repr(action)))
+                        return {action}
+                    else:
+                        return {covered_subprocesses[real_action]}
                 else:
-                    return {action}
+                    graph.node(str(hash(real_action)), r'{}\l'.format(repr(real_action)))
+                    return {real_action}
             elif isinstance(action, Parentheses):
-                return process_next(prevs, action[0])
+                return process_next(prevs, action[0], covered_subprocesses)
             elif isinstance(action, Choice):
                 new_prevs = set()
                 for act in action:
-                    new_prevs.update(process_next(prevs, act))
+                    new_prevs.update(process_next(prevs, act, covered_subprocesses))
                 return new_prevs
             elif isinstance(action, Concatenation):
                 for act in action:
-                    prevs = process_next(prevs, act)
+                    prevs = process_next(prevs, act, covered_subprocesses)
                 return prevs
             else:
-                raise NotImplementedError
+                raise NotImplementedError(type(action))
 
         # Dump separately all automata
         for process in self.processes:
@@ -643,9 +646,7 @@ class ProcessCollection:
                 format="png"
             )
 
-            for a in process.actions.final_actions:
-                graph.node(str(hash(a)), r'{}\l'.format(repr(a)))
-            process_next(set(), process.actions.initial_action)
+            process_next(set(), process.actions.initial_action, dict())
 
             # Save to dg_file
             graph.save(dg_file)

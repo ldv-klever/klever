@@ -20,6 +20,7 @@ import shutil
 import json
 import sortedcontainers
 
+import klever.core.utils
 from klever.core.vtg.utils import find_file_or_dir
 from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
@@ -41,7 +42,7 @@ DEFAULT_INCLUDE_HEADERS = (
 )
 
 
-def translate_intermediate_model(logger, conf, avt, source, collection, udemses, program_fragment):
+def translate_intermediate_model(logger, conf, avt, source, collection, udemses, program_fragment, images):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
@@ -54,6 +55,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
     :param collection: ProcessCollection object.
     :param udemses: Dictionary with UDEMSes to put the new one.
     :param program_fragment: Name of program fragment for which EMG generates environment models.
+    :param images: List of images to be reported to the server.
     :return: None.
     """
     # Prepare main configuration properties
@@ -93,6 +95,20 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
 
     # Save images of processes
     collection.save_digraphs(os.path.join(model_path, 'images'))
+
+    for root, _, filenames in os.walk(os.path.join(model_path, 'images')):
+        for fname in filenames:
+            if os.path.splitext(fname)[-1] != '.dot':
+                continue
+            dot_file = os.path.join(root, fname)
+            image_file = os.path.join(root, fname + '.png')
+            if os.path.isfile(image_file):
+                images.append((
+                    'Model {0}/process "{1}"'
+                    .format(collection.name, os.path.splitext(os.path.basename(dot_file))[0]),
+                    dot_file, image_file))
+            else:
+                logger.warn('Image "{0}" does not exist'.format(image_file))
 
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")

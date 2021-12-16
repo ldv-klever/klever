@@ -33,7 +33,9 @@ from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
 from jobs.models import PresetJob, Job, Decision
-from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
+from reports.models import (
+    Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive, ReportImage
+)
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from users.utils import HumanizedValue, paginate_queryset
@@ -1341,3 +1343,11 @@ class ErrorTraceFileGenerator(FileWrapper):
         self.name = 'error trace.json'
         self.size = len(content)
         super().__init__(BytesIO(content), 8192)
+
+
+class ReportPNGGenerator(FileWrapper):
+    def __init__(self, report_image_obj):
+        assert isinstance(report_image_obj, ReportImage), 'Unknown error'
+        self.name = report_image_obj.image.name
+        self.size = report_image_obj.image.size
+        super().__init__(report_image_obj.image.file, 8192)
