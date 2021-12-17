@@ -297,6 +297,8 @@ Otherwise, you will not see any warnings.
 Also, you should take into account that CIF does not issue these warnings for composite pointcuts unless there will be
 mismatches of original function declarations with their last primitive pointcuts.
 
+You can find more details about development of aspect files and related internals in [N13]_.
+
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -451,8 +453,11 @@ with:
 Models and bindings that use argument signatures should be described differently within requirement specification bases.
 It is recommended to study how to do this on the base of existing examples, say, **kernel:locking:mutex**.
 
-You can find more details about the considered approach in [N13]_.
+You can find more details about the considered approach in [N13-2]_.
 
-.. [N13] Novikov E.M. Building Programming Interface Specifications in the Open System of Componentwise Verification of
-         the Linux Kernel. Proceedings of the Institute for System Programming of the RAS (Proceedings of ISP RAS),
-         volume 24, pp. 293-316. 2013. https://doi.org/10.15514/ISPRAS-2013-24-13. (In Russian)
+.. [N13] \E.M. Novikov. An approach to implementation of aspect-oriented programming for C. Programming and Computer
+         Software, volume 39, issue 4, pp. 194-206, Springer US, 2013. https://doi.org/10.1134/S0361768813040051
+
+.. [N13-2] \E.M. Novikov. Building Programming Interface Specifications in the Open System of Componentwise Verification
+           of the Linux Kernel. Proceedings of the Institute for System Programming of the RAS (Proceedings of ISP RAS),
+           volume 24, pp. 293-316, 2013 (In Russian). https://doi.org/10.15514/ISPRAS-2013-24-13
