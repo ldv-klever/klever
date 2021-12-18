@@ -92,14 +92,14 @@
             {
               "mport_cdev_ioctl": [
                 {
-                  "rio_mport_transfer_ioctl": [
+                  "rio_mport_obw_map": [
                     {
-                      "rio_dma_transfer": [
+                      "rio_mport_get_outbound_mapping": [
                         {
-                          "get_dma_channel": [
-                            {
-                              "Instrumented function 'mutex_lock'": []
-                            },
+                          "Instrumented function 'mutex_lock'": []
+                        },
+                        {
+                          "rio_mport_create_outbound_mapping": [
                             {
                               "kref_init": [
                                 {
