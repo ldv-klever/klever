@@ -47,10 +47,198 @@ def add_to_coverage(merged_coverage_info, coverage_info):
             if cov_func_name not in merged_coverage_info[file_name]['covered function names']:
                 merged_coverage_info[file_name]['covered function names'].append(cov_func_name)
 
-        # TODO: What about multiple notes?
         for line, note in file_coverage_info['notes'].items():
-            merged_coverage_info[file_name]['notes'][line] = note
+            # Specify first note for a given line.
+            if line not in merged_coverage_info[file_name]['notes']:
+                merged_coverage_info[file_name]['notes'][line] = note
+            # Merge new note with the previous one(s).
+            else:
+                prev_notes = merged_coverage_info[file_name]['notes'][line]
+                prev_verifier_assumptions = None
+                prev_verifier_op_stats = None
+                verifier_assumptions = None
+                verifier_op_stats = None
+                merged_verifier_assumptions = None
+                merged_verifier_op_stats = None
 
+                def split_multiple_notes(notes):
+                    verifier_op_stats, verifier_assumptions = notes.split('ms. ')
+                    return verifier_op_stats + 'ms', verifier_assumptions
+
+                if prev_notes['kind'] == 'Multiple notes':
+                    prev_verifier_op_stats, prev_verifier_assumptions = split_multiple_notes(prev_notes['text'])
+                elif prev_notes['kind'] == 'Verifier assumption':
+                    prev_verifier_assumptions = prev_notes['text']
+                else:
+                    prev_verifier_op_stats = prev_notes['text']
+
+                if note['kind'] == 'Multiple notes':
+                    verifier_op_stats, verifier_assumptions = split_multiple_notes(note['text'])
+                elif note['kind'] == 'Verifier assumption':
+                    verifier_assumptions = note['text']
+                else:
+                    verifier_op_stats = note['text']
+
+                merged_verifier_op_stats = merge_verifier_op_stats(prev_verifier_op_stats, verifier_op_stats)
+                merged_verifier_assumptions = merge_verifier_assumptions(prev_verifier_assumptions, verifier_assumptions)
+
+                if merged_verifier_assumptions and merged_verifier_op_stats:
+                    merged_coverage_info[file_name]['notes'][line] = {'kind': 'Multiple notes',
+                                                                      'text': merged_verifier_op_stats + '. ' + merged_verifier_assumptions}
+                elif merged_verifier_assumptions:
+                    merged_coverage_info[file_name]['notes'][line] = {'kind': 'Verifier assumption',
+                                                                      'text': merged_verifier_assumptions}
+                else:
+                    merged_coverage_info[file_name]['notes'][line] = {'kind': 'Verifier operation statistics',
+                                                                      'text': merged_verifier_op_stats}
+'''
+For instance, merging:
+    "1 stops for total time 14 ms"
+with:
+    "1 stops for total time 4 ms"
+should result in:
+    "2 stops for total time 18 ms"
+'''
+op_stats_regexp = re.compile(r'^(\d+) stops for total time (\d+) ms$')
+def merge_verifier_op_stats(op_stats1, op_stats2):
+    if not op_stats1 and not op_stats2:
+        return None
+
+    if not op_stats1:
+        return op_stats2
+
+    if not op_stats2:
+        return op_stats1
+
+    m = re.match(op_stats_regexp, op_stats1)
+    if not m:
+        raise ValueError('Verifier operation statistics "{0}" has invalid format'.format(op_stats1))
+
+    stops1_num = m.group(1)
+    time1 = m.group(2)
+
+    m = re.match(op_stats_regexp, op_stats2)
+    if not m:
+        raise ValueError('Verifier operation statistics "{0}" has invalid format'.format(op_stats2))
+
+    stops2_num = m.group(1)
+    time2 = m.group(2)
+
+    return "{0} stops for total time {1} ms".format(int(stops1_num) + int(stops2_num), int(time1) + int(time2))
+
+'''
+For instance, merging:
+    "node = {[11..13], [15..18], 111, 116}; size = {[1..3], [5..8], 11, 16}"
+with:
+    "node = {14, 111, 114, 115, 117, 119}; size = {4, 11, 14, 15, 17, 19}"
+should result in:
+    "node = {[11..18], 111, [114..117], 119}; size = {[1..8], 11, [14..17], 19}"
+'''
+var_val_ranges_regexp = re.compile(r'^([^=]+)= {(.+)}$')
+val_range_regexp = re.compile(r'^\[(-?\d+)\.\.(-?\d+)\]$')
+def merge_verifier_assumptions(assumptions1, assumptions2):
+    if not assumptions1 and not assumptions2:
+        return None
+
+    if not assumptions1:
+        return assumptions2
+
+    if not assumptions2:
+        return assumptions1
+
+    # Input string represents ranges of variable values, e.g. "node = {[11..13], [15..18], 111}; size = {[1..3], [5..8], 11}".
+    # Return dictionary with ranges of variable values {"node": [[11, 13], [15, 18], [111, 111], "size": [[1, 3], [5, 8], [11, 11]]}.
+    def get_var_val_ranges(s):
+        var_val_ranges = {}
+        for str_var_val_ranges in s.split('; '):
+            m = re.match(var_val_ranges_regexp, str_var_val_ranges)
+            if not m:
+                raise ValueError('Verifier assumptions "{0}" has invalid format'.format(str_var_val_ranges))
+
+            var_name = m.group(1)[:-1]
+            str_val_ranges = m.group(2)
+
+            str_val_ranges = str_val_ranges.split(', ')
+            val_ranges = []
+            for str_val_range in str_val_ranges:
+                m = re.match(val_range_regexp, str_val_range)
+                # This corresponds to, say, "[11..13]".
+                if m:
+                    val_ranges.append([int(m.group(1)), int(m.group(2))])
+                # This corresponds to, say, "111".
+                else:
+                    val = int(str_val_range)
+                    val_ranges.append([val, val])
+
+            var_val_ranges[var_name] = val_ranges
+
+        return var_val_ranges
+
+    var_val_ranges1 = get_var_val_ranges(assumptions1)
+    var_val_ranges2 = get_var_val_ranges(assumptions2)
+
+    # Unite ranges of variable values and get rid of intersections.
+    var_val_ranges = {}
+    var_names = set(var_val_ranges1.keys())
+    var_names.update(var_val_ranges2.keys())
+    for var_name in var_names:
+        if var_name in var_val_ranges1 and var_name in var_val_ranges2:
+            var_val_ranges[var_name] = merge_int_ranges(var_val_ranges1[var_name] + var_val_ranges2[var_name])
+        elif var_name in var_val_ranges1:
+            var_val_ranges[var_name] = var_val_ranges1[var_name]
+        else:
+            var_val_ranges[var_name] = var_val_ranges2[var_name]
+
+    # Convert back to the original string format.
+    str_all_var_val_ranges = ""
+    for var_name in sorted(var_names):
+        # Add separator from previous variable if so.
+        if str_all_var_val_ranges:
+            str_all_var_val_ranges += "; "
+
+        str_var_val_ranges = ""
+        for var_val_range in var_val_ranges[var_name]:
+            # Ditto separate ranges of values for particular variable.
+            if str_var_val_ranges:
+                str_var_val_ranges += ", "
+
+            if var_val_range[0] == var_val_range[1]:
+                str_var_val_ranges += str(var_val_range[0])
+            else:
+                str_var_val_ranges += "[{0}..{1}]".format(str(var_val_range[0]), str(var_val_range[1]))
+
+        str_all_var_val_ranges += "{0} = {{{1}}}".format(var_name, str_var_val_ranges)
+
+    return str_all_var_val_ranges
+
+# Merge probably intersecting integer ranges.
+def merge_int_ranges(int_ranges):
+    # Sort integer ranges by their starts.
+    int_ranges.sort(key=lambda x: x[0])
+
+    # Find out all integer ranges that intersect with a given one and merge them alltogether. Then go further.
+    merged_int_ranges = []
+    cur_int_range_start = None
+    cur_int_range_max_end = None
+    for int_range in int_ranges:
+        int_range_start, int_range_end = int_range
+
+        if not cur_int_range_start:
+            cur_int_range_start = int_range_start
+            cur_int_range_max_end = int_range_end
+            continue
+
+        if int_range_start <= cur_int_range_max_end + 1:
+            cur_int_range_max_end = max(cur_int_range_max_end, int_range_end)
+        else:
+            merged_int_ranges.append([cur_int_range_start, cur_int_range_max_end])
+            cur_int_range_start = int_range_start
+            cur_int_range_max_end = int_range_end
+
+    # Add last merged integer range.
+    merged_int_ranges.append([cur_int_range_start, cur_int_range_max_end])
+
+    return merged_int_ranges
 
 def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None, total=False):
     # Convert combined coverage to the required format.
