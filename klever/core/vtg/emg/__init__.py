@@ -91,9 +91,12 @@ class EMG(Plugin):
         report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
                self.vals['report id'], get_or_die(self.conf, "main working directory"))
 
-        self.logger.info("Send images to the server")
-        for name, dot_file, image_file in images:
-            report_image(self.logger, self.id, name, dot_file, image_file,
-                         self.mqs['report files'], self.vals['report id'], self.conf['main working directory'])
+        # Send images only for full-weight decisions. Bridge fails to accept them for lightweight decisions, but
+        # they will be deleted for them anyway, so there is no sense to send them.
+        if self.conf['weight'] == "0":
+            self.logger.info("Send images to the server")
+            for name, dot_file, image_file in images:
+                report_image(self.logger, self.id, name, dot_file, image_file,
+                             self.mqs['report files'], self.vals['report id'], self.conf['main working directory'])
 
     main = generate_environment
