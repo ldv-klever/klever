@@ -64,7 +64,7 @@ pika==1.1.0
 ply==3.11
 prettytable==0.7.2
 prompt-toolkit==3.0.8
-psycopg2==2.8.6
+psycopg2-binary==2.8.6
 pycparser==2.20
 pycryptodome==3.9.9
 Pygments==2.7.3
