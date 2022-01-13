@@ -82,7 +82,7 @@ setuptools.setup(
         "Django==3.0.6",
         "BenchExec==3.3",
         "clade>=3.4,<3.5",
-        "psycopg2",
+        "psycopg2-binary",
         "graphviz",
         "celery",
         "django_celery_results",

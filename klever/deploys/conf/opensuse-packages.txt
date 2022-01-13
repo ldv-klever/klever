@@ -1,1 +1,1 @@
-bc bison cmake flex gettext-runtime git graphviz glibc-devel libelf-devel openssl-devel make nginx postgresql12-server postgresql12-server-devel python3-devel python3-pip rabbitmq-server unzip gcc gcc-c++
+bc bison cmake flex gettext-runtime git graphviz glibc-devel libelf-devel openssl-devel make nginx postgresql12-server python3-devel python3-pip rabbitmq-server unzip gcc gcc-c++
