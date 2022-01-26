@@ -298,6 +298,8 @@ Also, you should take into account that CIF does not issue these warnings for co
 mismatches of original function declarations with their last primitive pointcuts.
 
 You can find more details about development of aspect files and related internals in [N13]_.
+Moreover, you can visit the official project `site <https://forge.ispras.ru/projects/cif>`__ and read its official
+`documentation <https://cif.readthedocs.io/>`__.
 
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
