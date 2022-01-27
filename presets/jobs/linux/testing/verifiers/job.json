@@ -120,7 +120,10 @@
       "requirement specifications": ["test:common with heap arrays"]
     },
     {
-      "targets": ["ext-modules/initializers/*"],
+      "targets": [
+        "ext-modules/initializers/*",
+        "ext-modules/lists/*"
+      ],
       "requirement specifications": ["test:memory safety"]
     },
     {
