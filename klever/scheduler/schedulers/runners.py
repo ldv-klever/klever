@@ -416,6 +416,9 @@ class Runner:
 class SpeculativeSimple(Runner):
     """This runner collects statistics and adjust memory limits to run more tasks."""
 
+    # Threshold value for acceptance of statistical estimates
+    THRESHOLD_STATISTICAL_ESTIMATES = 5
+
     def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
@@ -443,9 +446,8 @@ class SpeculativeSimple(Runner):
 
     def solve_job(self, identifier, item):
         """
-        Solve giv
-en verification job. This method is public and cannot raise any unexpected exceptions and can do
-        rescheduling. 
+        Solve given verification job. This method is public and cannot raise any unexpected exceptions and can do
+        rescheduling.
         :param identifier: Job identifier.
         :param item: Job description.
         :return: Bool.
@@ -664,7 +666,7 @@ en verification job. This method is public and cannot raise any unexpected excep
             message = 'Set QoS limit for the task {}'.format(identifier)
         elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
             message += 'We have not enough solved tasks (5%) to yield speculative limit'
-        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
+        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= self.THRESHOLD_STATISTICAL_ESTIMATES:
             message += 'We have not solved at least 5 tasks to estimate average consumption'
         else:
             statistics = job["limits"][attribute]["statistics"]
@@ -720,6 +722,17 @@ en verification job. This method is public and cannot raise any unexpected excep
             memdev = devn(newsum, statistics['number'])
             statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
+    def _adjustment_statisitcs_after_failure(self, job, attribute):
+        """
+        Adjusting statistical estimates in case of failure.
+
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        """
+        # Clear all collected statisitcs
+        job["limits"][attribute].pop("statistics", None)
+    
+
     def _add_solution(self, job_identifier, attribute, identifier, solution):
 
         """
@@ -751,6 +764,7 @@ en verification job. This method is public and cannot raise any unexpected excep
                 self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
+                self._adjustment_statisitcs_after_failure(job, attribute)
                 self.logger.info("Do not accept timeout task {} with status {!r}".
                                  format(identifier, status))
                 return False
@@ -813,3 +827,24 @@ class Speculative(SpeculativeSimple):
             memdev = 0
         statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
         self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
+
+    def _adjustment_statisitcs_after_failure(self, job, attribute):
+        """
+        Adjusting statistical estimates in case of failure.
+
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        """
+        if job["limits"][attribute]["statistics"]:
+            statistics = job["limits"][attribute]["statistics"]
+            statistics['number'] = 1
+
+            # First adjust data for CPU
+            newsum = statistics['mean time']
+            timedev = devn(newsum, statistics['number'])
+            statistics.update({'timesum': newsum, 'timedev': timedev})
+
+            # Then memory
+            newsum = statistics['mean mem']
+            memdev = devn(newsum, statistics['number'])
+            statistics.update({'memsum': newsum, 'memdev': memdev})
