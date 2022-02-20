@@ -50,7 +50,7 @@ class Runner:
 
         :param conf: Dictionary with relevant configuration.
         :param logger: Logger object.
-        :param work_dir: PAth to the working directory.
+        :param work_dir: Path to the working directory.
         :param server: Session object.
         """
         self.conf = conf
@@ -96,8 +96,7 @@ class Runner:
     def prepare_task(self, identifier, item):
         """
         Prepare the task before rescheduling. This method is public and cannot raise any unexpected exceptions and can
-        do rescheduling. This method is public and cannot raise any unexpected exceptions and can do
-        rescheduling.
+        do rescheduling.
 
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
@@ -431,8 +430,7 @@ class SpeculativeSimple(Runner):
     def prepare_task(self, identifier, item):
         """
         Prepare the task before rescheduling. This method is public and cannot raise any unexpected exceptions and can
-        do rescheduling. This method is public and cannot raise any unexpected exceptions and can do
-        rescheduling.
+        do rescheduling.
 
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
