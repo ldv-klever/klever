@@ -419,6 +419,10 @@ class SpeculativeSimple(Runner):
     # Threshold value for acceptance of statistical estimates
     THRESHOLD_STATISTICAL_ESTIMATES = 5
 
+    # Flag for enabling new functionality
+    # Correction of statistics in case of an error
+    ENABLE_STATISITCS_ADJUSTMENT_AFTER_FAILURE = False
+
     def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
@@ -723,6 +727,16 @@ class SpeculativeSimple(Runner):
             memdev = devn(newsum, statistics['number'])
             statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
+    def _adjustment_statisitcs_after_failure(self, job, attribute):
+        """
+        Adjusting statistical estimates in case of failure.
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        """
+        # Clear all collected statisitcs
+        job["limits"][attribute].pop("statistics", None)
+
+
     def _add_solution(self, job_identifier, attribute, identifier, solution):
 
         """
@@ -754,6 +768,8 @@ class SpeculativeSimple(Runner):
                 self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
+                if self.ENABLE_STATISITCS_ADJUSTMENT_AFTER_FAILURE:
+                    self._adjustment_statisitcs_after_failure(job, attribute)
                 self.logger.info("Do not accept timeout task {} with status {!r}".
                                  format(identifier, status))
                 return False
@@ -816,3 +832,23 @@ class Speculative(SpeculativeSimple):
             memdev = 0
         statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
         self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
+
+    def _adjustment_statisitcs_after_failure(self, job, attribute):
+        """
+        Adjusting statistical estimates in case of failure.
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        """
+        if job["limits"][attribute]["statistics"]:
+            statistics = job["limits"][attribute]["statistics"]
+            statistics['number'] = 1
+
+            # First adjust data for CPU
+            newsum = statistics['mean time']
+            timedev = devn(newsum, statistics['number'])
+            statistics.update({'timesum': newsum, 'timedev': timedev})
+
+            # Then memory
+            newsum = statistics['mean mem']
+            memdev = devn(newsum, statistics['number'])
+            statistics.update({'memsum': newsum, 'memdev': memdev})
