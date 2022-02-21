@@ -513,7 +513,7 @@ class Native(runners.Speculative):
                             error_msg = "Exited with exit code: {}".format(result)
 
                 if error_msg:
-                    raise schedulers.SchedulerException(error_msg)
+                    raise schedulers.SchedulerException(error_msg + " (please, inspect unknown reports and logs)")
             else:
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         finally:
