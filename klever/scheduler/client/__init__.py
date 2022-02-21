@@ -181,6 +181,13 @@ def solve_task(logger, conf, srv):
             exit_code = 1
         os._exit(exit_code)
 
+    # It looks like BenchExec can exit with 0 even though it received a signal and terminated the appropriate process.
+    # At least this is the case with termination due to running out of a disk space. Corresponding BenchExec files seem
+    # to be broken, e.g. they can miss a status. Eventually this inconsistency can damage Scheduler.
+    # TODO: consider other cases with similar inconsistencies since they are crucial.
+    if os.path.isfile("termination-reason.txt"):
+        os._exit(1)
+
     # Move tasks collected in container mode to expected place
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
         for entry in glob.glob(os.path.join('output', '*.files', 'cil.i', '*', '*')):
