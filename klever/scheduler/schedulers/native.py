@@ -463,6 +463,12 @@ class Native(runners.Speculative):
                 result = future.result()
                 self.logger.info(f'Future processor of {mode} {identifier} returned {result}')
 
+                termination_reason_file = "{}/termination-reason.txt".format(work_dir)
+                if os.path.isfile(termination_reason_file):
+                    with open(termination_reason_file, mode='r', encoding="utf-8") as fp:
+                        termination_reason = fp.read()
+                        raise schedulers.SchedulerException(termination_reason)
+
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf-8") as f:
@@ -603,6 +609,14 @@ class Native(runners.Speculative):
         self.logger.debug("Create working directory {}/{}".format(entities, identifier))
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             os.makedirs(work_dir.encode("utf-8"), exist_ok=True)
+
+            # It is necessary to remove this file prior to starting an actual job solution. Otherwise, Native Scheduler
+            # may think that a new process is terminated even though it finishes successfully.
+            # BTW, it is not clear, why it is necessary to keep old working directories here. For me it seems that they
+            # should be removed unconditionally at this point. Thus, one will be able to remove some extra code around.
+            termination_reason_file = "{}/termination-reason.txt".format(work_dir)
+            if os.path.isfile(termination_reason_file):
+                os.unlink(termination_reason_file)
         else:
             if os.path.isdir(work_dir.encode("utf-8")):
                 shutil.rmtree(work_dir, ignore_errors=True)
