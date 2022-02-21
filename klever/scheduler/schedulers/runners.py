@@ -19,7 +19,6 @@ import math
 import klever.scheduler.utils as utils
 from klever.scheduler.schedulers import SchedulerException
 
-
 def incmean(prevmean, n, x):
     """Calculate incremental mean"""
     newmean = prevmean + int(round((x - prevmean) / n))
@@ -507,12 +506,19 @@ class SpeculativeSimple(Runner):
                                   format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
                 for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics') is not None):
                     self.logger.info(
-                        "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
-                        "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
-                        "CPU time consumption deviation: {}s".
-                        format(att, attd["statistics"].get("number", 0), attd["statistics"].get("mean mem", 0),
-                               attd["statistics"].get("memdev", 0), int(attd["statistics"].get("mean time", 0) / 1000),
-                               int(attd["statistics"].get("timedev", 0)) / 1000))
+                        '\n\t'.join([
+                            "Task category {!r} statistics:".format(att),
+                            "solved: {}".format(attd["statistics"].get("number", 0)),
+                            "memory consumption deviation: {}GB".format(
+                                utils.memory_units_converter(attd["statistics"].get("mean mem", 0), 'GB')[0]),
+                            "mean memory consumption: {}GB".format(
+                                utils.memory_units_converter(attd["statistics"].get("memdev", 0), 'GB')[0]),
+                            "mean CPU time consumption: {}s".format(
+                                int(attd["statistics"].get("mean time", 0))),
+                            "CPU time consumption deviation: {}s".format(
+                                int(attd["statistics"].get("timedev", 0)))
+                        ])
+                    )
 
             self.del_job(identifier)
         return status
@@ -802,7 +808,7 @@ class Speculative(SpeculativeSimple):
         else:
             timedev = 0
         statistics.update({'mean time': newmean, 'timedevsum': newsum, 'timedev': timedev})
-        self.logger.debug("Current mean CPU time: {}s, Current CPU time deviation: {}s".
+        self.logger.debug("Current mean CPU time: {}s, current CPU time deviation: {}s".
                           format(round(newmean), round(timedev)))
 
         # Then memory
@@ -814,4 +820,6 @@ class Speculative(SpeculativeSimple):
         else:
             memdev = 0
         statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
-        self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
+        self.logger.debug("Current mean RAM: {}GB, current RAM deviation: {}GB".format(
+            utils.memory_units_converter(round(newmean), 'GB')[0],
+            utils.memory_units_converter(round(memdev), 'GB')[0]))
