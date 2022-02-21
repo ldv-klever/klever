@@ -308,18 +308,6 @@ class Native(runners.Speculative):
         args.extend(['--file', file_name])
         self._reserved[subdir][identifier] = dict()
 
-        # Check disk space limitation
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
-                'disk memory size' in configuration["resource limits"] and \
-                configuration["resource limits"]['disk memory size']:
-            current_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
-            if current_space > configuration["resource limits"]['disk memory size']:
-                raise schedulers.SchedulerException(
-                    "Clean manually existing working directory of {} since its size on the disk is {}B which is "
-                    "greater than allowed limitation of {}B".
-                    format(os.path.abspath(work_dir), current_space,
-                           configuration["resource limits"]['disk memory size']))
-
         if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
@@ -602,21 +590,12 @@ class Native(runners.Speculative):
         :param identifier: A job or task identifier string.
         """
         work_dir = os.path.join(self.work_dir, entities, identifier)
-        self.logger.debug("Create working directory {}/{}".format(entities, identifier))
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir.encode("utf-8"), exist_ok=True)
+        if os.path.isdir(work_dir):
+            self.logger.debug("Remove former working directory {}/{}".format(entities, identifier))
+            shutil.rmtree(work_dir, ignore_errors=True)
 
-            # It is necessary to remove this file prior to starting an actual job solution. Otherwise, Native Scheduler
-            # may think that a new process is terminated even though it finishes successfully.
-            # BTW, it is not clear, why it is necessary to keep old working directories here. For me it seems that they
-            # should be removed unconditionally at this point. Thus, one will be able to remove some extra code around.
-            termination_reason_file = "{}/termination-reason.txt".format(work_dir)
-            if os.path.isfile(termination_reason_file):
-                os.unlink(termination_reason_file)
-        else:
-            if os.path.isdir(work_dir.encode("utf-8")):
-                shutil.rmtree(work_dir, ignore_errors=True)
-            os.makedirs(work_dir.encode("utf-8"), exist_ok=False)
+        self.logger.debug("Create working directory {}/{}".format(entities, identifier))
+        os.makedirs(work_dir)
 
     def _get_task_configuration(self):
         """
