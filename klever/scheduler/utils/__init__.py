@@ -331,9 +331,10 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
                 with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
                     fp.write(
-                        "Process was terminated since it consumed {}GB of disk space while only {}GB is allowed".format(
-                            memory_units_converter(s, 'GB')[0], memory_units_converter(limitation, 'GB')[0]
-                        ))
+                        "Process was terminated since it consumed {}GB of disk space while only {}GB is allowed {}"
+                        .format(memory_units_converter(s, 'GB')[0], memory_units_converter(limitation, 'GB')[0],
+                                "(you may need to adjust job solution settings)")
+                    )
                     fp.flush()
 
                 os.kill(pid, signal.SIGINT)
