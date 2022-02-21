@@ -394,12 +394,6 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
         disk_checker.join()
     restore_handlers()
 
-    # Check dir size after a stop
-    if disk_limitation:
-        size = dir_size("./")
-        if size >= disk_limitation:
-            raise RuntimeError("Disk space limitation of {}B is exceeded".format(disk_limitation))
-
     return p.returncode
 
 
