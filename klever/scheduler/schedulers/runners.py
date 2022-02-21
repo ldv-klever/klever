@@ -245,7 +245,7 @@ class Runner:
                 self.logger.debug("Task {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
-                msg = "Task failed {}: {!r}".format(identifier, err)
+                msg = "Solution of task {} failed: {!r}".format(identifier, str(err))
                 self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
             finally:

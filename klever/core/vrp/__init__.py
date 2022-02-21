@@ -315,7 +315,7 @@ class RP(klever.core.components.Component):
         elif status == 'error':
             self.process_failed_task(task_id)
             # Raise exception just here since the method above has callbacks.
-            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
+            raise RuntimeError(self.task_error)
         else:
             raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
