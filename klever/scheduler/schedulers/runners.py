@@ -207,7 +207,7 @@ class Runner:
         except SchedulerException as err:
             item.setdefault("attempts", 0)
             item["attempts"] += 1
-            msg = "Cannot solve job {}: {!r}".format(identifier, err)
+            msg = "Cannot solve job {}: {!r}".format(identifier, str(err))
             self.logger.warning(msg)
 
             if item["attempts"] > 2:
