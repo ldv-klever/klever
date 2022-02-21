@@ -398,7 +398,7 @@ def run(selflogger, args, conf, logger=None):
                     fp.write(
                         "Process was terminated since it ran out of {} (you may need to adjust job solution settings)"
                         .format(reason))
-                fp.flush()
+                    fp.flush()
         if not os.path.isfile('runexec stdout.log') or job_exit is None:
             selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1
