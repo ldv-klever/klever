@@ -513,13 +513,9 @@ class Native(runners.Speculative):
                             error_msg = "Exited with exit code: {}".format(result)
 
                 if error_msg:
-                    self.logger.warning(error_msg)
                     raise schedulers.SchedulerException(error_msg)
             else:
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
-        except Exception as err:
-            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, str(err))
-            raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
             if "keep working directory" not in self.conf["scheduler"] or \
