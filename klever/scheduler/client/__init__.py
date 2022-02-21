@@ -394,11 +394,13 @@ def run(selflogger, args, conf, logger=None):
                         reason = str(value).rstrip()
             if reason:
                 selflogger.warning("RunExec set termination reason {!r}".format(reason))
-                with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
-                    fp.write(
-                        "Process was terminated since it ran out of {} (you may need to adjust job solution settings)"
-                        .format(reason))
-                    fp.flush()
+                # Do not overwrite termination reason from disk space controller.
+                if not os.path.exists('termination-reason.txt'):
+                    with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
+                        fp.write(
+                            "Process was terminated since it ran out of {} (you may need to adjust job solution settings)"
+                            .format(reason))
+                        fp.flush()
         if not os.path.isfile('runexec stdout.log') or job_exit is None:
             selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1
