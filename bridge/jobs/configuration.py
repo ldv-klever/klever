@@ -51,7 +51,6 @@ from reports.models import Decision
 #   keep_intermediate_files - keep intermediate files (bool),
 #   upload_verifier_files - upload verifier input files (bool),
 #   upload_other_files - upload other intermediate files (bool),
-#   ignore_instances - ignore other instances (bool),
 #   ignore_subjobs - ignore failed sub-jobs (bool),
 #   total_coverage - collect total code coverage (bool).
 #   coverage_details - see vars.COVERAGE_DETAILS for available values,
@@ -92,7 +91,6 @@ KLEVER_CORE_DEF_MODES = [
             'keep_intermediate_files': False,
             'upload_verifier_files': False,
             'upload_other_files': False,
-            'ignore_instances': False,
             'ignore_subjobs': False,
             'total_coverage': True,
             'coverage_details': COVERAGE_DETAILS[0][0]
@@ -119,7 +117,6 @@ KLEVER_CORE_DEF_MODES = [
             'keep_intermediate_files': True,
             'upload_verifier_files': True,
             'upload_other_files': False,
-            'ignore_instances': True,
             'ignore_subjobs': True,
             'total_coverage': True,
             'coverage_details': COVERAGE_DETAILS[1][0]
@@ -146,7 +143,6 @@ KLEVER_CORE_DEF_MODES = [
             'keep_intermediate_files': True,
             'upload_verifier_files': True,
             'upload_other_files': True,
-            'ignore_instances': True,
             'ignore_subjobs': True,
             'total_coverage': True,
             'coverage_details': COVERAGE_DETAILS[2][0]
@@ -207,7 +203,6 @@ class ConfigurationSerializer(serializers.Serializer):
     keep_intermediate_files = fields.BooleanField()
     upload_verifier_files = fields.BooleanField()
     upload_other_files = fields.BooleanField()
-    ignore_instances = fields.BooleanField()
     ignore_subjobs = fields.BooleanField()
     total_coverage = fields.BooleanField()
     coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
@@ -282,7 +277,6 @@ class GetConfiguration:
             'keep_intermediate_files': filedata['keep intermediate files'],
             'upload_verifier_files': filedata['upload verifier input files'],
             'upload_other_files': filedata['upload other intermediate files'],
-            'ignore_instances': filedata['ignore other instances'],
             'ignore_subjobs': filedata['ignore failed sub-jobs'],
             'total_coverage': filedata['collect total code coverage'],
             'coverage_details': filedata['code coverage details'],
@@ -324,7 +318,6 @@ class GetConfiguration:
             'keep intermediate files': self.configuration['keep_intermediate_files'],
             'upload verifier input files': self.configuration['upload_verifier_files'],
             'upload other intermediate files': self.configuration['upload_other_files'],
-            'ignore other instances': self.configuration['ignore_instances'],
             'ignore failed sub-jobs': self.configuration['ignore_subjobs'],
             'collect total code coverage': self.configuration['total_coverage'],
             'code coverage details': self.configuration['coverage_details'],

@@ -40,8 +40,6 @@ class Core(klever.core.components.CallbacksCaller):
         self.exit_code = 0
         self.start_time = 0
         self.conf = {}
-        self.is_solving_file = None
-        self.is_solving_file_fp = None
         self.logger = None
         self.comp = []
         self.session = None
@@ -168,13 +166,7 @@ class Core(klever.core.components.CallbacksCaller):
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
                 if self.uploading_reports_process.is_alive():
                     self.uploading_reports_process.terminate()
-            # At least release working directory even if cleaning code above raised some exceptions.
             finally:
-                if self.is_solving_file_fp and not self.is_solving_file_fp.closed:
-                    if self.logger:
-                        self.logger.info('Release working directory')
-                    os.remove(self.is_solving_file)
-
                 # Remove the whole working directory after all if needed.
                 if self.conf and not self.conf['keep intermediate files']:
                     shutil.rmtree(os.path.abspath('.'))
@@ -196,45 +188,15 @@ class Core(klever.core.components.CallbacksCaller):
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
-        """
-        Clean up and create the working directory. Prevent simultaneous usage of the same working directory.
-        """
-        # This file exists during Klever Core occupies working directory.
-        self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
-
-        def check_another_instance():
-            if not self.conf['ignore other instances'] and os.path.isfile(self.is_solving_file):
-                raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
-                    self.conf['working directory']))
-
-        check_another_instance()
-
-        # Remove (if exists) and create (if doesn't exist) working directory.
-        # Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we have to:
-        # - remove the whole working directory (if exists),
-        # - create working directory (pass if it is created by another Klever Core),
-        # - test one more time whether another Klever Core occupies the same working directory,
-        # - occupy working directory.
-        shutil.rmtree(self.conf['working directory'], True)
-
-        os.makedirs(self.conf['working directory'].encode('utf-8'), exist_ok=True)
-
-        check_another_instance()
-
-        # Occupy working directory until the end of operation.
-        # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf-8')
+        # Create working directory.
+        os.makedirs(self.conf['working directory'])
 
         # Create directory where all reports and report files archives will be actually written to.
         os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
 
     def change_work_dir(self):
         # Change working directory forever.
-        # We can use path for "is solving" file relative to future working directory since exceptions aren't raised when
-        # we have relative path but don't change working directory yet.
-        self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['working directory'])
         os.chdir(self.conf['working directory'])
-
         self.conf['main working directory'] = os.path.abspath(os.path.curdir)
 
     def get_comp_desc(self):
