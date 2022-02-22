@@ -460,7 +460,7 @@ class Native(runners.Speculative):
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf-8") as f:
-                        self.logger.debug("Scheduler client log: {}".format(f.read()))
+                        self.logger.debug("Scheduler client log:\n\n{}".format(f.read()))
                 else:
                     self.logger.warning("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
