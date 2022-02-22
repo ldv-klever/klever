@@ -592,7 +592,7 @@ class Native(runners.Speculative):
         work_dir = os.path.join(self.work_dir, entities, identifier)
         if os.path.isdir(work_dir):
             self.logger.debug("Remove former working directory {}/{}".format(entities, identifier))
-            shutil.rmtree(work_dir, ignore_errors=True)
+            shutil.rmtree(work_dir)
 
         self.logger.debug("Create working directory {}/{}".format(entities, identifier))
         os.makedirs(work_dir)
