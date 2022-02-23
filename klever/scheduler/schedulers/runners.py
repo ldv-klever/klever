@@ -415,13 +415,6 @@ class Runner:
 class SpeculativeSimple(Runner):
     """This runner collects statistics and adjust memory limits to run more tasks."""
 
-    # Threshold value for acceptance of statistical estimates
-    THRESHOLD_STATISTICAL_ESTIMATES = 5
-
-    # Flag for enabling new functionality
-    # Correction of statistics in case of an error
-    ENABLE_STATISITCS_ADJUSTMENT_AFTER_POSTPONE = True
-
     def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
@@ -677,7 +670,7 @@ class SpeculativeSimple(Runner):
             message = 'Set QoS limit for the task {}'.format(identifier)
         elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
             message += 'We have not enough solved tasks (5%) to yield speculative limit'
-        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= self.THRESHOLD_STATISTICAL_ESTIMATES:
+        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
             message += 'We have not solved at least 5 tasks to estimate average consumption'
         else:
             statistics = job["limits"][attribute]["statistics"]
@@ -775,7 +768,7 @@ class SpeculativeSimple(Runner):
                 self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
-                if self.ENABLE_STATISITCS_ADJUSTMENT_AFTER_POSTPONE:
+                if self.conf["scheduler"]["enable statisitcs adjustment_after postpone"]:
                     self._adjustment_statisitcs_after_failure(job, attribute)
                 self.logger.info("Do not accept timeout task {} with status {!r}".
                                  format(identifier, status))

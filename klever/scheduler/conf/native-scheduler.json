@@ -15,6 +15,7 @@
     "type": "native",
     "wait controller initialization": true,
     "disable CPU cores account": false,
+    "enable statisitcs adjustment_after postpone": true,
     "concurrent jobs": 1,
     "processes": 1.3,
     "controller address": "http://localhost:8500",
