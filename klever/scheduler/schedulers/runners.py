@@ -421,7 +421,7 @@ class SpeculativeSimple(Runner):
 
     # Flag for enabling new functionality
     # Correction of statistics in case of an error
-    ENABLE_STATISITCS_ADJUSTMENT_AFTER_FAILURE = False
+    ENABLE_STATISITCS_ADJUSTMENT_AFTER_POSTPONE = True
 
     def init(self):
         """
@@ -729,7 +729,8 @@ class SpeculativeSimple(Runner):
 
     def _adjustment_statisitcs_after_failure(self, job, attribute):
         """
-        Adjusting statistical estimates in case of failure.
+        Adjusting statistical estimates in case of when the job was not solved 
+        with the specified resource limits.
         :param job: Description dictionary of the job.
         :param attribute: Attribute given to the job to classify it.
         """
@@ -768,7 +769,7 @@ class SpeculativeSimple(Runner):
                 self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
-                if self.ENABLE_STATISITCS_ADJUSTMENT_AFTER_FAILURE:
+                if self.ENABLE_STATISITCS_ADJUSTMENT_AFTER_POSTPONE:
                     self._adjustment_statisitcs_after_failure(job, attribute)
                 self.logger.info("Do not accept timeout task {} with status {!r}".
                                  format(identifier, status))
@@ -835,7 +836,8 @@ class Speculative(SpeculativeSimple):
 
     def _adjustment_statisitcs_after_failure(self, job, attribute):
         """
-        Adjusting statistical estimates in case of failure.
+        Adjusting statistical estimates in case of when the job was not solved 
+        with the specified resource limits.
         :param job: Description dictionary of the job.
         :param attribute: Attribute given to the job to classify it.
         """
