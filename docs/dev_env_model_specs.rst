@@ -71,7 +71,7 @@ We distinguish specifications and environment models:
 
 * The environment model is a file in an intermediate EMG notation or in C.
   The former is a file in the internal representation which is called an *intermediate environment model (IEM)*.
-  The former is called the *final environment model (FEM)*.
+  The latter is called the *final environment model (FEM)*.
 
 * Environment model specifications can describe IEMs for specific program fragments, models’ templates, parts, or even
   configuration parameters.
@@ -131,9 +131,10 @@ There are the following main configuration parameters of the EMG plugin:
   * - specifications set
     - String
     - None
-    - The value is an identifier of the specification set.For example, an identifier can
-      correspond to a particular Linux kernel version.
-      The LinuxModule generator expects one of the following values: 3.14, 4.6.7, 4.14, 4.16, 5.5.
+    - The value is an identifier of the specification set.
+      For example, an identifier can correspond to a particular Linux kernel version.
+      The LinuxModule generator expects one of the following values: 2.6.33, 3.2, 3.14, 3.14-dentry-v2, 4.6.7, 4.15,
+      4.17, 5.5.
       The parameter can be provided directly in the :file:`job.json` file.
   * - generators options
     - Object
@@ -347,6 +348,26 @@ process = (!a).<b>.(<c>.[e] \| <f>)
 
 The example demonstrates the usage of conditions in first base block actions of the choice operator.
 
+A user may need to attempt an action several times in a row.
+There is an additional form to describe such repeated actions.
+Imagine, there is a base block action *x*, then the process should contain it in the following form to repeat it twice:
+*<x[2]>*.
+It is possible to provide only positive integer numbers in square brackets (if by some reason you would like to use 0,
+you should likely get rid of this action at all).
+
+Jumps have the same notation but the semantics is a bit different.
+Here an integer number means the number of jumps that will be done on a single path through this action.
+For instance, *{my_jump[2]}* will return to this jump twice.
+There is an another kind of guards to restrict passing through a jump: *{my_jump[%flag%]}*.
+This jump depends on the evaluation of the *%flag%* label that serves as a guard.
+A user may choose any defined process label as a guard.
+It is worth noting that one has to change the *%flag%* label manually in other actions of the process, so that it
+should become 0 at the end of the day.
+The current implementation stops execution when the guard label is evaluated to 0.
+Thus, following actions will not be executed at all.
+Taking all this into account, it may be better to use dedicated counters and conditions for restricting the number of
+possible iterations through jump actions.
+
 Model Description
 -----------------
 
@@ -400,8 +421,8 @@ The root object has the following attributes:
       {"name1, ..., nameN": {process description},
       "name": {process description}}
 
-    - A name of the member is a string which is an enumeration of function names.
-      These functions will be replaced by models generated from the provided process descriptions.
+    - A name of the attribute is a string which is an enumeration of function names.
+      All these functions will be replaced by the same model generated from the provided process description.
     - No
 
 The model’s name is not necessary but the EMG component can generate several models per program fragment and such models
@@ -441,17 +462,15 @@ A process description has the following attributes:
     - The comment is used at error-trace visualization.
       It should describe what the process implements.
     - Yes
-  * - headers
-    - A list of relative paths to header files:
-
-      ["stdio.h", "pthread.h"]
-    - Headers are included in the main C file of an environment model to bring type definitions and function
-      declarations to the main C file of the FEM.
-    - No
-  * - relevant
-    - Bool
-    - If the flag is true, then the process description will be used for other specification sets.
-    - No
+  * - process
+    - Process transition relation (see its description below).
+    - Transition relation describes the possible order of actions performed by the process.
+    - Yes
+  * - actions
+    - The object maps action names to action descriptions.
+      Action names should be C identifiers.
+    - Actions describe the behavior of the environment model.
+    - Yes
   * - labels
     - The object maps label names to label descriptions.
       Label names should be C identifiers.
@@ -460,15 +479,13 @@ A process description has the following attributes:
       "ret": {...}}
     - Labels represent the state of a process.
     - No
-  * - actions
-    - The object maps action names to action descriptions.
-      Action names should be C identifiers.
-    - Actions describe the behavior of the environment model.
-    - Yes
-  * - process
-    - Process transition relation (see its description below).
-    - Transition relation describes the possible order of actions performed by the process.
-    - Yes
+  * - headers
+    - A list of relative paths to header files:
+
+      ["stdio.h", "pthread.h"]
+    - Headers are included in the main C file of an environment model to bring type definitions and function
+      declarations to the main C file of the FEM.
+    - No
   * - declarations
     - The option maps names of program source files or *environment model* (meaning the main C file) to maps from C
       identifiers to declarations to add.
@@ -511,8 +528,21 @@ There is an example of a process description with simplified values below:
 .. code-block:: json
 
   {
-    "headers": ["linux/platform_device.h"],
+    "comment": "Invoke platform driver callbacks.",
+    "process": "(!register).<probe>.(<ok>.{pm_jump} | <fail>).<free>.(deregister)",
+    "actions": {
+        "deregister": {},
+        "fail": {},
+        "free": {},
+        "ok": {},
+        "pm": {},
+        "pm_jump": {},
+        "probe": {},
+        "register": {},
+        "release": {}
+    },
     "labels": {},
+    "headers": ["linux/platform_device.h"],
     "declarations": {
         "environment model": {
             "get_dev_id": "const struct platform_device_id *get_dev_id(struct platform_driver *drv);"
@@ -526,26 +556,14 @@ There is an example of a process description with simplified values below:
                 "}"
             ]
         }
-    },
-    "process": "(!register).<probe>.(<ok>.{pm_jump} | <fail>).<free>.(deregister)",
-    "actions": {
-        "pm_jump": {},
-        "register": {},
-        "deregister": {},
-        "probe": {},
-        "ok": {},
-        "fail": {},
-        "free": {},
-        "pm": {},
-        "release": {}
     }
   }
 
+We will describe labels and actions below with more discussion.
 The *headers* member has a single header to add.
 It is necessary to allocate memory and dereference pointers to :c:struct:`platform_driver` and
 :c:struct:`platform_device` structures.
-We will describe labels and actions below with more discussion.
-*Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` to use in actions.
+*Declarations* and *definitions* members introduce a function :c:func:`get_dev_id` that can be used in actions.
 Its definition and declaration will be added to the main C file of the FEM.
 We suggest users to implement more complicated functions in separate C files and provide a path to them instead of the
 list of strings.
@@ -668,24 +686,34 @@ Signaling action description can have the following attributes:
       It is also allowed to use incoming parameters of the signal at receive actions: use *$ARG1*, ..., *$ARGN*
       expressions.
     - The condition restricts the acceptance of signals with the proper name but unexpected values.
-    -
+    - No
   * - parameters
     - A list of label names to save received values or send values from.
 
       ["%ret%, "%struct%"]
     - Labels to save or send data.
     - Yes
+  * - savepoints
+    - It is a map from savepoint names to their descriptions.
+      {"name": {...}}
+    - Savepoints are used at decomposition, and they are considered in the following sections in detail.
+      Any action can have this attribute, but it must be the first one in the process.
+      All savepoints across all environment model processes should have unique names.
+      You should use short names for savepoints as they are shown in the web-interface.
+      Savepoint descriptions are considered below.
+    - Not
   * - require
-    - The object is a map from process identifiers to objects with the *include* attribute.
+    - The object has *processes* and *actions* attributes.
       The latter lists actions required for this one.
+      Processes contain a map from process identifiers to True/False values that means inclusion or exclusion of these
+      processes.
+      It is not necessary to include the identifier of the process which is a host to the action with the *require*
+      attribute.
+      Actions contain a map from process identifiers to corresponding lists of names of actions that are required.
 
-      {"c/p1": {"include": ["probe", "success"]}}
+      {"require": {"actions": {"c/p1": ["probe", "success"]}, "processes": {"c/p1": true}}}
     - The attribute says that the action requires another process that should have specific actions in turn.
       This field is used only at the decomposition of models, which is considered in the following chapters.
-    - No
-  * - savepoints
-    - Map of savepoint names to savepoint objects.
-    - Savepoints are used at decomposition, and they are considered in the following sections in detail.
     - No
 
 The examples of register and deregister action descriptions from the example above are given below:
@@ -693,13 +721,13 @@ The examples of register and deregister action descriptions from the example abo
 .. code-block:: json
 
   "register": {
-      "comment": "Register the platform callbacks in the kernel.",
-      "parameters": ["%driver%"]
-    },
-    "deregister": {
-      "comment": "Finish platform callbacks calling.",
-      "condition": ["%driver% == $ARG1"],
-      "parameters": ["%driver%"]
+    "comment": "Register the platform callbacks in the kernel.",
+    "parameters": ["%driver%"]
+  },
+  "deregister": {
+    "comment": "Finish platform callbacks calling.",
+    "condition": ["%driver% == $ARG1"],
+    "parameters": ["%driver%"]
   }
 
 The registering action does not have any condition and just saves the received pointer to the platform_driver structure
@@ -1171,8 +1199,7 @@ Then after decomposition the B process becomes a new main one and the A process 
 
 .. figure:: ./media/env/savepoint-example-of-decomposing.png
 
-The *savepoints* member has been mentioned before.
-Description of savepoints should follow the following table:
+Description of each savepoint for a given action should follow the following table:
 
 .. list-table:: Savepoint description.
   :widths: 12 40 40 8
@@ -1188,19 +1215,14 @@ Description of savepoints should follow the following table:
     - String
     - Comments help users to understand error traces better.
     - Yes
-  * - savepoints
-    - It is a map from savepoint names to their descriptions.
-      {"name": {...}}
-    - Any action can have this attribute.
-      The action must be the first one in the process.
-      All savepoints across all environment model processes should have unique names.
-      Each savepoint description may have attributes given below.
-      Use short names for savepoints as they are shown in the web-interface.
-    - Not
   * - statements
     - A list of strings
     - Statements contain the code of the process initialization if the process with the savepoint becomes the main one.
       Values should be provided as for the same attribute of block actions.
+    - Not
+  * - require
+    - It is the same map which is already described for the attribute with the same name used in actions.
+    - Requirements allow to restrict actions and processes that should be included to models with the savepoint.
     - Not
 
 There is an example of a savepoint attached to the registering action considered in the section related to IEM and
@@ -1236,13 +1258,13 @@ added as the previous main one also.
 Decomposition Tactics
 ---------------------
 
-There are two implementations of process decomposition tactics.
+There are three implementations of process decomposition tactics.
 The default one is used if the value of the *scenario separation* configuration property is None (find the description
 in the table below).
 The default tactic does not modify actions.
 But instead, it creates a scenario with the origin actions and different scenarios with savepoints.
 
-The second tactic splits process actions into sequences of actions without choices.
+The second tactic (*linear*) splits process actions into sequences of actions without choices.
 Together created scenarios cover the exact behavior of the original process.
 
 The example of a model provided above can be split into three models assuming there are no savepoints.
@@ -1251,6 +1273,18 @@ The first model does not contain any versions of B process, since there is no an
 Models 2 and 3 have *A.2* process and *B.1* and *B.2* correspondingly.
 
 .. figure:: ./media/env/linear-example-of-decomposing.png
+
+The third tactic (*savepoint_requirements*) splits processes into scenarios reducing the number of branches in choices.
+It extracts savepoint requirements and looks into lists of provided actions.
+These actions are used to select first actions of required branches in choices.
+The tactic starts from the first process's action and traverses actions moving to leaf actions.
+Thus, the order of actions in requirements matters, as it influences processing of choices.
+The tactic generates much fewer scenarios than the linear one because it reduces branches only for those choices for
+which there are provided actions in requirements.
+Moreover, it does not generate scenarios for branches that are excluded by requirements.
+The tactic generates specific scenarios for each requirement with provided actions for each process given in every
+savepoint requirement.
+So a process may have several scenarios generated for certain savepoints exclusively.
 
 The next step of decomposition of an IEM is scenario selection.
 It means that the origin IEM is copied, then each process is replaced by a scenario prepared from it.
@@ -1261,7 +1295,7 @@ There are several attributes in processes that influence the whole model: declar
 For the sake of comfortable use of these attributes, the EMG tool keeps declarations and definitions even from processes
 that are excluded from generated models.
 
-There are several implementations of this step.
+There are several implementations of scenario selection.
 The *select scenarios* configuration property allows choosing a tactic for scenario selection.
 There are the following tactics with the corresponding configuration property values in parentheses:
 
@@ -1270,6 +1304,8 @@ There are the following tactics with the corresponding configuration property va
   environment models filtering out infeasible ones.
 * **Selective** (a dictionary with configuration is given) – the tactic allows users to set which particular scenarios
   should be added to new environment models.
+* **Savepoints-based** (*select savepoints*) – the tactic allows users to choose scenarios generated for savepoints.
+  It is intended to use this tactic with the *savepoint_requirements* process separation tactic.
 
 To activate decomposition, one should set the *single environment model per fragment* configuration property to True.
 There are additional configuration parameters to manage the decomposition listed below:
@@ -1285,11 +1321,11 @@ There are additional configuration parameters to manage the decomposition listed
     - Default Value
     - Description
   * - scenario separation
-    - linear, None
+    - None, linear, savepoint_requirements
     - None
-    - Allows choosing the default process separation tactic or the linear one.
+    - Allows choosing a process separation tactic.
   * - select scenarios
-    - *use all scenarios combinations*, Obj or None
+    - *use all scenarios combinations*, *select savepoints*, Obj or None
     - None
     - Allows to select one of listed above scenario selection tactics.
   * - skip origin model
@@ -1301,6 +1337,15 @@ There are additional configuration parameters to manage the decomposition listed
     - False
     - It is relevant for default and combinatorial factories to generate models.
       If the flag is set, then no extra models with savepoint scenarios will be outputted.
+  * - savepoints
+    - A map from process identifiers to either list of savepoint names or bool flag.
+      True value means that all savepoints can be included. False means no savepoints should be included.
+      A list just enumerates savepoints to include.
+      Omitted processes are ignored.
+      {"c1/p1": true, "c1/p2": ["sp1"]}
+    - False
+    - The configuration parameter is intended only for the *savepoints-based* tactic.
+      It allows to filter savepoints for which models should be prepared.
 
 The *selective* tactic allows a user to select scenarios for IEMs for each process.
 Names of scenarios are generated automatically, so they are assumed to be unknown to users.
@@ -1465,11 +1510,13 @@ We highly recommend everybody who wants to apply Klever to his/her software.
 Modeling for Linux device drivers does not require writing specifications from scratch but allows practice in many steps
 of modeling.
 
-Prepare the UDMS
-----------------
+Prepare the UDEMS
+-----------------
+
+.. note:: It works only for the development installation of Klever.
 
 Klever’s installation has several examples to try.
-One of those is a *Loadable kernel modules sample* preset.
+One of those is the *Loadable kernel modules sample* preset.
 Let us just simplify the :file:`job.json` of this sample a bit and start verification:
 
 .. code-block:: json
@@ -1487,21 +1534,22 @@ rule.
 The empty rule does not check anything but it allows to estimate the coverage of the source code roughly and check that
 the model generation works well.
 The check of the empty rule is the fastest possible.
-
 The Klever should report the *Safe* verdict.
-Then we go to the installation directory of the Klever and copy file
+
+Then you can either open the appropriate EMG page in the web UI using the following sequence of components
+:menuselection:`Core --> Job --> VTG --> EMGW --> EMG`, get the prepared in advance, complete content of UDEMS from
+that page and put it to, say, :file:`presets/jobs/specifications/linux/pata user model.json` in :term:`$KLEVER_SRC`
+or do this in the way described below.
+
+You can go to the installation directory of the Klever and copy file
 :file:`klever-core-work-dir/job/vtg/drivers/ata/pata_arasan_cf.ko/empty/emg/0/input model.json` in
 :file:`klever-work/native-scheduler/scheduler/jobs/<job ID>/` of :term:`$KLEVER_DEPLOY_DIR` with an IEM to the directory
 with Klever specifications :file:`presets/jobs/specifications/linux` in :term:`$KLEVER_SRC`.
-It works for the development installation of Klever.
-If you have a production one, then just modify files as we described below in your favorite editor and provide them
-using the web-interface directly.
-
 The model should be correct.
 Just add framing members as the format of UDEMS requires.
 Note, that the file should be renamed by adding a user model suffix to it.
 Let us name the file :file:`pata user model.json`.
-The file should look like this:
+The file should look like this where *3.14* is the name of the specifications set:
 
 .. code-block:: json
 
@@ -1515,8 +1563,6 @@ The file should look like this:
       }
     ]
   }
-
-The *3.14* member is the name of the specification set.
 
 Then we have to change options of the EMG to run only genericManual generator to prepare our model.
 Find the proper template in the :file:`Linux.json` file (it is the first one that contains the EMG value) and fix the
@@ -1865,7 +1911,7 @@ But it is rather simple in our case.
 That is why we consider the more interesting case: how to implement several versions of the model using savepoints.
 
 To keep the model as is but add several savepoints, it is required to add them to the main process.
-But it is forbidden.
+But it is difficult to use them alongside with the selective tactic that we are going to use for this example.
 The solution is to move the process to the *environment processes*:
 
 #. Add a new *main/process* member to *environment processes*.
@@ -1889,7 +1935,8 @@ It allows us to reduce the number of models generated at decomposition by fulfil
 .. code-block:: json
 
   "require": {
-    "main/process": {"include": ["init_success"]}
+    "processes": {"main/process": true},
+    "actions": {"main/process": ["init_success"]}
   }
 
 Finally, we can add a savepoint to the *main_register* action of *main/process*.
@@ -2114,15 +2161,15 @@ We do not consider it there for simplicity.
     - Marks all labels as externally allocated data for the CPAchecker SMG if the configuration property is set.
 
 .. [Z18] \I. Zakharov, E. Novikov. Compositional Environment Modelling for Verification of GNU C Programs.
-         In Proceedings of the 2018 Ivannikov Ispras Open Conference (ISPRAS'18), pp. 39-44. IEEE Computer Society,
-         2018. https://doi.org/10.1109/ISPRAS.2018.00013.
+         In Proceedings of the 2018 Ivannikov Ispras Open Conference (ISPRAS'18), pp. 39-44, IEEE Computer Society,
+         2018, https://doi.org/10.1109/ISPRAS.2018.00013.
 
 .. [N18] \E. Novikov, I. Zakharov. Verification of Operating System Monolithic Kernels Without Extensions.
          In: Margaria T., Steffen B. (eds) Proceedings of the 8th International Symposium on Leveraging Applications of
-         Formal Methods, Verification, and Validation. Industrial Practice (ISoLA’18), LNCS, volume 11247, pp. 230–248.
-         Springer, Cham. 2018. https://doi.org/10.1007/978-3-030-03427-6_19.
+         Formal Methods, Verification, and Validation. Industrial Practice (ISoLA’18), LNCS, volume 11247, pp. 230–248,
+         Springer, Cham, 2018. https://doi.org/10.1007/978-3-030-03427-6_19.
 
 .. [ZN18] \E. Novikov, I. Zakharov. Towards automated static verification of GNU C programs. In: Petrenko A.,
           Voronkov A. (eds) Proceedings of the 11th International Andrei Ershov Memorial Conference on Perspectives of
-          System Informatics (PSI’17), LNCS, volume 10742, pp. 402–416. Cham, Springer. 2018.
+          System Informatics (PSI’17), LNCS, volume 10742, pp. 402–416, Cham, Springer, 2018.
           https://doi.org/10.1007/978-3-319-74313-4_30.

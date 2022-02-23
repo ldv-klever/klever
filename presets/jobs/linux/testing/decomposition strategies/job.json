@@ -1,6 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/decomposition strategies/5b3d50",
+  "specifications set": "3.14",
   "requirement specifications": ["test:common"],
   "ideal verdicts": [{"ideal verdict": "safe"}],
   "extra results processing": "testing",

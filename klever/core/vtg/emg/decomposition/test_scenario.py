@@ -31,7 +31,7 @@ def test_set_initial_action(model):
     c1p1 = model.environment['c1/p1']
     b1 = c1p1.actions.initial_action
 
-    scenario = Scenario()
+    scenario = Scenario(c1p1)
     assert scenario.initial_action is None
     scenario.initial_action = b1
     assert scenario.initial_action is not None, repr(scenario.initial_action)
@@ -46,7 +46,7 @@ def test_add_action_copy(model):
     b2 = c1p2.actions.behaviour('write').pop()
     op = Concatenation()
 
-    inst1 = Scenario()
+    inst1 = Scenario(c1p2)
     inst1.initial_action = op
     op = inst1.initial_action
     c1 = inst1.add_action_copy(b1, op)

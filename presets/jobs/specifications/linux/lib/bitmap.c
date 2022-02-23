@@ -19,12 +19,12 @@
 #include <ldv/linux/find_bit.h>
 #include <ldv/verifier/memory.h>
 
-void ldv_set_bit(long nr, unsigned long *addr)
+void ldv_set_bit(long nr, volatile unsigned long *addr)
 {
 	addr[nr / (8 * sizeof(long))] |= 1UL << nr % (8 * sizeof(long));
 }
 
-void ldv_clear_bit(long nr, unsigned long *addr)
+void ldv_clear_bit(long nr, volatile unsigned long *addr)
 {
 	addr[nr / (8 * sizeof(long))] &= ~(1UL << nr % (8 * sizeof(long)));
 }

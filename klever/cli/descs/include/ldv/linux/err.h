@@ -18,8 +18,10 @@
 #ifndef __LDV_LINUX_ERR_H
 #define __LDV_LINUX_ERR_H
 
-long ldv_is_err(const void *ptr);
-long ldv_is_err_or_null(const void *ptr);
+#include <linux/types.h>
+
+bool ldv_is_err(const void *ptr);
+bool ldv_is_err_or_null(const void *ptr);
 void *ldv_err_ptr(long error);
 long ldv_ptr_err(const void *ptr);
 

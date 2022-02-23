@@ -77,6 +77,11 @@
         "header": "linux/fs.h",
         "reference": true
       },
+      "kill_mtd_super": {
+        "declaration": "void kill_mtd_super(*%filesystem.super_block%)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
       "d_make_root": {
         "declaration": "struct dentry *d_make_root(struct inode *root_inode)",
         "header": "linux/fs.h",

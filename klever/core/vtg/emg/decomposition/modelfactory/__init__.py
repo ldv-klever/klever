@@ -19,65 +19,8 @@ import copy
 import logging
 
 from klever.core.vtg.emg.common.process.actions import Receive
-from klever.core.vtg.emg.decomposition.scenario import Scenario
-from klever.core.vtg.emg.common.process import Process, ProcessCollection
-
-
-def extend_model_name(model, process_name, attribute):
-    assert model
-    assert isinstance(model, (ProcessCollection, ScenarioCollection))
-    assert isinstance(process_name, str)
-    assert isinstance(attribute, str) or attribute is None
-    model.attributes[process_name] = attribute
-
-
-def remove_process(model, process_name):
-    assert process_name and process_name in model.environment
-    del model.environment[process_name]
-    extend_model_name(model, process_name, 'Removed')
-
-
-class ScenarioCollection:
-    """
-    This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
-    process have a key in the collection but the value is None, then the factory will use the origin process. Otherwise,
-    it will use a provided scenario.
-    """
-
-    def __hash__(self):
-        return hash(str(self.attributed_name))
-
-    def __init__(self, name, entry=None, models=None, environment=None):
-        assert isinstance(name, str)
-        self.name = name
-        self.entry = entry
-        self.models = models if isinstance(models, dict) else dict()
-        self.environment = environment if isinstance(environment, dict) else dict()
-        self.attributes = dict()
-
-    attributed_name = ProcessCollection.attributed_name
-
-    def clone(self, new_name: str):
-        """
-        Copy the collection with a new name.
-
-        :param new_name: Name string.
-        :return: ScenarioCollection instance.
-        """
-        new = ScenarioCollection(new_name)
-        new.attributes = dict(self.attributes)
-        new.entry = self.entry.clone() if self.entry else None
-        for collection in ('models', 'environment'):
-            for key in getattr(self, collection):
-                if getattr(self, collection)[key]:
-                    getattr(new, collection)[key] = getattr(self, collection)[key].clone()
-                else:
-                    getattr(new, collection)[key] = None
-        return new
-
-    @property
-    def defined_processes(self):
-        return {name for name, val in self.environment.items() if val}
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, ProcessDescriptor
+from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioCollection
 
 
 class Selector:
@@ -101,11 +44,15 @@ class Selector:
             yield self._make_base_model(), None
         if include_savepoints:
             for scenario, related_process in self._scenarios_with_savepoint.items():
-                new = ScenarioCollection(scenario.name)
-                for process in self.model.environment:
-                    new.environment[str(process)] = None
-                    if scenario in self.processes_to_scenarios[process]:
-                        self._assign_scenario(new, scenario, str(process))
+                new = ScenarioCollection(self.model, scenario.name)
+                new.entry = None
+                if self.model.entry and scenario in self.processes_to_scenarios[str(self.model.entry)]:
+                    self._assign_scenario(new, scenario, str(self.model.entry))
+                else:
+                    for process_name in self.model.environment:
+                        new.environment[process_name] = None
+                        if scenario in self.processes_to_scenarios[process_name]:
+                            self._assign_scenario(new, scenario, process_name)
                 yield new, related_process
 
     @property
@@ -117,7 +64,7 @@ class Selector:
         return {s: p for s, p in self._scenarios.items() if s.savepoint}
 
     def _make_base_model(self):
-        new = ScenarioCollection('base')
+        new = ScenarioCollection(self.model, 'base')
         for model in self.model.models:
             new.models[str(model)] = None
         for process in self.model.environment:
@@ -125,10 +72,7 @@ class Selector:
         return new
 
     def _assign_scenario(self, batch: ScenarioCollection, scenario=None, process_name=None):
-        if scenario and scenario is not None:
-            assert scenario not in batch.environment.values()
-
-        if not process_name:
+        if not process_name or process_name == f"{ProcessDescriptor.EXPECTED_CATEGORY}/{ProcessDescriptor.DEFAULT_ID}":
             batch.entry = scenario
         elif process_name in batch.environment:
             batch.environment[process_name] = scenario
@@ -138,7 +82,7 @@ class Selector:
         if scenario:
             assert scenario.name
             assert len(tuple(s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint)) <= 1
-            extend_model_name(batch, process_name, scenario.name)
+            batch.extend_model_name(process_name, scenario.name)
         elif batch.attributes.get(process_name):
             del batch.attributes[process_name]
         self.logger.info(f"The new model name is '{batch.attributed_name}'")
@@ -151,9 +95,10 @@ def process_dependencies(process):
     :param process: Process.
     :return: {p: {actions}}
     """
+    # TODO: Remove it
     dependencies_map = dict()
-    for action in (a for a in process.actions.values() if a.require):
-        for name, v in action.require.items():
+    for action in (a for a in process.actions.values() if a.requirements.relevant_processes):
+        for name, v in action.requirements.items():
             dependencies_map.setdefault(name, set())
             dependencies_map[name].update(v.get('include', set()))
 
@@ -169,6 +114,7 @@ def check_process_deps_aginst_model(model, process):
     :param process: Process object.
     :return: Bool
     """
+    # TODO: Remove it
     dependencies = process_dependencies(process)
     processes = {str(p): (model.environment[p] if p in model.environment else model.entry)
                  for p, v in model.attributes.items()
@@ -181,147 +127,6 @@ def check_process_deps_aginst_model(model, process):
             return True
     else:
         return False
-
-
-def process_transitive_dependencies(processes: set, process: Process):
-    """
-    Collect dependencies transitively of a given process.
-
-    :param processes: Set of Process objects to search dependencies.
-    :param process: Process object.
-    :return: {required: {required_actions}}
-    """
-    assert process in processes
-    processes_map = {str(p): p for p in processes}
-
-    ret_deps = dict()
-    processed = set()
-    todo = [str(process)]
-    while todo:
-        p_name = todo.pop()
-        processed.add(p_name)
-        p = processes_map[p_name]
-        deps = process_dependencies(p)
-        for required_name in deps:
-            if required_name == str(process):
-                raise RecursionError(f"Recursive dependencies for '{required_name}' calculated for '{str(process)}'")
-            elif required_name not in todo and required_name in processes_map:
-                todo.append(required_name)
-
-            ret_deps.setdefault(required_name, set())
-            ret_deps[required_name].update(deps[required_name])
-    return ret_deps
-
-
-def all_transitive_dependencies(processes: set):
-    """
-    Collect transitive dependencies for selected processes/scenarios. If selected = None, then all processes are
-    selected.
-
-    :param processes: Set of Process objects.
-    :return: {p: {required: {required_actions}}}
-    """
-    deps = dict()
-    for process in processes:
-        selected_deps = process_transitive_dependencies(processes, process)
-        deps[str(process)] = selected_deps
-    return deps
-
-
-def is_required(dependencies: dict, process: Process, scenario: Scenario = None):
-    """
-    Check that particular process or even its scenario is required by anybody in given dependencies.
-
-    :param dependencies: Dict created by functions defined above.
-    :param process: Process.
-    :param scenario: Scenario object.
-    :return: bool.
-    """
-    name = str(process)
-    actions = set((scenario.actions if scenario else process.actions).keys())
-
-    for entry in dependencies:
-        if name in dependencies[entry] and dependencies[entry][name].issubset(actions):
-            return True
-    return False
-
-
-def transitive_deps(model: ProcessCollection, batch: ScenarioCollection, observe_processes: list):
-    """
-    Found transitive dependencies for processes in dep_order.
-
-    :param model: Origin model.
-    :param batch: Collection with some scenarios.
-    :param observe_processes: List of process names for which collect dependencies.
-    :return: {asking: {required: {required_actions}}}
-    """
-    ret_deps = dict()
-    for process_name in (name for name in observe_processes if name in batch.environment):
-        if batch.environment[process_name]:
-            required = batch.environment[process_name]
-        else:
-            required = model.environment[process_name]
-        required_deps = process_dependencies(required)
-
-        # Add already known deps
-        for entry in ret_deps:
-            if process_name in ret_deps[entry]:
-                for name, deps in required_deps.items():
-                    ret_deps[entry].setdefault(name, set())
-                    ret_deps[entry][name].update(deps)
-
-        # Save
-        if required_deps:
-            ret_deps[process_name] = required_deps
-
-    return ret_deps
-
-
-def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list,
-                               processed: set):
-    """
-    Found transitive dependencies for processes in dep_order.
-
-    :param model: Origin model.
-    :param batch: Collection with some scenarios.
-    :param process: Collect dependencies upt to this process.
-    :param dep_order: List of processes where at the end are not required and at the beginning are the most required
-                      ones.
-    :param processed: A set with process names that are in model.
-    :return: {asking: {required: {required_actions}}}
-    """
-    assert str(process) in dep_order
-    processed = {p for p in processed if p in model.environment}
-    observe_processes = dep_order[:dep_order.index(str(process))]
-    first_defined_index = None
-    for i, name in enumerate(observe_processes):
-        if name in processed:
-            first_defined_index = i
-            break
-    if isinstance(first_defined_index, int):
-        observe_processes = observe_processes[first_defined_index:]
-    else:
-        return dict()
-
-    return transitive_deps(model, batch, observe_processes)
-
-
-def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
-    """
-    Check that particular process or even its scenario meets all dependencies in dependencies.
-
-    :param dependencies: Dict created by functions defined above.
-    :param process: Process.
-    :param scenario: Scenario object.
-    :return: bool.
-    """
-    if not dependencies:
-        return True
-
-    for required_actions in (deps[str(process)] for deps in dependencies.values() if str(process) in deps):
-        if not required_actions.issubset(set(scenario.actions.keys())):
-            return False
-    return True
 
 
 class ModelFactory:
@@ -347,19 +152,22 @@ class ModelFactory:
             original_name = batch.attributed_name
 
             # Do sanity check to catch several savepoints in a model
-            sp_scenarios = {s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint}
+            sp_scenarios = {s for s in batch.non_models if isinstance(s, Scenario) and s.savepoint}
             assert len(sp_scenarios) < 2
 
             # Set entry process
-            if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
+            if related_process and related_process in batch.environment and batch.environment[related_process] and\
+                    batch.environment[related_process].savepoint:
                 # There is an environment process with a savepoint
                 new.entry = self._process_from_scenario(batch.environment[related_process],
                                                         model.environment[related_process])
                 del batch.environment[related_process]
+                new.rename_notion(related_process, str(new.entry))
 
                 # Move declarations and definitions
                 if model.entry:
-                    self._copy_declarations_to_init(model.entry, new.entry)
+                    new.extend_model_name(str(model.entry), 'Removed')
+                    new.copy_declarations_to_init(model.entry)
             elif batch.entry:
                 # The entry process has a scenario
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
@@ -386,25 +194,28 @@ class ModelFactory:
                             collection[key] = self._process_copy(getattr(model, attr)[key])
                     else:
                         self.logger.debug(f"Skip process '{key}' in '{new.attributed_name}'")
-                        self._copy_declarations_to_init(getattr(model, attr)[key], new.entry)
+                        new.copy_declarations_to_init(getattr(model, attr)[key])
 
             new.establish_peers()
             self._remove_unused_processes(new)
 
-            if new.attributed_name != original_name:
-                self.logger.info("Reduced batch {!r} to {!r}".format(original_name, new.attributed_name))
+            if new.consistent:
+                if new.attributed_name != original_name:
+                    self.logger.info("Reduced batch {!r} to {!r}".format(original_name, new.attributed_name))
 
-            # Add missing attributes to the model
-            for process_name in model.environment:
-                added_attributes = []
-                if process_name not in new.attributes:
-                    added_attributes.append(process_name)
-                    extend_model_name(new, process_name, 'base')
-                added_attributes = ', '.join(added_attributes)
-                self.logger.debug(
-                    f"Add to model '{new.attributed_name}' the following attributes: '{added_attributes}'")
+                # Add missing attributes to the model
+                for process_name in model.non_models:
+                    added_attributes = []
+                    if process_name not in new.attributes:
+                        added_attributes.append(process_name)
+                        new.extend_model_name(process_name, 'base')
+                    added_attributes = ', '.join(added_attributes)
+                    self.logger.debug(
+                        f"Add to model '{new.attributed_name}' the following attributes: '{added_attributes}'")
 
-            yield new
+                yield new
+            else:
+                self.logger.debug(f"Obtained model '{new.attributed_name}' is inconsistent")
 
     def _cached_yield(self, model_iterator):
         model_cache = set()
@@ -432,53 +243,27 @@ class ModelFactory:
         if scenario.savepoint:
             self.logger.debug(f"Replace the first action in the process '{str(process)}' by the savepoint"
                               f" '{str(scenario.savepoint)}'")
-            new = new_process.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
+            new = new_process.actions.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
                                             scenario.savepoint.comment if scenario.savepoint.comment else
                                             f"Save point '{str(scenario.savepoint)}'")
             new.trace_relevant = True
+            new._require = scenario.savepoint.requirements
+            new._weak_require = scenario.savepoint.weak_requirements
 
             firsts = scenario.actions.first_actions()
             for name in firsts:
                 if isinstance(scenario.actions[name], Receive):
-                    new_process.replace_action(new_process.actions[name], new)
+                    new_process.actions.replace_action(new_process.actions[name], new)
                 else:
-                    new_process.insert_action(new, new_process.actions[name], before=True)
+                    new_process.actions.insert_action(new, new_process.actions[name], before=True)
         else:
             self.logger.debug(
                 f"Keep the process '{str(process)}' created for the scenario '{str(scenario.name)}' as is")
 
         return new_process
 
-    def _remove_unused_processes(self, model: ProcessCollection):\
-        # We need more iterations to detect all processes that can be deleted
-        iterate = True
-        while iterate:
-            iterate = False
-            for key, process in model.environment.items():
-                receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
-                all_peers = {a for acts in process.peers.values() for a in acts}
-
-                if not receives.intersection(all_peers) or \
-                        not check_process_deps_aginst_model(model, process):
-                    self.logger.info(f"Delete process '{key}' from the model '{model.attributed_name}' as it has no"
-                                     f" peers")
-                    self._copy_declarations_to_init(model.environment[key], model.entry)
-                    remove_process(model, key)
-
-                    iterate = True
-                else:
-                    names = ', '.join(sorted(receives.intersection(all_peers)))
-                    self.logger.info(
-                        f"Process '{key}' from the model '{model.attributed_name}' has peers for '{names}'")
-
-            if iterate:
-                model.establish_peers()
-        self.logger.info(f"New attributes of the model: '{model.attributed_name}'")
-
-    def _copy_declarations_to_init(self, process: Process, init: Process):
-        assert process
-
-        for attr in ('declarations', 'definitions'):
-            for file in getattr(process, attr):
-                getattr(init, attr).setdefault(file, dict())
-                getattr(init, attr)[file].update(getattr(process, attr)[file])
+    def _remove_unused_processes(self, model: ProcessCollection):
+        deleted = model.remove_unused_processes()
+        deleted_names = ', '.join(map(str, deleted))
+        self.logger.info(f"The following processes were deleted from the model '{model.attributed_name}':"
+                         f" {deleted_names}")

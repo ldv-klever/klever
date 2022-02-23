@@ -24,7 +24,7 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
 from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
-    Signal, Behaviour, Parentheses, Choice, Concatenation
+    Signal, Behaviour, Parentheses, Choice, Concatenation, Requirements, WeakRequirements
 
 
 """Represent a signal peer."""
@@ -104,7 +104,7 @@ class Process:
                 collection[item] = copy.copy(collection[item])
 
         # Copy labels
-        inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
+        inst.labels = {lbl.name: copy.copy(lbl) for lbl in self.labels.values()}
 
         # Recalculate accesses
         inst.accesses(refresh=True)
@@ -114,8 +114,8 @@ class Process:
     @property
     def name(self):
         """
-        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation that
-        also include a category.
+        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation
+        that also include a category.
 
         :return: Str.
         """
@@ -262,6 +262,13 @@ class Process:
                         p1.peers.setdefault(str(p2), set())
                         p1.peers[str(p2)].add(str(action))
 
+    @property
+    def incoming_peers(self):
+        """Get only peers that can activate the process."""
+        registrations = {a for a in self.actions.filter(include={Receive}) if a.replicative}
+        return {peer: registrations.intersection(signals) for peer, signals in self.peers.items()
+                if registrations.intersection(signals)}
+
     def resolve_access(self, access):
         """
         Get a string access and return a matching list of Access objects.
@@ -270,28 +277,28 @@ class Process:
         :return: List with Access objects.
         """
         if isinstance(access, Label):
-            string = repr(access)
+            name = repr(access)
         elif isinstance(access, str):
-            string = access
+            name = access
         else:
             raise TypeError('Unsupported access token')
-        return self._accesses[string]
+        return self._accesses[name]
 
-    def add_declaration(self, file, name, string):
+    def add_declaration(self, file, name, declaration):
         """
         Add a C declaration which should be added to the environment model as a global variable alongside with the code
         generated for this process.
 
         :param file: File to add ("environment model" if it is not a particular program file).
         :param name: Variable or function name to add.
-        :param string: String with the declaration.
+        :param declaration: String with the declaration.
         :return: None.
         """
         if file not in self.declarations:
             self.declarations[file] = sortedcontainers.SortedDict()
 
         if name not in self.declarations[file]:
-            self.declarations[file][name] = string
+            self.declarations[file][name] = declaration
 
     def add_definition(self, file, name, strings):
         """
@@ -322,134 +329,80 @@ class Process:
         :param value: Value string or None.
         :return: New Label object.
         """
-        lb = Label(name)
-        lb.declaration = declaration
+        label = Label(name)
+        label.declaration = declaration
         if value:
-            lb.value = value
-        self.labels[name] = lb
+            label.value = value
+        self.labels[name] = label
         acc = Access('%{}%'.format(name))
-        acc.label = lb
-        acc.list_access = [lb._name]
+        acc.label = label
+        acc.list_access = [label._name]
         self._accesses[acc.expression] = acc
-        return lb
+        return label
 
-    def add_condition(self, name, condition, statements, comment):
+    @property
+    def peers_as_requirements(self):
         """
-        Add new Condition action. Later you can add it to a particular place to execute using an another method.
+        Represent peers as a Requirements object.
 
-        :param name: Action name.
-        :param condition: List of conditional expressions.
-        :param statements: List with statements to execute.
-        :param comment: A comment for the action (A short sentence).
-        :return: A new Condition object.
+        :return: Requirements object
         """
-        new = Block(name)
-        self.actions[name] = new
-
-        new.condition = condition
-        new.statements = statements
-        new.comment = comment
+        new = WeakRequirements()
+        for peer, signal_actions in self.incoming_peers.items():
+            new.add_requirement(peer)
+            new.add_actions_requirement(peer, sorted(list(signal_actions)))
         return new
 
-    def replace_action(self, old, new, purge=True):
+    @property
+    def requirements(self):
         """
-        Replace in actions graph the given action.
+        Collect and yield all requirements of the process.
 
-        :param old: BaseAction object.
-        :param new: BaseAction object.
-        :param purge: Delete an object from collection.
-        :return: None
+        :return: An iterator over requirements.
         """
-        assert isinstance(old, Action), f"Expect strictly an Action to replace but got '{repr(old)}'"
-        assert isinstance(new, Action), f"Expect strictly an Action to replace with '{repr(new)}'"
-        self.actions[str(new)] = new
+        for action in self.actions.values():
+            if action.requirements and not action.requirements.is_empty:
+                yield action.requirements
+            if action.weak_requirements and not action.weak_requirements.is_empty:
+                yield action.weak_requirements
+        new = self.peers_as_requirements
+        if not new.is_empty:
+            yield new
 
-        for entry in self.actions.behaviour(str(old)):
-            new_entry = Behaviour(str(new), type(new))
-            self.actions.add_process_action(new_entry, str(new))
-            operator = entry.my_operator
-            operator.replace(entry, new_entry)
-            self.actions.remove_process_action(entry)
-
-        if purge:
-            del self.actions[str(old)]
-
-    def insert_action(self, new, target, before=False):
+    def relevant_requirements(self, name):
         """
-        Insert an existing action before or after the given target action.
+        Return a set of Requirement object which ask to add the process with a given name.
 
-        :param new: Action object.
-        :param target: Action object.
-        :param before: True if append left ot append to  the right end.
+        :param name: Process name.
+        :return: Set of Requirements objects
         """
-        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
-        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
-        if str(new) not in self.actions:
-            self.actions[str(new)] = new
+        assert isinstance(name, str)
 
-        for entry in self.actions.behaviour(str(target)):
-            new_entry = Behaviour(str(new), type(new))
-            self.actions.add_process_action(new_entry, str(new))
-            operator = entry.my_operator
-            if isinstance(operator, Choice):
-                new_conc = Concatenation()
-                operator.replace(entry, new_conc)
-                if before:
-                    new_conc.append(new_entry)
-                    new_conc.append(entry)
-                else:
-                    new_conc.append(entry)
-                    new_conc.append(new_entry)
-            elif isinstance(operator, Concatenation):
-                position = operator.index(entry)
-                if not before:
-                    position += 1
-                operator.insert(position, new_entry)
-            else:
-                raise NotImplementedError
+        return {r for r in self.requirements if name in r.required_processes}
 
-    def insert_alternative_action(self, new, target):
+    def compatible_with_model(self, model, restrict_to=None):
         """
-        Insert an existing action as an alternative choice for a given one.
+        Check that the model contains all necessary for this process. Do not check that the process has all necessary
+        for the model.
 
-        :param new: Action object.
-        :param target: Action object.
+        :param model: ProcessCollection.
+        :param restrict_to: None or set of Process names.
+        :return: Bool
         """
-        assert isinstance(new, Action), f"Got non-action object '{str(new)}'"
-        assert isinstance(target, Action), f"Got non-action object '{str(target)}'"
-        if str(new) not in self.actions:
-            self.actions[str(new)] = new
+        assert isinstance(model, ProcessCollection)
+        assert restrict_to is None or isinstance(restrict_to, set)
 
-        for entry in self.actions.behaviour(str(target)):
-            operator = entry.my_operator
-            newb = Behaviour(str(new), type(new))
-            self.actions.add_process_action(newb, str(new))
-
-            if isinstance(operator, Concatenation) and isinstance(operator.my_operator, Choice) and operator[0] is entry:
-                operator = operator.my_operator
-                operator.append(newb)
-            elif isinstance(operator, Concatenation):
-                new_par = Parentheses()
-                operator.replace(entry, new_par)
-                choice = Choice()
-                new_par.append(choice)
-                choice.append(newb)
-                choice.append(entry)
-            elif isinstance(operator, Parentheses):
-                choice = Choice()
-                operator.replace(entry, choice)
-                choice.append(newb)
-                choice.append(entry)
-            elif isinstance(operator, Choice):
-                operator.append(newb)
-            else:
-                raise ValueError("Unknown operator {!r}".format(type(operator).__name__))
+        for requirement in self.requirements:
+            if not requirement.compatible_with_model(model, restrict_to):
+                return False
+        return True
 
 
 class ProcessDescriptor:
     """The descriptor forbids to set non-Process values."""
 
     EXPECTED_CATEGORY = 'entry_point'
+    DEFAULT_ID = 'main'
 
     def __set__(self, obj, value):
         assert isinstance(value, Process) or value is None, f"Got '{type(value).__name__}' instead of a process"
@@ -467,6 +420,7 @@ class ProcessDict(sortedcontainers.SortedDict):
 
     def __setitem__(self, key, value):
         assert isinstance(value, Process), f"Expect a Process as a value bug got '{type(value).__name__}'"
+
         if value.category and value.category == 'functions models':
             assert key == value.name, f"Function models should be assigned by its name ('{value.name}') but got '{key}'"
         else:
@@ -522,6 +476,14 @@ class ProcessCollection:
         """Returns a dict with all processes from the model."""
         return {str(p): p for p in self.processes}
 
+    @property
+    def non_models(self):
+        """Return environment processes with an entry process"""
+        ret = set(self.environment.keys())
+        if self.entry:
+            ret.add(str(self.entry))
+        return {n: p for n, p in self.process_map.items() if n in ret}
+
     def find_process(self, identifier: str):
         """
         Get an identifier and search the process in models, environment and entry attributes.
@@ -569,6 +531,48 @@ class ProcessCollection:
 
         return peers
 
+    def remove_unused_processes(self):
+        # We need more iterations to detect all processes that can be deleted
+        iterate = True
+        deleted = set()
+        while iterate:
+            iterate = False
+            for key, process in self.environment.items():
+                receives = set(map(str, (a for a in process.actions.filter(include={Receive}) if a.replicative)))
+                all_peers = {a for acts in process.peers.values() for a in acts}
+
+                if not receives.intersection(all_peers) or \
+                        not process.compatible_with_model(self):
+                    self.copy_declarations_to_init(self.environment[key])
+                    self.remove_process(key)
+                    deleted.add(key)
+                    iterate = True
+
+            if iterate:
+                self.establish_peers()
+
+        return deleted
+
+    def extend_model_name(self, process_name, attribute):
+        assert isinstance(process_name, str)
+        assert isinstance(attribute, str) or attribute is None
+        self.attributes[process_name] = attribute
+
+    def remove_process(self, process_name):
+        if process_name in self.environment:
+            del self.environment[process_name]
+        else:
+            self.entry = None
+        self.extend_model_name(process_name, 'Removed')
+
+    def copy_declarations_to_init(self, process: Process):
+        """Copy declarations and definitions from a given process to the entry one."""
+        assert process
+        for attr in ('declarations', 'definitions'):
+            for file in getattr(process, attr):
+                getattr(self.entry, attr).setdefault(file, dict())
+                getattr(self.entry, attr)[file].update(getattr(process, attr)[file])
+
     def establish_peers(self):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
@@ -585,50 +589,53 @@ class ProcessCollection:
             for process in list(self.environment.values()) + ([self.entry] if self.entry else []):
                 model.establish_peers(process)
 
-        processes = list(self.environment.values()) + ([self.entry] if self.entry else [])
+        processes = self.processes
         for i, process in enumerate(processes):
             for pair in processes[i+1:]:
                 process.establish_peers(pair)
 
     def save_digraphs(self, directory):
         """
-        Method saves Automaton with code in doe format in debug purposes. This functionality can be turned on by setting
-        corresponding configuration property. Each action is saved as a node and for each possible state transition
-        an edge is added. This function can be called only if code blocks for each action of all automata are already
-        generated.
+        Method saves Automaton with code in dot format for debug purposes. This functionality can be turned on by
+        setting corresponding configuration property. Each action is saved as a node and for each possible state
+        transition an edge is added. This function can be called only if code blocks for each action of all automata are
+        already generated.
 
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None
         """
-        covered_subprocesses = set()
-
-        def process_next(prevs, action):
+        def process_next(prevs, action, covered_subprocesses):
             if isinstance(action, Behaviour):
+                # Subprocesses represent auxiliary actions that correspond to jumps having normal actions as well. We
+                # skip these auxiliary actions and relate their children with corresponding jump actions.
+                real_action = action.description.action if action.kind is Subprocess else action
                 for prev in prevs:
-                    graph.edge(str(hash(prev)), str(hash(action)))
+                    graph.edge(str(hash(prev)), str(hash(covered_subprocesses.get(real_action, action))))
 
                 if action.kind is Subprocess:
-                    if action.description.action not in covered_subprocesses:
-                        graph.node(str(hash(action.description)), r'Begin subprocess {}\l'.format(repr(a)))
-                        covered_subprocesses.add(action.description.action)
-                        process_next({action.description}, action.description.action)
-                    graph.edge(str(hash(action)), str(hash(action.description)))
-                    return {}
+                    if real_action not in covered_subprocesses:
+                        covered_subprocesses[real_action] = action
+                        process_next({action}, real_action, covered_subprocesses)
+                        graph.node(str(hash(action)), r'{}\l'.format(repr(action)))
+                        return {action}
+                    else:
+                        return {covered_subprocesses[real_action]}
                 else:
-                    return {action}
+                    graph.node(str(hash(real_action)), r'{}\l'.format(repr(real_action)))
+                    return {real_action}
             elif isinstance(action, Parentheses):
-                return process_next(prevs, action[0])
+                return process_next(prevs, action[0], covered_subprocesses)
             elif isinstance(action, Choice):
                 new_prevs = set()
                 for act in action:
-                    new_prevs.update(process_next(prevs, act))
+                    new_prevs.update(process_next(prevs, act, covered_subprocesses))
                 return new_prevs
             elif isinstance(action, Concatenation):
                 for act in action:
-                    prevs = process_next(prevs, act)
+                    prevs = process_next(prevs, act, covered_subprocesses)
                 return prevs
             else:
-                raise NotImplementedError
+                raise NotImplementedError(type(action))
 
         # Dump separately all automata
         for process in self.processes:
@@ -639,10 +646,125 @@ class ProcessCollection:
                 format="png"
             )
 
-            for a in process.actions.final_actions:
-                graph.node(str(hash(a)), r'{}\l'.format(repr(a)))
-            process_next(set(), process.actions.initial_action)
+            process_next(set(), process.actions.initial_action, dict())
 
             # Save to dg_file
             graph.save(dg_file)
             graph.render()
+
+    @property
+    def consistent(self):
+        for process in self.processes:
+            for requirement in process.requirements:
+                if not requirement.compatible_with_model(self):
+                    return False
+        else:
+            return True
+
+    def requiring_processes(self, name, restrict_to=None):
+        """
+        Provide the set of process names for processes that require this one recursively.
+
+        :param name: Process name.
+        :param restrict_to: Processes that are considred as possible dependencies.
+        :return: Set of Process names.
+        """
+        assert isinstance(name, str)
+        assert restrict_to is None or isinstance(restrict_to, set)
+
+        requiring = {name}
+        continue_iteration = True
+        while continue_iteration:
+            continue_iteration = False
+
+            # Collect processes that requires collected
+            iterate_over = [p for p in self.processes
+                            if (restrict_to is None or str(p) in restrict_to) and str(p) not in requiring]
+            for process in iterate_over:
+                for requirement in process.requirements:
+                    if requirement.required_processes.intersection(requiring):
+                        requiring.add(str(process))
+                        continue_iteration = True
+                        break
+
+        requiring.remove(name)
+        return requiring
+
+    def broken_processes(self, name, process_actions):
+        """
+        Check which processes would have unmet dependencies because of the process recursively.
+
+        :param name: Process name.
+        :param process_actions: Actions obj.
+        :return: Set of Process names.
+        """
+        assert isinstance(name, str)
+        assert isinstance(process_actions, Actions)
+
+        # First collect processes that are incompatible with this one
+        broken = set()
+        for process in (p for p in self.processes if str(p) != name):
+            for requirement in process.requirements:
+                if not requirement.compatible(name, process_actions):
+                    broken.add(str(process))
+                    break
+
+        # Then iteratively check other dependencies.
+        for broken_process in sorted(broken):
+            more_broken = self.requiring_processes(broken_process)
+            broken.update(more_broken)
+
+        return broken
+
+    def rename_notion(self, previous: str, new: str):
+        for process in self.processes:
+            for requirement in process.requirements:
+                requirement.rename_notion(previous, new)
+
+    @property
+    def dependency_order(self):
+        """
+        Try to get the order of environment processes with respect to their dependencies. First processes should depend
+        on others that do not require preceding processes. Note, that it is not always strictly possible to obtain
+        a good order. There can be independent connected processes in the model. Do not rely to much on it and it is
+        better to get rid of using this function.
+
+        :return:
+        """
+        dep_order = []
+        todo = set(self.environment.keys())
+        if self.entry:
+            todo.add(str(self.entry))
+
+        while todo:
+            free = []
+            for entry in sorted(todo):
+                if not self._transitive_is_required(entry, set(todo)):
+                    free.append(entry)
+            for selected in free:
+                dep_order.append(selected)
+                todo.remove(selected)
+
+        return dep_order
+
+    def _transitive_is_required(self, process_name, restrict_to=None):
+        """
+        Check that given process is required by anybody in the given set of processes.
+
+        :param process_name: Process name.
+        :param restrict_to: Process iterable.
+        :return: Bool
+        """
+        assert isinstance(process_name, str)
+        assert restrict_to is None or isinstance(restrict_to, set)
+
+        if restrict_to:
+            processes = set(restrict_to).intersection(set(map(str, self.processes)))
+        else:
+            processes = set(map(str, self.processes))
+
+        for process in (p for p in self.processes if str(p) in processes and str(p) != process_name):
+            for requirement in process.requirements:
+                if process_name in requirement.required_processes:
+                    return True
+        return False

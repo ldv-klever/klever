@@ -1,1 +1,1 @@
-bc bison cmake elfutils-libelf-devel flex gettext git glibc-devel.i686 graphviz libpq-devel make nginx openssl-devel postgresql postgresql-server python3-devel python3-pip rabbitmq-server unzip
+bc bison cmake elfutils-libelf-devel flex gettext git glibc-devel.i686 graphviz make nginx openssl-devel postgresql postgresql-server python3-devel python3-pip rabbitmq-server unzip

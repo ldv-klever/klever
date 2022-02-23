@@ -6,7 +6,7 @@ cchardet==2.1.7
 celery==5.0.3
 certifi==2020.12.5
 chardet==3.0.4
-clade==3.4.8
+clade==3.4.9
 click==7.1.2
 click-didyoumean==0.0.3
 click-plugins==1.1.1
@@ -29,7 +29,7 @@ MarkupSafe==1.1.1
 pika==1.1.0
 ply==3.11
 prompt-toolkit==3.0.8
-psycopg2==2.8.6
+psycopg2-binary==2.8.6
 Pygments==2.7.3
 python-slugify==4.0.1
 pytz==2020.4

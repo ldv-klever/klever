@@ -246,6 +246,61 @@ It is not hard to accomplish this aspect file with bindings for static inline st
 The aspect file above contains declarations of model functions.
 You can place them into a separate header file and include that file into both the C file and the aspect file.
 
+If you will need to keep original function calls, you can use either before/after advices or include those calls
+directly in advices themselves like in the examples below:
+
+.. code-block:: c
+
+    /* Original function will be invoked after ldv_func_pre() and its return value will be returned eventually. */
+    before: call(int func(int arg))
+    {
+        ldv_func_pre(arg);
+    }
+
+.. code-block:: c
+
+    /* Original function will be invoked before ldv_func_post() and its return value will be returned eventually.
+       Besides, it is available as $res in advice body. */
+    after: call(int func(int arg))
+    {
+        ldv_func_post(arg, $res);
+    }
+
+.. code-block:: c
+
+    around: call(int func(int arg))
+    {
+        int ret;
+        ldv_func_pre(arg);
+        ret = func(arg);
+        ldv_func_post(arg, ret);
+        return ret;
+    }
+
+Unless you are using options "weave in model aspect" and "weave in all aspects", you can invoke original functions
+within model functions.
+Otherwise, you will have recursion due to those original function calls will be also woven in.
+
+Sometimes it may be quite hard to get function declarations to be used in the aspect file.
+For instance, it is forbidden to use macros in aspect files while macros may be used in sources.
+Also, there may be different declarations for the same function depending on configurations.
+If you will see that your model does not work (e.g. code coverage reports can demonstrate this), you can investigate
+Weaver's logs to find valid function declarations.
+There may be warnings like these::
+
+    These functions were matched by name but have different signatures:
+      source function declaration: void iounmap (void volatile *)
+      aspect function declaration: void iounmap (int *)
+
+Obviously you need to use at least valid function names.
+Otherwise, you will not see any warnings.
+Also, you should take into account that CIF does not issue these warnings for composite pointcuts unless there will be
+mismatches of original function declarations with their last primitive pointcuts.
+
+You can find more details about development of aspect files and related internals in [N13]_.
+Moreover, you can visit the official project `site <https://forge.ispras.ru/projects/cif>`__ and read its official
+`documentation <https://cif.readthedocs.io/>`__.
+
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -400,8 +455,11 @@ with:
 Models and bindings that use argument signatures should be described differently within requirement specification bases.
 It is recommended to study how to do this on the base of existing examples, say, **kernel:locking:mutex**.
 
-You can find more details about the considered approach in [N13]_.
+You can find more details about the considered approach in [N13-2]_.
 
-.. [N13] Novikov E.M. Building Programming Interface Specifications in the Open System of Componentwise Verification of
-         the Linux Kernel. Proceedings of the Institute for System Programming of the RAS (Proceedings of ISP RAS),
-         volume 24, pp. 293-316. 2013. https://doi.org/10.15514/ISPRAS-2013-24-13. (In Russian)
+.. [N13] \E.M. Novikov. An approach to implementation of aspect-oriented programming for C. Programming and Computer
+         Software, volume 39, issue 4, pp. 194-206, Springer US, 2013. https://doi.org/10.1134/S0361768813040051
+
+.. [N13-2] \E.M. Novikov. Building Programming Interface Specifications in the Open System of Componentwise Verification
+           of the Linux Kernel. Proceedings of the Institute for System Programming of the RAS (Proceedings of ISP RAS),
+           volume 24, pp. 293-316, 2013 (In Russian). https://doi.org/10.15514/ISPRAS-2013-24-13

@@ -53,8 +53,5 @@ ENV/
 # pytest
 .pytest_cache
 
-# VSCode
-.vscode
-
 # white list
 !klever/cli/build/

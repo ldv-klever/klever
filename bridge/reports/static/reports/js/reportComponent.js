@@ -39,4 +39,20 @@ $(document).ready(function () {
             hoverable: $(this).hasClass('hoverable')
         });
     });
+
+    let graph = new ReportGraph(document.getElementById('graph_container'));
+    $('.load-graph-icon').click(function (event) {
+        event.preventDefault();
+        $('#graph_content_div').hide();
+        $.get($(this).data('url'), function (resp) {
+            $('#graph_title').text(resp.title);
+            graph.fromDotData(resp.content);
+            $('#graph_content_div').show();
+        });
+    })
+
+    $('#open_fullscreen_graph_btn').click(function (event) {
+        event.preventDefault();
+        graph.openFullScreen();
+    });
 });

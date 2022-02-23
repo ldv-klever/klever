@@ -42,7 +42,7 @@ class LinearExtractor(ScenarioExtractor):
             self.logger.info(f"Generate '{name}' scenario for path '{repr(processing_path)}'" +
                              (f" and savepoint '{str(savepoint)}'" if savepoint else ''))
 
-            new_scenario = Scenario(savepoint, name)
+            new_scenario = Scenario(self._process, savepoint, name)
             new_scenario.initial_action = Concatenation()
             for behaviour in processing_path:
                 new_scenario.add_action_copy(behaviour, new_scenario.initial_action)

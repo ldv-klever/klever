@@ -232,10 +232,10 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
                     action.condition = guards
         else:
             # Replace it with a stub
-            new = process.add_condition(action.name + '_replacement', [],
+            new = process.actions.add_condition(action.name + '_replacement', [],
                                         ["/* Skip signal {!r} as it has no peers */".format(action.name)],
                                         "Stub instead of the {!r} signal.".format(action.name))
-            process.replace_action(action, new)
+            process.actions.replace_action(action, new)
 
     # Remove callback actions
     param_identifiers = id_generator()
@@ -440,11 +440,11 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
         if pre:
             pre_name = 'pre_call_{}'.format(next(action_identifiers))
-            pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
+            pre = process.actions.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
             pre.trace_relevant = True
         if post:
             post_name = 'post_call_{}'.format(next(action_identifiers))
-            post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
+            post = process.actions.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
             post.trace_relevant = True
 
         return pre, post
@@ -583,15 +583,15 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                        (["} else {", '\t' + ret, "}"] if ret != '' else ['}'])
 
             # Insert new action and replace this one
-            new = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
+            new = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                         conditions, code, comment)
             new.trace_relevant = True
 
             if generated_callbacks == 0:
-                process.replace_action(call, new)
+                process.actions.replace_action(call, new)
                 the_last_added = new
             else:
-                process.insert_alternative_action(new, the_last_added)
+                process.actions.insert_alternative_action(new, the_last_added)
             generated_callbacks += 1
 
             # Reinitialize state
@@ -600,12 +600,12 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
             # Add post and pre conditions
             if pre_action:
-                process.insert_action(pre_action, new, before=True)
+                process.actions.insert_action(pre_action, new, before=True)
                 # This is because the original callback may be replaced by a series of actions and we should add
                 # alternatives to the first action of such series
                 the_last_added = pre_action
             if post_action:
-                process.insert_action(post_action, new, before=False)
+                process.actions.insert_action(post_action, new, before=False)
 
     if generated_callbacks == 0:
         # It is simply enough to delete the action or generate an empty action with a specific comment
@@ -617,9 +617,9 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
         if reinitialize_vars_flag:
             reinitialize_variables(code)
 
-        n = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
+        n = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                   [], code, "No callbacks implemented to call here")
-        process.replace_action(call, n)
+        process.actions.replace_action(call, n)
         n.statements = code
 
 

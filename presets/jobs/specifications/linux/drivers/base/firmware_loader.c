@@ -25,14 +25,14 @@ int ldv_request_firmware(const struct firmware **fw)
 {
 	struct firmware *_fw = NULL;
 	int retval;
-  
+
 	retval = ldv_undef_int_nonpositive();
 
 	if (!retval)
     {
 		_fw = ldv_xzalloc(sizeof(**fw));
 		_fw->data = ldv_malloc_unknown_size();
-		ldv_assume(_fw->data);
+		ldv_assume(_fw->data != NULL);
 		_fw->size = ldv_undef_int_positive();
 	}
 
@@ -45,7 +45,7 @@ void ldv_release_firmware(const struct firmware *fw)
 {
 	if (fw)
     {
-		ldv_free(fw->data);
-		ldv_free(fw);
+		ldv_free((void *)fw->data);
+		ldv_free((void *)fw);
     }
 }

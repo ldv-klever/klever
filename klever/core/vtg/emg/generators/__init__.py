@@ -34,13 +34,13 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :param collection: ProcessCollection object.
     :param abstract_task_desc: Description dict.
     :param source: Source collection object.
-    :return: Reports dict.
+    :return: None
     """
     # In a specific order start process generators
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
                        [list(e.keys())[0] for e in get_or_die(conf, "generators options")])
     configurations = [list(e.values())[0] for e in get_or_die(conf, "generators options")]
-    specifications_set = conf.get('specifications set')
+    specifications_set = get_or_die(conf, "specifications set")
 
     # Find generators
     modules = [(shortname, importlib.import_module(name, 'klever.core')) for shortname, name in generator_names]
@@ -49,14 +49,13 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['specifications dir']))] + \
                          list(get_search_dirs(conf['main working directory']))
 
-    reports = dict()
     for index, (shortname, generator_module) in enumerate(modules):
         # Set debug option
         configurations[index]['keep intermediate files'] = conf.get('keep intermediate files')
 
         generator = generator_module.ScenarioModelgenerator(logger, configurations[index])
         specifications = generator.import_specifications(specifications_set, possible_locations)
-        reports.update(generator.make_scenarios(abstract_task_desc, collection, source, specifications))
+        generator.make_scenarios(abstract_task_desc, collection, source, specifications)
 
         # Now save specifications
         if conf.get('keep intermediate files'):
@@ -69,7 +68,6 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
             with open('%s intermediate model.json' % str(shortname), mode='w', encoding='utf-8') as fp:
                 json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
 
-            # Save images of processes
-            collection.save_digraphs('images')
-
-    return reports
+    if conf.get('keep intermediate files'):
+        # Save images of processes
+        collection.save_digraphs('images')

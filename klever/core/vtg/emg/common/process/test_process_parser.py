@@ -187,11 +187,15 @@ def test_multiple_operators():
 
 
 @parse_assert
-def _test_indexes():
-    # todo: unsupported
+def test_indexes():
     return [
+        "[a[2]]",
+        "(a[2])",
+        "<a[2]>",
+        "{jump[5]}",
         "([a[2]])",
-        "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)"
+        "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
+        "(!register).{jump[%k%]}"
     ]
 
 

@@ -96,6 +96,12 @@ struct inode *ldv_iget_locked(struct super_block *sb, unsigned long ino)
 	return ldv_alloc_inode(sb);
 }
 
+void ldv_iput(struct inode *inode)
+{
+	/* Do nothing since current models do not track inode reference counters and save pointers to inode structures to
+	   the global array. */
+}
+
 struct inode *ldv_get_root_inode(void)
 {
 	return ldv_inodes[0];

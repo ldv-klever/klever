@@ -39,7 +39,6 @@
         <h4>{% trans 'Resource limits for Klever Core' %}</h4>
         <div class="ui bulleted list">
             <div class="item"><b>{% trans 'Memory size' %}</b>: {{ conf.memory }} {% trans 'GB' %}</div>
-            <div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.disk_size }}</div>
             <div class="item"><b>{% trans 'Disk memory size' %}</b>: {{ conf.disk_size }} {% trans 'GB' %}</div>
             <div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.cpu_num }}</div>
             <div class="item"><b>{% trans 'CPU model' %}</b>: {{ conf.cpu_model }}</div>
@@ -84,10 +83,6 @@
             <div class="item">
                 <i class="{% if conf.upload_other_files %}green check{% else %}red x{% endif %} icon"></i>
                 <div class="content">{% trans 'Upload other intermediate files' %}</div>
-            </div>
-            <div class="item">
-                <i class="{% if conf.ignore_instances %}green check{% else %}red x{% endif %} icon"></i>
-                <div class="content">{% trans 'Ignore other instances of Klever Core' %}</div>
             </div>
             <div class="item">
                 <i class="{% if conf.ignore_subjobs %}green check{% else %}red x{% endif %} icon"></i>

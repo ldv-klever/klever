@@ -29,7 +29,8 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Decision
 from reports.models import (
-    ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive, CompareDecisionsInfo
+    ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive, CompareDecisionsInfo,
+    ReportImage
 )
 
 from jobs.utils import JobAccess
@@ -44,7 +45,7 @@ from reports.etv import GetETV
 from reports.utils import (
     report_resources, get_parents, report_attributes_with_parents, leaf_verifier_files_url,
     ReportStatus, ReportData, ReportAttrsTable, ReportChildrenTable, SafesTable, UnsafesTable, UnknownsTable,
-    ComponentLogGenerator, AttrDataGenerator, VerifierFilesGenerator, ErrorTraceFileGenerator
+    ComponentLogGenerator, AttrDataGenerator, VerifierFilesGenerator, ErrorTraceFileGenerator, ReportPNGGenerator
 )
 
 from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
@@ -102,6 +103,7 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, De
             'SelfAttrsData': ReportAttrsTable(self.object),
             'parents': get_parents(self.object),
             'reportdata': ViewReportData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
+            'images': ReportImage.objects.filter(report_id=self.object.pk).only('id', 'title'),
             'TableData': ReportChildrenTable(
                 self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
                 page=self.request.GET.get('page', 1)
@@ -440,3 +442,14 @@ class DownloadCoverageView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixi
 
     def get_generator(self):
         return CoverageGenerator(self.get_object())
+
+
+class TestD3(TemplateView):
+    template_name = 'reports/d3test.html'
+
+
+class DownloadReportPNGView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
+    model = ReportImage
+
+    def get_generator(self):
+        return ReportPNGGenerator(self.get_object())

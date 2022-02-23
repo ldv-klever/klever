@@ -22,8 +22,10 @@
 /* Pointers greater then this number correspond to errors. */
 #define LDV_PTR_MAX ((unsigned long)-MAX_ERRNO)
 
-long ldv_is_err(const void *ptr)
+bool ldv_is_err(const void *ptr)
 {
+	/* This long form is necessary for CPAchecker SMG. Please, do not change it to, say,
+	   "return (unsigned long)ptr >= LDV_PTR_MAX". */
 	if ((unsigned long)ptr >= LDV_PTR_MAX)
 		return 1;
 	else
@@ -54,7 +56,7 @@ long ldv_ptr_err(const void *ptr)
 	return result;
 }
 
-long ldv_is_err_or_null(const void *ptr)
+bool ldv_is_err_or_null(const void *ptr)
 {
-	return !ptr || ldv_is_err((unsigned long)ptr);
+	return !ptr || ldv_is_err(ptr);
 }

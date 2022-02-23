@@ -49,6 +49,13 @@ def get_coverage_arch_dir(instance, filename):
     return os.path.join('Reports', instance.report.component, str(curr_date.year), str(curr_date.month), filename)
 
 
+def get_images_path(instance, filename):
+    curr_date = now()
+    return os.path.join(
+        'Reports', instance.report.component, str(curr_date.year), str(curr_date.month), 'Images', filename
+    )
+
+
 def get_coverage_dir(instance, filename):
     return os.path.join('Reports', 'CoverageCache', 'CovArch-%s' % instance.archive_id, filename)
 
@@ -392,6 +399,19 @@ class SourceCodeCache(WithFilesMixin, models.Model):
         db_table = 'cache_source_code'
 
 
+class ReportImage(WithFilesMixin, models.Model):
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='images')
+    title = models.TextField()
+    image = models.FileField(upload_to=get_images_path)
+    data = models.FileField(upload_to=get_images_path)
+
+    class Meta:
+        db_table = 'report_component_images'
+
+    def __lt__(self, other):
+        return self.title < other.title
+
+
 post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)
 post_delete.connect(remove_instance_files, sender=AdditionalSources)
@@ -400,3 +420,4 @@ post_delete.connect(remove_instance_files, sender=ReportUnsafe)
 post_delete.connect(remove_instance_files, sender=ReportUnknown)
 post_delete.connect(remove_instance_files, sender=CoverageArchive)
 post_delete.connect(remove_instance_files, sender=SourceCodeCache)
+post_delete.connect(remove_instance_files, sender=ReportImage)

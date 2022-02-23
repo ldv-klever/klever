@@ -308,18 +308,6 @@ class Native(runners.Speculative):
         args.extend(['--file', file_name])
         self._reserved[subdir][identifier] = dict()
 
-        # Check disk space limitation
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
-                'disk memory size' in configuration["resource limits"] and \
-                configuration["resource limits"]['disk memory size']:
-            current_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
-            if current_space > configuration["resource limits"]['disk memory size']:
-                raise schedulers.SchedulerException(
-                    "Clean manually existing working directory of {} since its size on the disk is {}B which is "
-                    "greater than allowed limitation of {}B".
-                    format(os.path.abspath(work_dir), current_space,
-                           configuration["resource limits"]['disk memory size']))
-
         if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
@@ -463,10 +451,16 @@ class Native(runners.Speculative):
                 result = future.result()
                 self.logger.info(f'Future processor of {mode} {identifier} returned {result}')
 
+                termination_reason_file = "{}/termination-reason.txt".format(work_dir)
+                if os.path.isfile(termination_reason_file):
+                    with open(termination_reason_file, mode='r', encoding="utf-8") as fp:
+                        termination_reason = fp.read()
+                        raise schedulers.SchedulerException(termination_reason)
+
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf-8") as f:
-                        self.logger.debug("Scheduler client log: {}".format(f.read()))
+                        self.logger.debug("Scheduler client log:\n\n{}".format(f.read()))
                 else:
                     self.logger.warning("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
@@ -507,13 +501,9 @@ class Native(runners.Speculative):
                             error_msg = "Exited with exit code: {}".format(result)
 
                 if error_msg:
-                    self.logger.warning(error_msg)
-                    raise schedulers.SchedulerException(error_msg)
+                    raise schedulers.SchedulerException(error_msg + " (please, inspect unknown reports and logs)")
             else:
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
-        except Exception as err:
-            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, str(err))
-            raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
             if "keep working directory" not in self.conf["scheduler"] or \
@@ -600,13 +590,12 @@ class Native(runners.Speculative):
         :param identifier: A job or task identifier string.
         """
         work_dir = os.path.join(self.work_dir, entities, identifier)
+        if os.path.isdir(work_dir):
+            self.logger.debug("Remove former working directory {}/{}".format(entities, identifier))
+            shutil.rmtree(work_dir)
+
         self.logger.debug("Create working directory {}/{}".format(entities, identifier))
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir.encode("utf-8"), exist_ok=True)
-        else:
-            if os.path.isdir(work_dir.encode("utf-8")):
-                shutil.rmtree(work_dir, ignore_errors=True)
-            os.makedirs(work_dir.encode("utf-8"), exist_ok=False)
+        os.makedirs(work_dir)
 
     def _get_task_configuration(self):
         """

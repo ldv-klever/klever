@@ -242,11 +242,6 @@
         </div>
         <br><br>
         <div class="ui toggle checkbox">
-            <input id="ignore_instances" class="boolean-value" type="checkbox" {% if data.conf.ignore_instances %} checked{% endif %}>
-            <label for="ignore_instances">{% trans 'Ignore other instances of Klever Core' %}</label>
-        </div>
-        <br><br>
-        <div class="ui toggle checkbox">
             <input id="ignore_subjobs" class="boolean-value" type="checkbox" {% if data.conf.ignore_subjobs %} checked{% endif %}>
             <label for="ignore_subjobs">{% trans 'Ignore failed sub-jobs' %}</label>
         </div>
@@ -343,4 +338,3 @@
         </div>
     </div>
 {% endif %}
-

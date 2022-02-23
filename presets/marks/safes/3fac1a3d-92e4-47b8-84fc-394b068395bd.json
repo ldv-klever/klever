@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/integers/division/safe.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

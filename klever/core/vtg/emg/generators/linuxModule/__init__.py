@@ -63,7 +63,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         # Get instance maps if possible
         instance_maps = sortedcontainers.SortedDict()
@@ -122,8 +122,6 @@ class ScenarioModelgenerator(AbstractGenerator):
         collection.environment.update(new_pure_collection.environment)
         collection.models.update(new_pure_collection.models)
         collection.establish_peers()
-
-        return {}
 
     def _merge_specifications(self, specifications_set, files):
         merged_specification = sortedcontainers.SortedDict()

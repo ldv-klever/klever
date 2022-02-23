@@ -29,6 +29,9 @@ extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *);
 
+/* Like for memset() below. */
+#undef memcpy
+
 /* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
 extern void *memcpy(void *s1, const void *s2, size_t n);
 

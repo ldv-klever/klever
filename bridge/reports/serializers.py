@@ -27,7 +27,7 @@ from bridge.serializers import TimeStampField
 
 from jobs.models import Decision
 from reports.models import (
-    ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponent, Computer, OriginalSources
+    ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponent, Computer, OriginalSources, ReportImage
 )
 from marks.models import (
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
@@ -329,3 +329,13 @@ class PatchReportAttrSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportAttr
         fields = ('compare', 'associate')
+
+
+class ReportImageSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        assert isinstance(validated_data.get('report'), ReportComponent), 'ReportComponent is required'
+        return super(ReportImageSerializer, self).create(validated_data)
+
+    class Meta:
+        model = ReportImage
+        fields = ('title', 'image', 'data')

@@ -353,6 +353,25 @@
           }
         }
       },
+      "kill_mtd_super": {
+        "comment": "Clean up superblock.",
+        "headers": [
+          "linux/mtd/mtd.h"
+        ],
+        "reference": true,
+        "labels": {},
+        "process": "<call>",
+        "actions": {
+          "call": {
+            "comment": "Release memory for MTD and block device of superblock but not for superblock itself.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_free($ARG1->s_mtd);",
+              "ldv_free($ARG1->s_bdev);"
+            ]
+          }
+        }
+      },
       "register_filesystem": {
         "comment": "Register a new filesystem.",
         "reference": true,

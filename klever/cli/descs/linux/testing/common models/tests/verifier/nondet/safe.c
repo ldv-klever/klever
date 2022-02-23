@@ -44,9 +44,22 @@ static int __init ldv_init(void)
 	if (var1 >= 0)
 		ldv_unexpected_error();
 
+	var1 = ldv_undef_int_nonnegative();
+
+	if (var1 < 0)
+		ldv_unexpected_error();
+
 	var1 = ldv_undef_int_nonpositive();
 
 	if (var1 > 0)
+		ldv_unexpected_error();
+
+	var1 = ldv_undef_int_range(-2, 3);
+
+	if (var1 < -2)
+		ldv_unexpected_error();
+
+	if (var1 > 3)
 		ldv_unexpected_error();
 
 	var6 = ldv_undef_ptr_non_null();

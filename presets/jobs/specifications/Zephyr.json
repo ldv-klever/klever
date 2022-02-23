@@ -1,4 +1,5 @@
 {
+  "specification sets": ["1.9.2"],
   "templates": {
     "drivers": {
       "plugins": [
@@ -67,7 +68,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:38277"
+              "version": "klever_fixes:39071"
             }
           }
         }

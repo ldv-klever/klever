@@ -40,7 +40,7 @@ def test_savepoint():
     v1 = 'x1'
     v2 = 'x2'
     statements = [v1, v2]
-    pnt = Savepoint(name, statements)
+    pnt = Savepoint(name, 'test_process', statements)
 
     # Test __str__
     assert str(pnt) == name

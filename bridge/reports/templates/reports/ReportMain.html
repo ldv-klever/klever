@@ -30,6 +30,11 @@
         <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
     {% endcompress %}
     {% compress js file report %}
+        <script type="application/javascript">
+            mxBasePath = "{% static 'bridge/mxgraph' %}";
+        </script>
+        <script src="{% static 'bridge/mxgraph/js/mxClient.js' %}"></script>
+        <script src="{% static 'reports/js/report-graph.js' %}"></script>
         <script src="{% static 'reports/js/reportComponent.js' %}"></script>
     {% endcompress %}
 {% endblock %}
@@ -73,6 +78,17 @@
                 </tr>
             </tbody>
         </table>
+
+        <br>
+        <div class="ui buttons">
+            {% if report.log %}
+                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
+            {% endif %}
+            {% if report.verifier_files %}
+                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
+            {% endif %}
+        </div>
+
         {% if SelfAttrsData.values|length %}
             <h4 class="header ui violet">{% trans 'Attributes' %}</h4>
             <div style="overflow-x: auto">
@@ -146,15 +162,37 @@
             </div>
         {% endif %}
 
-        <br>
-        <div class="ui buttons">
-            {% if report.log %}
-                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
-            {% endif %}
-            {% if report.verifier_files %}
-                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
-            {% endif %}
-        </div>
+
+        {% if images|length %}
+            <h3>{% trans 'Report images' %}</h3>
+            <table class="ui compact selectable violet table">
+                <thead>
+                    <tr>
+                        <th>{% trans 'Name' %}</th>
+                        <th>&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for image in images|sort_list %}
+                        <tr>
+                            <td>{{ image.title }}</td>
+                            <td class="right aligned">
+                                <a href="{% url 'reports:download-report-png' image.pk %}" data-tooltip="{% trans 'Download png' %}"><i class="ui download icon"></i></a>
+                                <a href="#" class="load-graph-icon" data-url="{% url 'reports:api-get-report-image' image.pk %}" data-tooltip="{% trans 'Load graph' %}"><i class="ui sitemap icon"></i></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="ui divider"></div>
+            <div id="graph_content_div" style="display: none;">
+                <h4>
+                    <span id="graph_title"></span>
+                    <a id="open_fullscreen_graph_btn" href="#" data-tooltip="{% trans 'Fullscreen' %}"><i class="expand arrows alternate icon"></i></a>
+                </h4>
+                <div id="graph_container" style="overflow:auto; max-height: 85vh; width: 100%; margin: 10px;"></div>
+            </div>
+        {% endif %}
     </div>
 
     <div class="ten wide column">

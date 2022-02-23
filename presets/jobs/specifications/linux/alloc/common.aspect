@@ -36,9 +36,8 @@ pointcut ALLOC: execution(static inline struct page *alloc_pages(.., gfp_t flags
 				/* __dev_alloc_skb() calls alloc_skb() so we don't need to instrument it. */
 				call(struct urb *usb_alloc_urb(.., gfp_t flags, ..)) ||
 				/* This is rather optional for SLAB memory subsystem, just for SLUB. */
-				execution(static inline void *kmalloc_node(.., gfp_t flags, ..))
-				/* This function isn't static inline and has no body to be instrumented among related to a driver files. So instrument calls to it. */ ||
-				call(void *kmem_cache_alloc(.., gfp_t flags, ..)) ||
+				execution(static inline void *kmalloc_node(.., gfp_t flags, ..)) ||
+				/* This function isn't static inline and has no body to be instrumented among related to a driver files. So instrument calls to it. */
 				call(void *mempool_alloc(.., gfp_t flags, ..)) ||
 				call(void *dma_pool_alloc(.., gfp_t flags, ..)) ||
 				call(void *krealloc(.., gfp_t flags, ..)) ||
@@ -54,8 +53,7 @@ pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, 
 						   call(int pskb_expand_head(.., gfp_t flags, ..))
 
 /* Separately weave *zalloc*() because it should not call kmalloc() in the body. */
-pointcut ZALLOC: execution(static inline void *kzalloc_node(.., gfp_t flags, ..)) ||
-                 execution(static inline void *kmem_cache_zalloc(.., gfp_t flags, ..))
+pointcut ZALLOC: execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
 
 pointcut ALLOC_MACRO: define(alloc_pages(gfp_mask, order)) ||
 					  define(alloc_page_vma(gfp_mask, vma, addr))

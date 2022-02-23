@@ -28,18 +28,15 @@ void ldv_check_return_value_probe(int retval);
 
 around: call(struct usb_device *usb_get_dev(..))
 {
-	/* ASPECT_FUNC_CALL Increment USB device reference counter */
 	return ldv_usb_get_dev($arg1);
 }
 
 around: call(void usb_put_dev(..))
 {
-	/* ASPECT_FUNC_CALL Check that USB device reference counter was incremented and decrement it */
 	ldv_usb_put_dev($arg1);
 }
 
 before: call(int ldv_post_probe(..))
 {
-	/* ASPECT_FUNC_CALL Check that probe() keeps model in proper state */
 	ldv_check_return_value_probe($arg1);
 }

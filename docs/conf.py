@@ -36,7 +36,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Klever'
-copyright = '2020, ISP RAS'
+copyright = '2021, ISP RAS'
 author = 'ISP RAS'
 
 # The short X.Y version

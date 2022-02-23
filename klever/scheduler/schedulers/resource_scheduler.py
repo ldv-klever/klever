@@ -279,6 +279,24 @@ class ResourceManager:
 
         return tasks_to_run, jobs_to_run
 
+    def __user_friendly_memory_resources(self, unit, value, available_value, reserved_value):
+        """
+        Obtain more user-friendly representation (GB instead of B) for memory resources.
+
+        :param unit: Resource unit.
+        :param value: Claimed/freed value.
+        :param available_value: Available value.
+        :param reserved_value: Reserved value.
+        :return: Converted values and resource unit.
+        """
+        if unit == 'B':
+            value = memory_units_converter(value, 'GB')[0]
+            available_value = memory_units_converter(available_value, 'GB')[0]
+            reserved_value = memory_units_converter(reserved_value, 'GB')[0]
+            unit = 'GB'
+
+        return value, available_value, reserved_value, unit
+
     def claim_resources(self, identifier, conf, node, job=False):
         """
         Reserve the resources for given task or job in the system. Call the method when you are about to run the job or
@@ -309,9 +327,12 @@ class ResourceManager:
         self.__logger.debug(f"Reserve resources to run a new {name}")
         for reserved, value, available, unit in self.__iterate_over_resources():
             if conf[value]:
+                claimed_value, available_value, reserved_value, unit = \
+                    self.__user_friendly_memory_resources(unit, conf[value], self.__system_status[node][available],
+                                                          self.__system_status[node][reserved])
                 self.__logger.debug(
-                    f"Node {node}: claim {conf[value]}{unit} of {available} {self.__system_status[node][available]}{unit}"
-                    f" and have totally reserved {self.__system_status[node][reserved]}{unit}")
+                    f"Node {node}: claim {claimed_value}{unit} of {available} {available_value}{unit}"
+                    f" and have totally reserved {reserved_value}{unit}")
         self.__system_status[node][tag].append(identifier)
         self.__logger.debug(f"Now have running totally {len(self.__system_status[node][tag])} {name}s")
 
@@ -344,9 +365,12 @@ class ResourceManager:
         self.__logger.debug(f"Free resources after solution of a {name}")
         for reserved, value, available, unit in self.__iterate_over_resources():
             if conf[value]:
+                freed_value, available_value, reserved_value, unit = \
+                    self.__user_friendly_memory_resources(unit, conf[value], self.__system_status[node][available],
+                                                          self.__system_status[node][reserved])
                 self.__logger.debug(
-                    f"Node {node}: freed {conf[value]}{unit} of {available} {self.__system_status[node][available]}{unit}"
-                    f" and have totally reserved now {self.__system_status[node][reserved]}{unit}")
+                    f"Node {node}: freed {freed_value}{unit} of {available} {available_value}{unit}"
+                    f" and have totally reserved now {reserved_value}{unit}")
 
         # Remove running task or job and delete config of task or job
         del collection[identifier]

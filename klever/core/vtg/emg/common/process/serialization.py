@@ -23,8 +23,9 @@ import sortedcontainers
 from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
-from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer, ProcessDescriptor
+from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal,\
+    Requirements, WeakRequirements
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -55,16 +56,15 @@ class CollectionEncoder(json.JSONEncoder):
             raise TypeError(f"Cannot serialize object '{str(o)}' of type '{type(o).__name__}'")
 
     def _serialize_collection(self, collection):
-        data = {
+        return {
             "name": str(collection.name),
-            "functions models": {p.name: self.default(p) for p in collection.models.values()},
+            "main process": self.default(collection.entry) if collection.entry else None,
             "environment processes": {str(p): self.default(p) for p in collection.environment.values()},
-            "main process": self.default(collection.entry) if collection.entry else None
+            "functions models": {p.name: self.default(p) for p in collection.models.values()}
         }
-        return data
 
     def _serialize_label(self, label):
-        dict_repr = sortedcontainers.SortedDict()
+        dict_repr = {}
         if label.declaration:
             dict_repr['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
         if label.value:
@@ -72,27 +72,30 @@ class CollectionEncoder(json.JSONEncoder):
         return dict_repr
 
     def _serialize_savepoint(self, point):
-        sp = sortedcontainers.SortedDict()
-        if point.statements:
-            sp["statements"] = point.statements
+        sp = {}
+
         if point.comment:
             sp["comment"] = point.comment
+        sp["statements"] = point.statements if point.statements else list()
+        if point.requirements:
+            sp['require'] = dict(point.requirements)
+        if point.weak_requirements:
+            sp['weak require'] = dict(point.weak_requirements)
+
         return sp
 
     def _serialize_action(self, action):
-        ict_action = sortedcontainers.SortedDict()
+        ict_action = {}
+
         if action.comment:
             ict_action['comment'] = action.comment
         if action.condition:
             ict_action['condition'] = self.default(action.condition)
-        if action.trace_relevant:
-            ict_action['trace relevant'] = action.trace_relevant
+
         if action.savepoints:
             ict_action['savepoints'] = {
                 str(point): self.default(point) for point in action.savepoints}
-        if action.require:
-            ict_action['require'] = {
-                name: self.default(value) for name, value in action.require.items()}
+
         if isinstance(action, Subprocess):
             if action.action:
                 ict_action['process'] = repr(action.action)
@@ -107,16 +110,24 @@ class CollectionEncoder(json.JSONEncoder):
         elif isinstance(action, Block):
             if action.statements:
                 ict_action["statements"] = self.default(action.statements)
+
+        if action.requirements and not action.requirements.is_empty:
+            ict_action['require'] = dict(action.requirements)
+        if action.weak_requirements and not action.weak_requirements.is_empty:
+            ict_action['weak require'] = dict(action.weak_requirements)
+
+        if action.trace_relevant:
+            ict_action['trace relevant'] = action.trace_relevant
+
         return ict_action
 
     def _serialize_process(self, process):
-        ict_action = sortedcontainers.SortedDict()
-        ict_action['category']  = process.category
-        ict_action['comment'] = process.comment
-        ict_action['process'] = repr(process.actions.initial_action)
-        ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
-        ict_action['actions'] = {str(action): self.default(action) for action in process.actions.values()}
-        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
+        ict_action = {
+            'comment': process.comment,
+            'process': repr(process.actions.initial_action),
+            'actions': {str(action): self.default(action) for action in sorted(process.actions.values())},
+            'labels': {str(label): self.default(label) for label in sorted(process.labels.values())}
+        }
 
         if len(process.headers) > 0:
             ict_action['headers'] = self.default(list(process.headers))
@@ -124,6 +135,9 @@ class CollectionEncoder(json.JSONEncoder):
             ict_action['declarations'] = self.default(process.declarations)
         if len(process.definitions.keys()) > 0:
             ict_action['definitions'] = self.default(process.definitions)
+
+        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
+        ict_action['category'] = process.category
 
         return ict_action
 
@@ -207,6 +221,13 @@ class CollectionDecoder:
                     if process in collection.environment:
                         raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                          format(str(process)))
+
+                    # Check name and savepoints
+                    if process.name == ProcessDescriptor.DEFAULT_ID and process.actions.savepoints:
+                        raise ValueError(f"It is forbidden using '{ProcessDescriptor.DEFAULT_ID}' as a process name for"
+                                         f" processes that have savepoints as it might result in bad requirements "
+                                         f"processing")
+
                     collection.environment[str(process)] = process
                 except Exception:
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
@@ -217,7 +238,8 @@ class CollectionDecoder:
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, "entry", "main", raw["main process"])
+                entry_process = self._import_process(source, ProcessDescriptor.DEFAULT_ID,
+                                                     ProcessDescriptor.EXPECTED_CATEGORY, raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
                 self.logger.warning("Cannot parse the main process: {}".format(str(err)))
@@ -230,13 +252,11 @@ class CollectionDecoder:
                                format(', '.join(raise_exc)))
 
         # Check savepoint's uniqueness
-        if collection.entry and collection.entry.savepoints:
-            raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
         for model_process in collection.models.values():
             if model_process.savepoints:
                 raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
         savepoints = set()
-        for process in collection.environment.values():
+        for process in collection.processes:
             for action in process.actions.values():
                 if action.savepoints:
                     sp = set(map(str, action.savepoints))
@@ -245,22 +265,34 @@ class CollectionDecoder:
                         raise ValueError(f'Savepoints cannot be used twice: {intr}')
                     else:
                         savepoints.update(sp)
-                if action.require:
-                    for name in action.require:
-                        if collection.entry and name == str(collection.entry):
-                            required = collection.entry
-                        elif name in collection.models.keys():
-                            required = collection.models[name]
-                        elif name in map(str, collection.environment.values()):
-                            required = collection.environment[name]
-                        else:
-                            raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
-                                             f" action '{str(action)}'")
 
-                        for action_name in action.require[name].get('include', set()):
-                            if action_name not in required.actions:
-                                raise ValueError(f"Process '{str(process)}' in action '{str(action)}' requires action "
-                                                 f"'{action_name}' which is missing in process '{name}'")
+                    for savepoint in action.savepoints:
+                        for name in savepoint.requirements.required_processes:
+                            if name not in collection.process_map:
+                                raise ValueError(f"Savepoint '{str(savepoint)}' requires unknown process '{name}'")
+
+                            required_actions = savepoint.requirements.required_actions(name)
+                            for act in required_actions:
+                                if act not in collection.process_map[name].actions:
+                                    raise ValueError(
+                                        f"Savepoint '{str(savepoint)}' requires unknown action '{act}' of "
+                                        f"process '{name}'")
+
+                for name in action.requirements.relevant_processes:
+                    if collection.entry and name == str(collection.entry):
+                        required = collection.entry
+                    elif name in collection.models.keys():
+                        required = collection.models[name]
+                    elif name in collection.process_map:
+                        required = collection.process_map[name]
+                    else:
+                        raise ValueError(f"There is no process '{name}' required by '{str(process)}' in"
+                                         f" action '{str(action)}'")
+
+                    for action_name in action.requirements.required_actions(name):
+                        if action_name not in required.actions:
+                            raise ValueError(f"Process '{str(process)}' in action '{str(action)}' requires action "
+                                             f"'{action_name}' which is missing in process '{name}'")
 
         self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
         self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
@@ -351,6 +383,13 @@ class CollectionDecoder:
         return process
 
     def _import_action(self, process, name, dic):
+        # Check labels
+        for behaviour in process.actions.behaviour(name):
+            if isinstance(behaviour.repeat, str) and behaviour.repeat not in process.labels:
+                raise ValueError(f"Action '{name}' of '{str(process)}' does not have label {behaviour.repeat}")
+            elif isinstance(behaviour.repeat, int) and behaviour.repeat < 1:
+                raise ValueError(f"Action '{name}' of '{str(process)}' has a repeating suffix value less than 2")
+
         act = process.actions.behaviour(name).pop().kind(name)
         process.actions[name] = act
 
@@ -362,13 +401,35 @@ class CollectionDecoder:
             setattr(act, attname, dic[att])
 
         if 'savepoints' in dic:
-            for name, sp_dic in dic['savepoints'].items():
-                savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
+            for sp_name, sp_dic in dic['savepoints'].items():
+                savepoint = Savepoint(sp_name, str(process), sp_dic.get('statements', []), sp_dic.get('comment'))
+
+                # Add requirements
+                if 'require' in sp_dic:
+                    try:
+                        savepoint._require = Requirements.from_dict(sp_dic['require'], str(process))
+                    except (ValueError, AssertionError) as err:
+                        raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}")
+
+                if 'weak require' in sp_dic:
+                    try:
+                        savepoint._weak_require = WeakRequirements.from_dict(sp_dic['weak require'], str(process))
+                    except (ValueError, AssertionError) as err:
+                        raise ValueError(f"Cannot parse weak requirements of savepoint '{sp_name}': {str(err)}")
+
                 act.savepoints.add(savepoint)
 
         if 'require' in dic:
-            for process_name in dic['require']:
-                act.add_required_process(process_name, set(dic['require'][process_name].get('include', set())))
+            try:
+                act._require = Requirements.from_dict(dic['require'], str(process))
+            except (ValueError, AssertionError) as err:
+                raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}")
+
+        if 'weak require' in dic:
+            try:
+                act._weak_require = WeakRequirements.from_dict(dic['weak require'], str(process))
+            except (ValueError, AssertionError) as err:
+                raise ValueError(f"Cannot parse weak requirements of '{name}' in '{str(process)}': {str(err)}")
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)

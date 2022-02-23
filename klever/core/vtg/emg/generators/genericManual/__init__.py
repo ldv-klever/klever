@@ -39,7 +39,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param collection: ProcessCollection.
         :param source: Source collection.
         :param specifications: dictionary with merged specifications.
-        :return: Reports dict
+        :return: None
         """
         self.conf.setdefault("enforce replacement", True)
 
@@ -97,8 +97,6 @@ class ScenarioModelgenerator(AbstractGenerator):
             collection.establish_peers()
         else:
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
-
-        return {}
 
     def _merge_specifications(self, specifications_set, files):
         merged_specification = list()

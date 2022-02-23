@@ -326,9 +326,21 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             s = dir_size("./")
             if s > limitation:
                 # Kill the process
-                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid))
+                print("Reached disk memory limit of {}GB, killing process {}"
+                      .format(memory_units_converter(limitation, 'GB')[0], pid))
+
+                with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
+                    fp.write(
+                        "Process was terminated since it consumed {}GB of disk space while only {}GB is allowed {}"
+                        .format(memory_units_converter(s, 'GB')[0], memory_units_converter(limitation, 'GB')[0],
+                                "(you may need to adjust job solution settings)")
+                    )
+                    fp.flush()
+
                 os.kill(pid, signal.SIGINT)
+
             time.sleep(period)
+
         os._exit(0)
 
     def activate_disk_limitation(pid, limitation):
@@ -382,12 +394,6 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
         disk_checker.terminate()
         disk_checker.join()
     restore_handlers()
-
-    # Check dir size after a stop
-    if disk_limitation:
-        size = dir_size("./")
-        if size >= disk_limitation:
-            raise RuntimeError("Disk space limitation of {}B is exceeded".format(disk_limitation))
 
     return p.returncode
 

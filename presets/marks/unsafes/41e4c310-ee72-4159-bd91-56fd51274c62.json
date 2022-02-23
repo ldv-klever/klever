@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "test:common"
+      "name": "Program fragment",
+      "value": "ext-modules/lists/create-insert-data.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/integers/remainder/safe.ko"
+      "name": "Requirements specification",
+      "value": "test:memory safety"
     }
   ],
   "description": "",
@@ -20,7 +20,7 @@
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'unexpected_error'": []
+                  "LDV model 'expected_error'": []
                 }
               ]
             }
@@ -34,5 +34,5 @@
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "3"
+  "verdict": "2"
 }
