@@ -609,8 +609,11 @@ class ProcessCollection:
                 # Subprocesses represent auxiliary actions that correspond to jumps having normal actions as well. We
                 # skip these auxiliary actions and relate their children with corresponding jump actions.
                 real_action = action.description.action if action.kind is Subprocess else action
+                edge_label = None
+                if action.repeat is not None and isinstance(action.repeat, int):
+                    edge_label = 'Repeat {} times'.format(action.repeat)
                 for prev in prevs:
-                    graph.edge(str(hash(prev)), str(hash(covered_subprocesses.get(real_action, action))))
+                    graph.edge(str(hash(prev)), str(hash(covered_subprocesses.get(real_action, action))), edge_label)
 
                 if action.kind is Subprocess:
                     if real_action not in covered_subprocesses:
