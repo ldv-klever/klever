@@ -173,7 +173,7 @@ EMG generates an IEM before translating it to the C language.
 The model is combined as a parallel composition from parts prepared by generators.
 The model also can be fully designed by hand and provided directly to the EMG using a specific generator
 (genericManual).
-We refer to such input files as *user-defined environment model specifications UDEMS*.
+We refer to such input files as *user-defined environment model specifications (UDEMS)*.
 Specifications for other generators include only templates or additional information to generate parts of IEMs.
 
 IEMs and UDEMSes have the same notation.
