@@ -32,7 +32,7 @@
           },
           "main": {
             "comment": "Install tty or deregister.",
-            "process": "[port_activate].(<activate_success>.[port_shutdown] | <activate_failed>).{main} | (deregister)"
+            "process": "[port_activate].(<activate_success>.[port_shutdown] | <activate_failed>).{main[1]} | (deregister)"
           },
           "port_activate": {
             "callback": "%tty_port_operations.port_activate%",

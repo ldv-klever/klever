@@ -11,7 +11,7 @@
           },
           "alloc_scenario": {
             "comment": "Device structure is not allocated yet.",
-            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
           },
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
@@ -27,7 +27,7 @@
           },
           "call_scenario": {
             "comment": "Device structure is allocated.",
-            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
           },
           "callback": {
             "callback": "%callback%",
@@ -194,7 +194,7 @@
           },
           "alloc_scenario": {
             "comment": "Device structure is not allocated yet.",
-            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
           },
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
@@ -210,7 +210,7 @@
           },
           "call_scenario": {
             "comment": "Device structure is allocated.",
-            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
           },
           "callback": {
             "callback": "%callback%",
@@ -374,7 +374,7 @@
           },
           "alloc_scenario": {
             "comment": "Device structure is not allocated yet.",
-            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
           },
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
@@ -390,7 +390,7 @@
           },
           "call_scenario": {
             "comment": "Device structure is allocated.",
-            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
           },
           "callback": {
             "callback": "%callback%",
@@ -554,7 +554,7 @@
           },
           "alloc_scenario": {
             "comment": "Device structure is not allocated yet.",
-            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
           },
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
@@ -570,7 +570,7 @@
           },
           "call_scenario": {
             "comment": "Device structure is allocated.",
-            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
           },
           "callback": {
             "callback": "%callback%",
@@ -734,7 +734,7 @@
           },
           "alloc_scenario": {
             "comment": "Device structure is not allocated yet.",
-            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
           },
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
@@ -750,7 +750,7 @@
           },
           "call_scenario": {
             "comment": "Device structure is allocated.",
-            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
           },
           "callback": {
             "callback": "%callback%",

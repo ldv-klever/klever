@@ -63,7 +63,7 @@
           },
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow[1]} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device[1]} | <free>.(deregister)"
           },
           "irq_write": {
             "callback": "%driver.write%",
@@ -80,7 +80,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect2].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow[1]} | [disconnect2].[release].{insert_device}"
           },
           "not_attached": {
             "comment": "Local initialization has failed.",
@@ -211,7 +211,7 @@
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
-            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | [close].{main_workflow}"
+            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer[1]} | [close].{main_workflow[1]}"
           },
           "write": {
             "callback": "%driver.write%",
@@ -301,7 +301,7 @@
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
-            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | (deregister_tty_layer)"
+            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer[1]} | (deregister_tty_layer)"
           },
           "unthrottle": {
             "callback": "%driver.unthrottle%",
@@ -649,11 +649,11 @@
           },
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow[1]} | <not_attached>) | <not_probed>).{insert_device[1]} | <free>.(deregister)"
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.[register_tty_layer].[deregister_tty_layer].[close] | <not_opened>).[port_remove]) | <not_port_probed>).{main_workflow} | [disconnect].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.[register_tty_layer].[deregister_tty_layer].[close] | <not_opened>).[port_remove]) | <not_port_probed>).{main_workflow[1]} | [disconnect].[release].{insert_device}"
           },
           "not_attached": {
             "comment": "Local initialization has failed.",
@@ -997,7 +997,7 @@
           },
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow[1]} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device[1]} | <free>.(deregister)"
           },
           "irq_write": {
             "callback": "%driver.write%",
@@ -1014,7 +1014,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect2].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow[1]} | [disconnect2].[release].{insert_device}"
           },
           "not_attached": {
             "comment": "Local initialization has failed.",
@@ -1145,7 +1145,7 @@
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
-            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | [close].{main_workflow}"
+            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer[1]} | [close].{main_workflow[1]}"
           },
           "write": {
             "callback": "%driver.write%",
@@ -1235,7 +1235,7 @@
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
-            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | (deregister_tty_layer)"
+            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer[1]} | (deregister_tty_layer)"
           },
           "unthrottle": {
             "callback": "%driver.unthrottle%",

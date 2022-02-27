@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Initializations are done, proceed to the other callbacks.",
-            "process": "[callback].{call} | [release].<free>.(deregister)"
+            "process": "[callback].{call[1]} | [release].<free>.(deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -31,7 +31,7 @@
           },
           "main": {
             "comment": "Block device is not initialized.",
-            "process": "[open].(<y_ret>.{call} | <n_ret>.{main})"
+            "process": "[open].(<y_ret>.{call} | <n_ret>.{main[1]})"
           },
           "n_ret": {
             "comment": "Block device open has failed.",

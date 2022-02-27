@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "The RTC device is probed.",
-            "process": "[callback].{call} | [release].{main}"
+            "process": "[callback].{call[1]} | [release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -23,7 +23,7 @@
           },
           "main": {
             "comment": "The RTC device is inserted in the system.",
-            "process": "[probe].(<probe_success>.{call} | <probe_failed>.{main}) | (deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>.{main[1]}) | (deregister)"
           },
           "probe": {
             "callback": "%rtc_class_ops.probe%",
@@ -192,7 +192,7 @@
         "actions": {
           "call": {
             "comment": "The RTC device is probed.",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -309,7 +309,7 @@
         "actions": {
           "call": {
             "comment": "The RTC device is probed.",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -426,7 +426,7 @@
         "actions": {
           "call": {
             "comment": "The RTC device is probed.",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",

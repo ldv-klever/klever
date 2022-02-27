@@ -33,7 +33,7 @@
           },
           "inner_loop": {
             "comment": "New iteration of sequence traversing.",
-            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop1].{outer_loop}) | <fail>.[stop2].{outer_loop}"
+            "process": "<success>.[show].(<success_show>.[next].{inner_loop[1]} | [stop1].{outer_loop[1]}) | <fail>.[stop2].{outer_loop[1]}"
           },
           "next": {
             "callback": "%ops.next%",

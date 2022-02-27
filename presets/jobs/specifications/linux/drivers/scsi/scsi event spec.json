@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call mid-layer callbacks",
-            "process": "[callback].{call} | [release].{main}"
+            "process": "[callback].{call[1]} | [release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -30,7 +30,7 @@
           },
           "main": {
             "comment": "Old style SCSI drivers initialization.",
-            "process": "[probe].(<probe_success>.{call} | <probe_failed>.{main}) | (deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>.{main[1]}) | (deregister)"
           },
           "probe": {
             "callback": "%host.scsi_host_template.probe%",
@@ -297,7 +297,7 @@
         "actions": {
           "call": {
             "comment": "Call mid-layer callbacks",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -548,7 +548,7 @@
         "actions": {
           "call": {
             "comment": "Call mid-layer callbacks",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",

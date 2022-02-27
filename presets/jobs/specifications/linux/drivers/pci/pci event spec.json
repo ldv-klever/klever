@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Driver is probed, call rest callbacks.",
-            "process": "[callback].{call} | [suspend].[suspend_late].[resume_early].[resume].{call} | [shutdown].[release].{main}"
+            "process": "[callback].{call[1]} | [suspend].[suspend_late].[resume_early].[resume].{call[1]} | [shutdown].[release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -38,7 +38,7 @@
           },
           "main": {
             "comment": "New device is inserted, probe it.",
-            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main} | <free>.(deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main[1]} | <free>.(deregister)"
           },
           "probe": {
             "callback": "%container.probe%",
@@ -227,7 +227,7 @@
         "actions": {
           "call": {
             "comment": "Driver is probed, call rest callbacks.",
-            "process": "[callback].{call} | [suspend].[resume].{call} | [shutdown].[release].{main}"
+            "process": "[callback].{call[1]} | [suspend].[resume].{call[1]} | [shutdown].[release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -260,7 +260,7 @@
           },
           "main": {
             "comment": "New device is inserted, probe it.",
-            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main} | <free>.(deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main[1]} | <free>.(deregister)"
           },
           "probe": {
             "callback": "%container.probe%",

@@ -230,7 +230,7 @@
               },
               "manage_interface": {
                 "comment": "Manage particular interface on a device.",
-                "process": "<probe>.(<probe_success>.(<match> | <show> | <store> | <skip>).<release> | <failed_probe>).{manage_interface} | (deregister)"
+                "process": "<probe>.(<probe_success>.(<match> | <show> | <store> | <skip>).<release> | <failed_probe>).{manage_interface[1]} | (deregister)"
               },
               "probe": {
                 "comment": "Probe device.",
@@ -567,7 +567,7 @@
               },
               "tty_layer": {
                 "comment": "Call the rest callbacks from tty layer.",
-                "process": "(<throttle_8>.<unthrottle_9> | <carrier_raised> | <dtr> | <pre_call_2>.<irq_write_4>.<post_call_3> | <pre_call_5>.<write_7>.<post_call_6> | <pre_call_10>.(((((((<rest_line_attached_callbacks_12> | <pre_call_27>.<rest_line_attached_callbacks_29>.<post_call_28>) | <pre_call_24>.<rest_line_attached_callbacks_26>.<post_call_25>) | <rest_line_attached_callbacks_23>) | <pre_call_20>.<rest_line_attached_callbacks_22>.<post_call_21>) | <rest_line_attached_callbacks_19>) | <pre_call_16>.<rest_line_attached_callbacks_18>.<post_call_17>) | <pre_call_13>.<rest_line_attached_callbacks_15>.<post_call_14>).<post_call_11>).{tty_layer} | (deregister_tty_layer)"
+                "process": "(<throttle_8>.<unthrottle_9> | <carrier_raised> | <dtr> | <pre_call_2>.<irq_write_4>.<post_call_3> | <pre_call_5>.<write_7>.<post_call_6> | <pre_call_10>.(((((((<rest_line_attached_callbacks_12> | <pre_call_27>.<rest_line_attached_callbacks_29>.<post_call_28>) | <pre_call_24>.<rest_line_attached_callbacks_26>.<post_call_25>) | <rest_line_attached_callbacks_23>) | <pre_call_20>.<rest_line_attached_callbacks_22>.<post_call_21>) | <rest_line_attached_callbacks_19>) | <pre_call_16>.<rest_line_attached_callbacks_18>.<post_call_17>) | <pre_call_13>.<rest_line_attached_callbacks_15>.<post_call_14>).<post_call_11>).{tty_layer[1]} | (deregister_tty_layer)"
               },
               "dtr": {
                 "comment": ".",
@@ -716,7 +716,7 @@
             "actions": {
               "call": {
                 "comment": "Call rest tty callbacks.",
-                "process": "(((((((((((<callback_2> | <seq_ops> | <pre_call_27>.<callback_29>.<post_call_28>) | <pre_call_24>.<callback_26>.<post_call_25>) | <pre_call_21>.<callback_23>.<post_call_22>) | <pre_call_18>.<callback_20>.<post_call_19>) | <pre_call_15>.<callback_17>.<post_call_16>) | <callback_14>) | <pre_call_11>.<callback_13>.<post_call_12>) | <callback_10>) | <pre_call_7>.<callback_9>.<post_call_8>) | <callback_6>) | <pre_call_41>.<set_termios_43>.<post_call_42> | <throttle_47>.<unthrottle_48> | <start_49>.<stop_50> | <pre_call_44>.<set_termiox_46>.<post_call_45>).{call} | <pre_call_36>.<close_38>.<post_call_37>.<shutdown_39>.<remove_34>.<cleanup_40>.{main}"
+                "process": "(((((((((((<callback_2> | <seq_ops> | <pre_call_27>.<callback_29>.<post_call_28>) | <pre_call_24>.<callback_26>.<post_call_25>) | <pre_call_21>.<callback_23>.<post_call_22>) | <pre_call_18>.<callback_20>.<post_call_19>) | <pre_call_15>.<callback_17>.<post_call_16>) | <callback_14>) | <pre_call_11>.<callback_13>.<post_call_12>) | <callback_10>) | <pre_call_7>.<callback_9>.<post_call_8>) | <callback_6>) | <pre_call_41>.<set_termios_43>.<post_call_42> | <throttle_47>.<unthrottle_48> | <start_49>.<stop_50> | <pre_call_44>.<set_termiox_46>.<post_call_45>).{call[1]} | <pre_call_36>.<close_38>.<post_call_37>.<shutdown_39>.<remove_34>.<cleanup_40>.{main[1]}"
               },
               "callback_10": {
                 "comment": "Invoke callback write_room from tty_operations.",
@@ -878,7 +878,7 @@
               },
               "main": {
                 "comment": "Install tty or deregister.",
-                "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_35>) | <install_failed>).{main} | <free>.(tty_deregister)"
+                "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_35>) | <install_failed>).{main[1]} | <free>.(tty_deregister)"
               },
               "open_35": {
                 "comment": "Open a tty device. Invoke callback open from tty_operations.",
@@ -1457,7 +1457,7 @@
               },
               "manage_interface": {
                 "comment": "Manage particular interface on a device.",
-                "process": "<pre_call_3>.<probe_5>.<post_call_4>.(<probe_success>.[tty_register].(<usb_reset>.<pre_12>.<post_13> | <pre_call_7>.<suspend_9>.<post_call_8>.(<resume_10> | <reset_resume_11>) | <callback_2> | <skip>).[tty_deregister].<release_6> | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
+                "process": "<pre_call_3>.<probe_5>.<post_call_4>.(<probe_success>.[tty_register].(<usb_reset>.<pre_12>.<post_13> | <pre_call_7>.<suspend_9>.<post_call_8>.(<resume_10> | <reset_resume_11>) | <callback_2> | <skip>).[tty_deregister].<release_6> | <failed_probe>).{manage_interface[1]} | <free_interface>.(deregister)"
               },
               "tty_register": {
                 "comment": "Register tty callbacks.",

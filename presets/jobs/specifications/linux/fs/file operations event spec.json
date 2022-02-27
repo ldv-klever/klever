@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Device file is opened, ready to read and write.",
-            "process": "([callback] | [write]).{call} | [release].{main}"
+            "process": "([callback] | [write]).{call[1]} | [release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -39,7 +39,7 @@
           },
           "main": {
             "comment": "Device appeared in the system.",
-            "process": "[probe].(<probe_success>.{call} | <probe_fail>.{main}) | <free>.(deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_fail>.{main[1]}) | <free>.(deregister)"
           },
           "probe": {
             "callback": "%container.probe%",

@@ -20,7 +20,7 @@
           },
           "main": {
             "comment": "No netdevices attached to the hardware or enabled.",
-            "process": "[start].(<start_success>.{started} | <start_fail>).{main} | (deregister)"
+            "process": "[start].(<start_success>.{started} | <start_fail>).{main[1]} | (deregister)"
           },
           "register": {
             "parameters": [
@@ -56,7 +56,7 @@
           },
           "started": {
             "comment": "The hardware is turned on and frame reception is enabled.",
-            "process": "[callback].{started} | [stop].{main}"
+            "process": "[callback].{started[1]} | [stop].{main[1]}"
           },
           "stop": {
             "callback": "%container.stop%",
@@ -200,7 +200,7 @@
           },
           "main": {
             "comment": "No netdevices attached to the hardware or enabled.",
-            "process": "[start].(<start_success>.{started} | <start_fail>).{main} | (deregister)"
+            "process": "[start].(<start_success>.{started} | <start_fail>).{main[1]} | (deregister)"
           },
           "register": {
             "parameters": [
@@ -243,7 +243,7 @@
           },
           "started": {
             "comment": "The hardware is turned on and frame reception is enabled.",
-            "process": "[suspend].[resume].{started} | [callback].{started} | [stop].{main}"
+            "process": "[suspend].[resume].{started[1]} | [callback].{started[1]} | [stop].{main[1]}"
           },
           "stop": {
             "callback": "%container.stop%",

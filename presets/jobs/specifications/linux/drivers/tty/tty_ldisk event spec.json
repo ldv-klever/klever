@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call rest line discipline callbacks.",
-            "process": "[callback].{call} | [close].{main}"
+            "process": "[callback].{call[1]} | [close].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -42,7 +42,7 @@
           },
           "main": {
             "comment": "Try opening line discipline and call rest callbacks or deregister.",
-            "process": "[open].(<open_success>.{call} | <open_failed>.{main}) | <free>.(deregister)"
+            "process": "[open].(<open_success>.{call} | <open_failed>.{main[1]}) | <free>.(deregister)"
           },
           "open": {
             "callback": "%ldisc_ops.open%",
