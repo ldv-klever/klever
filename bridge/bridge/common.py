@@ -55,6 +55,10 @@ MIDDLEWARE = (
     'bridge.utils.BridgeMiddlware'
 )
 
+AUTHENTICATION_BACKENDS = [
+    'bridge.backends.BridgeModelBackend',
+]
+
 ROOT_URLCONF = 'bridge.urls'
 
 TEMPLATES = [

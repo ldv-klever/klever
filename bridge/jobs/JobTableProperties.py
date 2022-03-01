@@ -295,13 +295,20 @@ class JobsTreeTable:
 
 
 class PresetChildrenTree:
-    def __init__(self, preset_job):
+    def __init__(self, user, preset_job):
+        self._user = user
         self._preset_job = preset_job
         self._jobs_qs = self.__get_jobs_queryset()
         self.children = self.__get_jobs_tree()
 
     def __get_jobs_queryset(self):
         qs_filter = Q(preset_id=self._preset_job.id) | Q(preset__parent_id=self._preset_job.id)
+
+        # Filter by access to view jobs
+        if not self._user.is_manager and not self._user.is_expert:
+            custom_access_ids = set(UserRole.objects.filter(user=self._user)
+                                    .exclude(role=JOB_ROLES[0][0]).values_list('job_id', flat=True))
+            qs_filter &= (Q(author=self._user) | ~Q(global_role=JOB_ROLES[0][0]) | Q(id__in=custom_access_ids))
 
         # Get queryset order from default jobs tree view
         qs_order = get_jobs_order(JOB_TREE_VIEW)
@@ -321,7 +328,7 @@ class PresetChildrenTree:
 
     def __get_jobs_tree(self):
         jobs_tree = []
-        # Collect jobs without custom jobs directory first
+        # Collect jobs without custom jobs' directory first
         for job in self._jobs_qs:
             if job.preset_id == self._preset_job.id:
                 jobs_tree.append(self.__get_job_value(job))

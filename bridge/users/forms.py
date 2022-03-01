@@ -103,6 +103,13 @@ class FormColumnsMixin:
 
 
 class BridgeAuthForm(AuthenticationForm):
+    error_messages = {
+        'invalid_login': _(
+            "Please enter a correct %(username)s and password. Note that both fields may be case-sensitive."
+        ),
+        'inactive': _("This account is inactive. Please contact administrator to activate it."),
+    }
+
     username = UsernameField(widget=forms.TextInput(attrs={'placeholder': _('Username'), 'autofocus': True}))
     password = forms.CharField(
         label=_("Password"), strip=False,
@@ -126,6 +133,13 @@ class RegisterForm(FormColumnsMixin, UserCreationForm):
     )
     first_name = forms.CharField(label=_('First name'), max_length=30, required=True)
     last_name = forms.CharField(label=_('Last name'), max_length=150, required=True)
+
+    def save(self, commit=True):
+        user = super(RegisterForm, self).save(commit=False)
+        user.is_active = False
+        if commit:
+            user.save()
+        return user
 
     class Meta:
         model = User
