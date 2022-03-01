@@ -39,7 +39,7 @@
           },
           "manage_i2c": {
             "comment": "Manage a particular i2c client.",
-            "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_i2c} | <free_device>.(deregister)"
+            "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_i2c[1]} | <free_device>.(deregister)"
           },
           "probe": {
             "callback": "%probe%",

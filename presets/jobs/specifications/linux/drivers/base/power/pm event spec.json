@@ -12,7 +12,7 @@
           },
           "do": {
             "comment": "Begin a power management scenario.",
-            "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | <skip_noirq1>).[resume] | [freeze].(<skip_noirq2> | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_noirq].[restore_noirq] | <skip_noirq3>).[restore]).[complete].{do} | (pm_deregister)"
+            "process": "[runtime_idle].{do[1]} | [runtime_suspend].[runtime_resume].{do[1]} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | <skip_noirq1>).[resume] | [freeze].(<skip_noirq2> | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_noirq].[restore_noirq] | <skip_noirq3>).[restore]).[complete].{do[1]} | (pm_deregister)"
           },
           "freeze": {
             "callback": "%pm_ops.freeze%",
@@ -187,7 +187,7 @@
           },
           "run_resume": {
             "comment": "Begin a runtime resume scenario.",
-            "process": "[runtime_resume].(<runr_ok> | <runr_bad>.{run_resume}).(pm_deregister)"
+            "process": "[runtime_resume].(<runr_ok> | <runr_bad>.{run_resume[1]}).(pm_deregister)"
           },
           "normal": {
             "comment": "Begin prepare-complete scenario.",
@@ -199,75 +199,75 @@
           },
           "sus": {
             "comment": "Begin suspend-resume scenario.",
-            "process": "[suspend].(<sus_ok>.({no_irq} | {slate}) | <sus_bad>.{sus})"
+            "process": "[suspend].(<sus_ok>.({no_irq} | {slate}) | <sus_bad>.{sus[1]})"
           },
           "no_irq": {
             "comment": "Begin noirq suspending.",
-            "process": "[suspend_noirq].(<snoirq_ok>.{resnoirq} | <snoirq_bad>).{no_irq}"
+            "process": "[suspend_noirq].(<snoirq_ok>.{resnoirq} | <snoirq_bad>).{no_irq[1]}"
           },
           "resnoirq": {
             "comment": "Begin noirq resuming.",
-            "process": "[resume_noirq].(<rnoirq_ok>.{res} | <rnoirq_bad>).{resnoirq}"
+            "process": "[resume_noirq].(<rnoirq_ok>.{res} | <rnoirq_bad>).{resnoirq[1]}"
           },
           "slate": {
             "comment": "Begin late suspending scenario.",
-            "process": "[suspend_late].(<sl_ok>.{reslate} | <sl_bad>).{slate}"
+            "process": "[suspend_late].(<sl_ok>.{reslate} | <sl_bad>).{slate[1]}"
           },
           "reslate": {
             "comment": "Begin early resuming.",
-            "process": "[resume_early].(<rearly_ok>.{res} | <rearly_bad>).{reslate}"
+            "process": "[resume_early].(<rearly_ok>.{res} | <rearly_bad>).{reslate[1]}"
           },
           "res": {
             "comment": "Begin main resuming.",
-            "process": "[resume].(<resume_ok>.{compl} | <resume_bad>.{res})"
+            "process": "[resume].(<resume_ok>.{compl} | <resume_bad>.{res[1]})"
           },
           "fr": {
             "comment": "Begin freeing.",
-            "process": "[freeze].(<freeze_ok>.({fnoirq} | {flate}) | <freeze_bad>.{fr})"
+            "process": "[freeze].(<freeze_ok>.({fnoirq} | {flate}) | <freeze_bad>.{fr[1]})"
           },
           "fnoirq": {
             "comment": "Begin noirq freezing.",
-            "process": "[freeze_noirq].(<fnoirq_ok>.{tnoirq} | <fnoirq_bad>).{fnoirq}"
+            "process": "[freeze_noirq].(<fnoirq_ok>.{tnoirq} | <fnoirq_bad>).{fnoirq[1]}"
           },
           "tnoirq": {
             "comment": "Begin noirq thawing.",
-            "process": "[thaw_noirq].(<tnoirq_ok>.{th} | <tnoirq_bad>).{tnoirq}"
+            "process": "[thaw_noirq].(<tnoirq_ok>.{th} | <tnoirq_bad>).{tnoirq[1]}"
           },
           "flate": {
             "comment": "Begin late freezing.",
-            "process": "[freeze_late].(<fl_ok>.{thlate} | <fl_bad>).{flate}"
+            "process": "[freeze_late].(<fl_ok>.{thlate} | <fl_bad>).{flate[1]}"
           },
           "thlate": {
             "comment": "Begin early thawing.",
-            "process": "[thaw_early].(<tearly_ok>.{th} | <tearly_bad>).{thlate}"
+            "process": "[thaw_early].(<tearly_ok>.{th} | <tearly_bad>).{thlate[1]}"
           },
           "th": {
             "comment": "Begin resume scenario.",
-            "process": "[thaw].(<thaw_ok>.{compl} | <thaw_bad>.{th})"
+            "process": "[thaw].(<thaw_ok>.{compl} | <thaw_bad>.{th[1]})"
           },
           "poff": {
             "comment": "Begin runtime resume scenario.",
-            "process": "[poweroff].(<poff_ok>.({pno_irq} | {plate}) | <poff_bad>.{poff})"
+            "process": "[poweroff].(<poff_ok>.({pno_irq} | {plate}) | <poff_bad>.{poff[1]})"
           },
           "pno_irq": {
             "comment": "Begin runtime resume scenario.",
-            "process": "[poweroff_noirq].(<pno_irq_ok>.{restnoirq} | <pno_irq_bad>).{pno_irq}"
+            "process": "[poweroff_noirq].(<pno_irq_ok>.{restnoirq} | <pno_irq_bad>).{pno_irq[1]}"
           },
           "restnoirq": {
             "comment": "Begin runtime resume scenario.",
-            "process": "[restore_noirq].(<restnoirq_ok>.{rest} | <restnoirq_bad>).{restnoirq}"
+            "process": "[restore_noirq].(<restnoirq_ok>.{rest} | <restnoirq_bad>).{restnoirq[1]}"
           },
           "plate": {
             "comment": "Begin runtime resume scenario.",
-            "process": "[poweroff_late].(<plate_ok>.{reste} | <plate_bad>).{plate}"
+            "process": "[poweroff_late].(<plate_ok>.{reste} | <plate_bad>).{plate[1]}"
           },
           "reste": {
             "comment": "Begin runtime resume scenario.",
-            "process": "[restore_early].(<reste_ok>.{rest} | <reste_bad>).{reste}"
+            "process": "[restore_early].(<reste_ok>.{rest} | <reste_bad>).{reste[1]}"
           },
           "rest": {
             "comment": "Begin resume scenario.",
-            "process": "[restore].(<rest_ok>.{compl} | <rest_bad>.{rest})"
+            "process": "[restore].(<rest_ok>.{compl} | <rest_bad>.{rest[1]})"
           },
           "run_ok, runr_ok, pre_ok, sus_ok, snoirq_ok, rnoirq_ok, sl_ok, rearly_ok, resume_ok, sus_ok, fnoirq_ok, tnoirq_ok, fl_ok, tearly_ok, resume_ok, poff_ok, pno_irq_ok, tnoirq_ok, plate_ok, reste_ok, rest_ok, restnoirq_ok, freeze_ok, thaw_ok": {
             "comment": "Callback successfully finished.",

@@ -39,7 +39,7 @@
           },
           "manage_hid": {
             "comment": "Manage a particular HID device.",
-            "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_hid} | <free_device>.(deregister)"
+            "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_hid[1]} | <free_device>.(deregister)"
           },
           "probe": {
             "callback": "%hid_driver.probe%",
@@ -156,7 +156,7 @@
           },
           "manage_hid": {
             "comment": "Manage a particular HID device.",
-            "process": "[probe].(<probe_success>.([suspend].([resume] | [reset_resume]) | [callback] | <skip>).[remove] | <failed_probe>).{manage_hid} | <free_device>.(deregister)"
+            "process": "[probe].(<probe_success>.([suspend].([resume] | [reset_resume]) | [callback] | <skip>).[remove] | <failed_probe>).{manage_hid[1]} | <free_device>.(deregister)"
           },
           "probe": {
             "callback": "%hid_driver.probe%",

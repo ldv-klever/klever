@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call rest tty callbacks.",
-            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox]).{call} | [close].[shutdown].[remove1].[cleanup].{main}"
+            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox]).{call[1]} | [close].[shutdown].[remove1].[cleanup].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -85,7 +85,7 @@
           },
           "main": {
             "comment": "Install tty or deregister.",
-            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main} | <free>.(deregister)"
+            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main[1]} | <free>.(deregister)"
           },
           "open": {
             "callback": "%tty_operations.open%",

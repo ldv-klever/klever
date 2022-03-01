@@ -42,7 +42,7 @@
           },
           "manage_interface": {
             "comment": "Manage particular interface on a device.",
-            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].([resume] | [reset_resume]) | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
+            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].([resume] | [reset_resume]) | [callback] | <skip>).[release] | <failed_probe>).{manage_interface[1]} | <free_interface>.(deregister)"
           },
           "post": {
             "callback": "%container.post%",

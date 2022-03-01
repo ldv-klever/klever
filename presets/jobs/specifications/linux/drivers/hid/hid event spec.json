@@ -32,11 +32,11 @@
           },
           "inside": {
             "comment": "Input layer operations.",
-            "process": "[open].(<open_success>.[callback].[close].{inside} | <open_fail>.[stop1].{main}) | [stop2].{main}"
+            "process": "[open].(<open_success>.[callback].[close].{inside[1]} | <open_fail>.[stop1].{main[1]}) | [stop2].{main[1]}"
           },
           "main": {
             "comment": "Device initialization.",
-            "process": "[start].(<start_success>.{inside} | <start_fail>.{main}) | (deregister)"
+            "process": "[start].(<start_success>.{inside} | <start_fail>.{main[1]}) | (deregister)"
           },
           "open": {
             "callback": "%ll_driver.open%",

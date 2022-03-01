@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Driver is probed, call the other callbacks.",
-            "process": "[callback].{call} | [suspend].(<suspend_success>.[resume] | <suspend_failed>).{call} | [release].{main}"
+            "process": "[callback].{call[1]} | [suspend].(<suspend_success>.[resume] | <suspend_failed>).{call[1]} | [release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -38,7 +38,7 @@
           },
           "main": {
             "comment": "Try to probe driver.",
-            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main} | <free>.(deregister)"
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main[1]} | <free>.(deregister)"
           },
           "probe": {
             "callback": "%container.probe%",
@@ -164,7 +164,7 @@
         "actions": {
           "call": {
             "comment": "Initializations are done, proceed to the other callbacks.",
-            "process": "[callback].{call} | [release].{main}"
+            "process": "[callback].{call[1]} | [release].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -197,7 +197,7 @@
           },
           "main": {
             "comment": "Start with an initialization callback.",
-            "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
+            "process": "[probe].(<y_ret>.{call} | <n_ret>.{main[1]}) | <free>.(deregister)"
           },
           "n_ret": {
             "comment": "Initialization has failed.",
@@ -258,7 +258,7 @@
         "actions": {
           "call": {
             "comment": "Prepare to call a random callback or deregister the callbacks.",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -298,7 +298,7 @@
         "actions": {
           "call": {
             "comment": "Prepare to call a random callback or deregister the callbacks.",
-            "process": "[callback].{call} | (deregister)"
+            "process": "[callback].{call[1]} | (deregister)"
           },
           "callback": {
             "callback": "%callback%",
@@ -336,7 +336,7 @@
         "actions": {
           "call": {
             "comment": "Prepare to call a random callback or deregister the callbacks.",
-            "process": "[callback].{call} | <free>.(deregister)"
+            "process": "[callback].{call[1]} | <free>.(deregister)"
           },
           "callback": {
             "callback": "%callback%",

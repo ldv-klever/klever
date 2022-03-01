@@ -11,7 +11,7 @@
           },
           "callbacks": {
             "comment": "Manage particular interface on a device.",
-            "process": "([save_state].[restore_state] | [enable_irq].[disable_irq] | [callback]).{callbacks} | (deregister)"
+            "process": "([save_state].[restore_state] | [enable_irq].[disable_irq] | [callback]).{callbacks[1]} | (deregister)"
           },
           "deregister": {
             "condition": [

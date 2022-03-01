@@ -102,10 +102,17 @@ class Behaviour(BaseAction):
 
     def __repr__(self):
         """Print the representation of the action in process DSL."""
+        res = None
         if self.description:
-            return repr(self.description)
+            res = repr(self.description)
         else:
-            return repr(self._accepted_class(self.name))
+            res = repr(self._accepted_class(self.name))
+
+        # Repeat may be specified only for jump action in two forms: either {jump[N]} or {jump[%flag%]}.
+        if self.repeat is not None:
+            res = res[:-1] + '[{}]}}'.format(self.repeat)
+
+        return res
 
     def clone(self):
         """
@@ -144,6 +151,7 @@ class Behaviour(BaseAction):
 
         for name, value in self.specific_attributes:
             setattr(item, name, value)
+
         self._description = item
 
 

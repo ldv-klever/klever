@@ -14,7 +14,7 @@
           },
           "main": {
             "comment": "Call devattr callbacks randomly.",
-            "process": "([show] | [store]).{main} | (deregister)"
+            "process": "([show] | [store]).{main[1]} | (deregister)"
           },
           "register": {
             "comment": "Register attribute callbacks.",

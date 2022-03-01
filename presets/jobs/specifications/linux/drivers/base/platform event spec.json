@@ -14,7 +14,7 @@
           },
           "call": {
             "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "(([suspend].[resume]) | [pm_register].[pm_deregister] | <none>).{call} | [shutdown].[release].<after_release>.{main}"
+            "process": "(([suspend].[resume]) | [pm_register].[pm_deregister] | <none>).{call[1]} | [shutdown].[release].<after_release>.{main[1]}"
           },
           "shutdown": {
             "callback": "%container.shutdown%",
@@ -62,7 +62,7 @@
           },
           "main": {
             "comment": "Check that device is truly in the system and begin callback invocations.",
-            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main[1]}) | <free>.(deregister)"
           },
           "negative_probe": {
             "comment": "Failed to probe the device.",

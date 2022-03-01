@@ -221,7 +221,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.[kill_sb] | <mount_fail>).({main} | (deregister))"
+            "process": "[mount].(<mount_success>.[kill_sb] | <mount_fail>).({main[1]} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -489,7 +489,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.[@inode_register].[@inode_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
+            "process": "[mount].(<mount_success>.[@inode_register].[@inode_deregister].[kill_sb] | <mount_fail>).({main[1]} | (deregister))"
           },
           "register": {
             "parameters": [

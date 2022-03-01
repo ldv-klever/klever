@@ -96,7 +96,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
 
 def __repeate_subprocess_var_name(automaton, behaviour):
-    behaviours = sorted([b for b in automaton.process.actions.behaviour(behaviour.name) if isinstance(b.repeat, int)])
+    behaviours = [b for b in automaton.process.actions.behaviour(behaviour.name) if isinstance(b.repeat, int)]
     if len(behaviours) > 1:
         index = behaviours.index(behaviour)
         return f'emg_repeat_cnt_{behaviour.name}_{str(automaton)}_{index}'
