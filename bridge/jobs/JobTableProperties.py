@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from mptt.utils import tree_item_iterator
 
-from bridge.vars import PRIORITY, JOB_ROLES, DECISION_STATUS
+from bridge.vars import PRIORITY, JOB_ROLES, DECISION_STATUS, USER_ROLES
 from bridge.utils import construct_url
 
 from jobs.models import UserRole, PresetJob, Job, Decision
@@ -243,9 +243,20 @@ class JobsTreeTable:
                 'instance': job, 'decisions': [], 'values': self.__get_job_values_row(job)
             }
 
+        # Cut preset jobs branches without jobs on leaves
+        if self.view.user.role == USER_ROLES[0][0]:
+            presets_to_preserve = set()
+            for preset_id in reversed(list(presets_tree)):
+                parent_id = presets_tree[preset_id]['instance'].parent_id
+                if presets_tree[preset_id]['jobs'] or preset_id in presets_to_preserve:
+                    presets_to_preserve.add(parent_id)
+                else:
+                    del presets_tree[preset_id]
+
         # Initialize values dictionary
         for decision in self._decisions_qs:
-            if decision.job_id not in presets_tree[decision.job.preset_id]['jobs']:
+            if decision.job.preset_id not in presets_tree or \
+                    decision.job_id not in presets_tree[decision.job.preset_id]['jobs']:
                 continue
             values_row = self._values_collector.get_decision_values_row(decision)
             presets_tree[decision.job.preset_id]['jobs'][decision.job_id]['decisions'].append([decision, values_row])
@@ -295,13 +306,20 @@ class JobsTreeTable:
 
 
 class PresetChildrenTree:
-    def __init__(self, preset_job):
+    def __init__(self, user, preset_job):
+        self._user = user
         self._preset_job = preset_job
         self._jobs_qs = self.__get_jobs_queryset()
         self.children = self.__get_jobs_tree()
 
     def __get_jobs_queryset(self):
         qs_filter = Q(preset_id=self._preset_job.id) | Q(preset__parent_id=self._preset_job.id)
+
+        # Filter by access to view jobs
+        if not self._user.is_manager and not self._user.is_expert:
+            custom_access_ids = set(UserRole.objects.filter(user=self._user)
+                                    .exclude(role=JOB_ROLES[0][0]).values_list('job_id', flat=True))
+            qs_filter &= (Q(author=self._user) | ~Q(global_role=JOB_ROLES[0][0]) | Q(id__in=custom_access_ids))
 
         # Get queryset order from default jobs tree view
         qs_order = get_jobs_order(JOB_TREE_VIEW)
@@ -321,7 +339,7 @@ class PresetChildrenTree:
 
     def __get_jobs_tree(self):
         jobs_tree = []
-        # Collect jobs without custom jobs directory first
+        # Collect jobs without custom jobs' directory first
         for job in self._jobs_qs:
             if job.preset_id == self._preset_job.id:
                 jobs_tree.append(self.__get_job_value(job))

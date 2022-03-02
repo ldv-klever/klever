@@ -30,9 +30,10 @@
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui violet segment">
-        <div class="ui grid">
-            <div class="seven wide column">
+
+    <div class="ui grid">
+        <div class="eight wide column">
+            <div class="ui violet segment">
                 {# Title and jobs directory #}
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
                 <div class="ui fluid input field">
@@ -46,7 +47,9 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="nine wide column">
+        </div>
+        <div class="eight wide column">
+            <div class="ui pink segment">
                 {# Roles #}
                 <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;">{% include 'jobs/userRolesForm.html' %}</div>
             </div>

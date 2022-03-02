@@ -24,6 +24,7 @@ from django.contrib.auth.forms import AuthenticationForm, UsernameField, UserCre
 from django.forms.widgets import Input
 from django.utils.translation import ugettext_lazy as _
 
+from bridge.backends import has_bridge_access
 from users.models import User, SchedulerUser
 
 
@@ -103,11 +104,27 @@ class FormColumnsMixin:
 
 
 class BridgeAuthForm(AuthenticationForm):
+    error_messages = {
+        'invalid_login': _(
+            "Please enter a correct %(username)s and password. Note that both fields may be case-sensitive."
+        ),
+        'inactive': _("This account is inactive. Please contact administrator to activate it."),
+        'no_job_access': _("This account has no access to any job. Please contact administrator or other users to add it.")
+    }
+
     username = UsernameField(widget=forms.TextInput(attrs={'placeholder': _('Username'), 'autofocus': True}))
     password = forms.CharField(
         label=_("Password"), strip=False,
         widget=forms.PasswordInput(attrs={'placeholder': _('Password')}),
     )
+
+    def confirm_login_allowed(self, user):
+        super(BridgeAuthForm, self).confirm_login_allowed(user)
+        if not has_bridge_access(user):
+            raise forms.ValidationError(
+                self.error_messages['no_job_access'], code='no_job_access',
+                params={'username': self.username_field.verbose_name},
+            )
 
 
 class RegisterForm(FormColumnsMixin, UserCreationForm):
@@ -126,6 +143,13 @@ class RegisterForm(FormColumnsMixin, UserCreationForm):
     )
     first_name = forms.CharField(label=_('First name'), max_length=30, required=True)
     last_name = forms.CharField(label=_('Last name'), max_length=150, required=True)
+
+    def save(self, commit=True):
+        user = super(RegisterForm, self).save(commit=False)
+        user.is_active = False
+        if commit:
+            user.save()
+        return user
 
     class Meta:
         model = User

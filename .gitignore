@@ -42,7 +42,10 @@ ENV/
 .idea/workspace.xml
 */.idea/workspace.xml
 .idea/dictionaries/*
-.idea/dataSources*
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
 
 # mypy
 .mypy_cache/

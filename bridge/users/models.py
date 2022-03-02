@@ -106,6 +106,13 @@ def create_auth_token(sender, instance=None, **kwargs):
         Token.objects.get_or_create(user=instance)
 
 
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def set_admin_role(sender, instance=None, **kwargs):
+    if (instance.is_superuser or instance.is_staff) and instance.role != USER_ROLES[2][0]:
+        instance.role = USER_ROLES[2][0]
+        instance.save()
+
+
 class DataView(models.Model):
     author = models.ForeignKey(User, models.CASCADE, related_name='views')
     type = models.CharField(max_length=2, choices=VIEW_TYPES)
