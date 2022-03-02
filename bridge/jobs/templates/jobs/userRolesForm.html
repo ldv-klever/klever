@@ -16,25 +16,20 @@
 {% endcomment %}
 
 {% load i18n %}
-<div class="ui grid">
-    <div class="eight wide column">
-        <label for="global_role_select"><strong>{% trans 'Role for all users' %}</strong></label>
-        <div class="ui small input fluid">
-            <select id="global_role_select" class="ui dropdown mini fluid">
-                {% for jr in job_roles %}
-                    <option value="{{ jr.0 }}">{{ jr.1 }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
-    <div class="eight wide column">
-        <div id="user_select_div">
-            <label for="user_select"><strong>{% trans 'Add role to user' %}</strong></label>
-            <div class="ui small action input fluid">
-                <select id="user_select" class="ui dropdown fluid"></select>
-                <button id="add_user_for_role" class="ui green button">{% trans 'Add' %}</button>
-            </div>
-        </div>
+<label for="global_role_select"><strong>{% trans 'Role for all users' %}</strong></label>
+<div class="ui small input fluid">
+    <select id="global_role_select" class="ui dropdown mini fluid">
+        {% for jr in job_roles %}
+            <option value="{{ jr.0 }}">{{ jr.1 }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div class="ui divider"></div>
+<div id="user_select_div">
+    <label for="user_select"><strong>{% trans 'Add role to user' %}</strong></label>
+    <div class="ui small action input fluid">
+        <select id="user_select" class="ui dropdown fluid"></select>
+        <button id="add_user_for_role" class="ui green button">{% trans 'Add' %}</button>
     </div>
 </div>
 <br>
