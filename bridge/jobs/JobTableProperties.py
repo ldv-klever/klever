@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from mptt.utils import tree_item_iterator
 
-from bridge.vars import PRIORITY, JOB_ROLES, DECISION_STATUS
+from bridge.vars import PRIORITY, JOB_ROLES, DECISION_STATUS, USER_ROLES
 from bridge.utils import construct_url
 
 from jobs.models import UserRole, PresetJob, Job, Decision
@@ -243,9 +243,20 @@ class JobsTreeTable:
                 'instance': job, 'decisions': [], 'values': self.__get_job_values_row(job)
             }
 
+        # Cut preset jobs branches without jobs on leaves
+        if self.view.user.role == USER_ROLES[0][0]:
+            presets_to_preserve = set()
+            for preset_id in reversed(list(presets_tree)):
+                parent_id = presets_tree[preset_id]['instance'].parent_id
+                if presets_tree[preset_id]['jobs'] or preset_id in presets_to_preserve:
+                    presets_to_preserve.add(parent_id)
+                else:
+                    del presets_tree[preset_id]
+
         # Initialize values dictionary
         for decision in self._decisions_qs:
-            if decision.job_id not in presets_tree[decision.job.preset_id]['jobs']:
+            if decision.job.preset_id not in presets_tree or \
+                    decision.job_id not in presets_tree[decision.job.preset_id]['jobs']:
                 continue
             values_row = self._values_collector.get_decision_values_row(decision)
             presets_tree[decision.job.preset_id]['jobs'][decision.job_id]['decisions'].append([decision, values_row])

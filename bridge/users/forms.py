@@ -24,6 +24,7 @@ from django.contrib.auth.forms import AuthenticationForm, UsernameField, UserCre
 from django.forms.widgets import Input
 from django.utils.translation import ugettext_lazy as _
 
+from bridge.backends import has_bridge_access
 from users.models import User, SchedulerUser
 
 
@@ -108,6 +109,7 @@ class BridgeAuthForm(AuthenticationForm):
             "Please enter a correct %(username)s and password. Note that both fields may be case-sensitive."
         ),
         'inactive': _("This account is inactive. Please contact administrator to activate it."),
+        'no_job_access': _("This account has no access to any job. Please contact administrator to add it.")
     }
 
     username = UsernameField(widget=forms.TextInput(attrs={'placeholder': _('Username'), 'autofocus': True}))
@@ -115,6 +117,14 @@ class BridgeAuthForm(AuthenticationForm):
         label=_("Password"), strip=False,
         widget=forms.PasswordInput(attrs={'placeholder': _('Password')}),
     )
+
+    def confirm_login_allowed(self, user):
+        super(BridgeAuthForm, self).confirm_login_allowed(user)
+        if not has_bridge_access(user):
+            raise forms.ValidationError(
+                self.error_messages['no_job_access'], code='no_job_access',
+                params={'username': self.username_field.verbose_name},
+            )
 
 
 class RegisterForm(FormColumnsMixin, UserCreationForm):
