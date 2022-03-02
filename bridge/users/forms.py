@@ -109,7 +109,7 @@ class BridgeAuthForm(AuthenticationForm):
             "Please enter a correct %(username)s and password. Note that both fields may be case-sensitive."
         ),
         'inactive': _("This account is inactive. Please contact administrator to activate it."),
-        'no_job_access': _("This account has no access to any job. Please contact administrator to add it.")
+        'no_job_access': _("This account has no access to any job. Please contact administrator or other users to add it.")
     }
 
     username = UsernameField(widget=forms.TextInput(attrs={'placeholder': _('Username'), 'autofocus': True}))
