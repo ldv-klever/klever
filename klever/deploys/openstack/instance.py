@@ -199,8 +199,8 @@ class OSKleverInstance:
             sys.exit(errno.EINVAL)
 
         # Store PostgreSQL data directory in volume
-        data_dir = '/var/lib/postgresql/9.6/main'
-        conf_file = '/etc/postgresql/9.6/main/postgresql.conf'
+        data_dir = '/var/lib/postgresql/11/main'
+        conf_file = '/etc/postgresql/11/main/postgresql.conf'
 
         # Stop PostgreSQL to make required changes
         ssh.execute_cmd('sudo systemctl stop postgresql')
