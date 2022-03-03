@@ -105,6 +105,14 @@ class OSKleverBaseImage:
                     self.__install_klever_python(ssh)
                     self.__install_python_packages(ssh)
 
+                # Debian 11 uses cgroup v2 by default, but it is not supported by Klever (namely BenchExec). Switch to
+                # cgroup v1. These changes will go into effect after reboot that will happen at creating instances.
+                ssh.execute_cmd('sudo sed -i \'s/{0}/{1}/\' {2}'.format(
+                    '^GRUB_CMDLINE_LINUX_DEFAULT="[^"]*',
+                    '& systemd.unified_cgroup_hierarchy=false systemd.legacy_systemd_cgroup_controller=false',
+                    '/etc/default/grub'), timeout=1)
+                ssh.execute_cmd('sudo update-grub', timeout=1)
+
             instance.create_image()
 
         self.__overwrite_default_base_image_name(klever_base_image_name)
@@ -120,9 +128,9 @@ class OSKleverBaseImage:
                         timeout=3)
 
     def __install_klever_python(self, ssh):
-        ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz', timeout=1)
-        ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
-        ssh.execute_cmd('rm python-3.7.6.tar.xz')
+        ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/9752/python-debian-11-3.7.12.tar.xz', timeout=1)
+        ssh.execute_cmd('sudo tar -C / -xf python-debian-11-3.7.12.tar.xz')
+        ssh.execute_cmd('rm python-debian-11-3.7.12.tar.xz')
 
     def __install_python_packages(self, ssh):
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel', timeout=1)

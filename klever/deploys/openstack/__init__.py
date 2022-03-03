@@ -54,7 +54,7 @@ def parse_args(args):
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
-    parser.add_argument('--base-image', default='Debian-10.11.3-20220130-openstack-amd64',
+    parser.add_argument('--base-image', default='Debian-11-generic-amd64-20220121-894',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
