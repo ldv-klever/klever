@@ -68,7 +68,7 @@ pluggy==1.0.0
 ply==3.11
 prettytable==3.1.1
 prompt-toolkit==3.0.28
-psycopg2-binary==2.9.3
+psycopg2-binary==2.8.6
 py==1.11.0
 pycparser==2.21
 pycryptodome==3.14.1
