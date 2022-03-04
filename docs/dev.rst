@@ -132,14 +132,24 @@ Run the following commands within :term:`$KLEVER_SRC`::
 
     $ python3 -m venv venv
     $ source venv/bin/activate
-    $ pip install -e .
+    $ pip install --upgrade pip wheel setuptools
+    $ pip install .
 
 This will install latest versions of required packages.
 After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`::
 
-    $ python -m pip freeze > requirements.txt
+    $ python -m pip freeze | grep -v 'klever' > requirements.txt
 
 Updated list of requirements will be saved and should be committed to the repository afterwards.
+
+Besides, you should also update the list of required Python packages for OpenStack deployment.
+For this purpose you need to run the following commands after executing commands above::
+
+    $ pip install ".[openstack]"
+    $ python -m pip freeze | grep -v 'klever' > requirements-openstack.txt
+
+At last you should specify actual versions of Python packages in :file:`docs/requirements.txt`.
+Note, that Sphinx 4.4.0 requires docutils < 0.18.
 
 .. _test_build_bases_generation:
 
