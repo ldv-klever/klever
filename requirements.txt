@@ -1,6 +1,6 @@
 amqp==5.0.2
 asgiref==3.3.1
-BenchExec==3.3
+BenchExec==3.11
 billiard==3.6.3.0
 cchardet==2.1.7
 celery==5.0.3

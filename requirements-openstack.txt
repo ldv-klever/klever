@@ -3,7 +3,7 @@ appdirs==1.4.4
 asgiref==3.3.1
 attrs==20.3.0
 bcrypt==3.2.0
-BenchExec==3.3
+BenchExec==3.11
 billiard==3.6.3.0
 cchardet==2.1.7
 celery==5.0.3
