@@ -9,6 +9,7 @@ static struct task_struct *thread;
 static int ldv_handler(void *data)
 {
 	ldv_invoke_reached();
+	return 0;
 }
 
 static int __init ldv_init(void)
@@ -19,7 +20,7 @@ static int __init ldv_init(void)
 	return 0;
 }
 
-static void __exit ldv_exit(void) 
+static void __exit ldv_exit(void)
 {
 	kthread_stop(thread);
 }
