@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call rest tty callbacks.",
-            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox]).{call[1]} | [close].[shutdown].[remove1].[cleanup].{main[1]}"
+            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop]).{call[1]} | [close].[shutdown].[remove1].[cleanup].{main[1]}"
           },
           "callback": {
             "callback": "%callback%",
@@ -136,16 +136,6 @@
           "set_termios": {
             "callback": "%tty_operations.set_termios%",
             "comment": "Device's termios settings have changed.",
-            "parameters": [
-              "%tty_struct%"
-            ],
-            "pre-call": [
-              "/* Expect that termios mutex is locked */"
-            ]
-          },
-          "set_termiox": {
-            "callback": "%tty_operations.set_termiox%",
-            "comment": "The device receives a termiox based ioctl.",
             "parameters": [
               "%tty_struct%"
             ],

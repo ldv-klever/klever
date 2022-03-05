@@ -30,9 +30,6 @@
           "set_termios": {
             "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
           },
-          "set_termiox": {
-            "declaration": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
-          },
           "shutdown": {
             "declaration": "void (*shutdown)(%tty.tty_struct%)"
           },
@@ -60,7 +57,6 @@
               "open": "%tty.open%",
               "remove": "%tty.remove%",
               "set_termios": "%tty.set_termios%",
-              "set_termiox": "%tty.set_termiox%",
               "shutdown": "%tty.shutdown%",
               "start": "%tty.start%",
               "stop": "%tty.stop%",
@@ -158,9 +154,6 @@
           "set_termios": {
             "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
           },
-          "set_termiox": {
-            "declaration": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
-          },
           "shutdown": {
             "declaration": "void (*shutdown)(%tty.tty_struct%)"
           },
@@ -188,7 +181,6 @@
               "open": "%tty.open%",
               "remove": "%tty.remove%",
               "set_termios": "%tty.set_termios%",
-              "set_termiox": "%tty.set_termiox%",
               "shutdown": "%tty.shutdown%",
               "start": "%tty.start%",
               "stop": "%tty.stop%",
@@ -285,9 +277,6 @@
           "set_termios": {
             "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
           },
-          "set_termiox": {
-            "declaration": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
-          },
           "shutdown": {
             "declaration": "void (*shutdown)(%tty.tty_struct%)"
           },
@@ -315,7 +304,6 @@
               "open": "%tty.open%",
               "remove": "%tty.remove%",
               "set_termios": "%tty.set_termios%",
-              "set_termiox": "%tty.set_termiox%",
               "shutdown": "%tty.shutdown%",
               "start": "%tty.start%",
               "stop": "%tty.stop%",
@@ -412,9 +400,6 @@
           "set_termios": {
             "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
           },
-          "set_termiox": {
-            "declaration": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
-          },
           "shutdown": {
             "declaration": "void (*shutdown)(%tty.tty_struct%)"
           },
@@ -442,7 +427,6 @@
               "open": "%tty.open%",
               "remove": "%tty.remove%",
               "set_termios": "%tty.set_termios%",
-              "set_termiox": "%tty.set_termiox%",
               "shutdown": "%tty.shutdown%",
               "start": "%tty.start%",
               "stop": "%tty.stop%",
