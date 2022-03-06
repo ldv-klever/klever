@@ -1,18 +1,18 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "b8714e7",
-      "path": "https://forge.ispras.ru/attachments/download/9559/cif-b8714e7.tar.xz",
+      "version": "f324b55",
+      "path": "https://forge.ispras.ru/attachments/download/9771/cif-f324b55.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "b8714e7",
-      "path": "https://forge.ispras.ru/attachments/download/9558/arm-unknown-eabi-cif-b8714e7.tar.xz",
+      "version": "f324b55",
+      "path": "https://forge.ispras.ru/attachments/download/9770/arm-unknown-eabi-cif-f324b55.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM64": {
-      "version": "b8714e7",
-      "path": "https://forge.ispras.ru/attachments/download/9557/aarch64_be-unknown-linux-gnu-cif-b8714e7.tar.xz",
+      "version": "f324b55",
+      "path": "https://forge.ispras.ru/attachments/download/9769/aarch64_be-unknown-linux-gnu-cif-f324b55.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
