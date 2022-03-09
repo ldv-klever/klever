@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "failure: invalid implicit conversion",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "InvalidImplicitCast",
+  "production": true,
+  "is_modifiable": false
+}

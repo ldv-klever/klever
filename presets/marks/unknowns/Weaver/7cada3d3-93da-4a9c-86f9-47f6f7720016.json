@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "expression wasn't converted",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "ExprConversionFail",
+  "production": true,
+  "is_modifiable": false
+}

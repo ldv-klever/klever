@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "failure: comparison between pointer and non-pointer",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "NonPointerComparison",
+  "production": true,
+  "is_modifiable": false
+}

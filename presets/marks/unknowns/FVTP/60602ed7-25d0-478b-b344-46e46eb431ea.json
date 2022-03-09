@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "user error: declaration of array of incomplete type",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "IncompleteType",
+  "production": true,
+  "is_modifiable": false
+}
