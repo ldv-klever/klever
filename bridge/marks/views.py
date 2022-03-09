@@ -22,7 +22,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F
 from django.template.defaulttags import register
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin

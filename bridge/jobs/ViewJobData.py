@@ -20,7 +20,7 @@ from urllib.parse import quote
 from django.db.models import Count, Case, When, F
 from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import DECISION_WEIGHT
 

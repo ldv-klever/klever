@@ -26,7 +26,7 @@ from django.core.files import File
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.utils import extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE

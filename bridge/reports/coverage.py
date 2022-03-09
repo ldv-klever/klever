@@ -22,7 +22,7 @@ from wsgiref.util import FileWrapper
 
 from django.http import Http404
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import ETV_FORMAT, COVERAGE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException, construct_url

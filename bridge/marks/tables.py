@@ -24,7 +24,7 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import (
     MARK_SAFE, MARK_UNSAFE, ASSOCIATION_TYPE, MARK_SOURCE, USER_ROLES, MARK_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS

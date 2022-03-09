@@ -1,4 +1,4 @@
-amqp==5.0.9
+amqp==5.1.0
 asgiref==3.5.0
 attrs==21.4.0
 BenchExec==3.11
@@ -15,7 +15,7 @@ click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
 consulate==0.6.0
-Django==3.0.6
+Django==4.0.3
 django-appconf==1.0.5
 django-celery-results==2.3.0
 django-compressor==3.1
@@ -28,14 +28,14 @@ idna==3.3
 importlib-metadata==4.11.2
 iniconfig==1.1.1
 Jinja2==3.0.3
-kombu==5.2.3
+kombu==5.2.4
 MarkupSafe==2.1.0
 packaging==21.3
 pika==1.2.0
 pluggy==1.0.0
 ply==3.11
 prompt-toolkit==3.0.28
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.3
 py==1.11.0
 Pygments==2.11.2
 pyparsing==3.0.7

@@ -27,7 +27,7 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import transaction
 from django.db.models import F, FileField, Count
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import DECISION_WEIGHT, DECISION_STATUS
 from bridge.utils import BridgeException, logger

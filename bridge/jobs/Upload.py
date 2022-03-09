@@ -23,7 +23,7 @@ from django.conf import settings
 from django.core.files import File
 from django.db import transaction
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import exceptions
 

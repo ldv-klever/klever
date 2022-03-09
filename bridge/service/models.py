@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
 
@@ -76,7 +75,7 @@ class Task(WithFilesMixin, models.Model):
     error = models.CharField(max_length=1024, null=True)
     filename = models.CharField(max_length=256)
     archive = models.FileField(upload_to=SERVICE_DIR)
-    description = JSONField()
+    description = models.JSONField()
 
     class Meta:
         db_table = 'task'
@@ -87,7 +86,7 @@ class Solution(WithFilesMixin, models.Model):
     task = models.OneToOneField(Task, models.CASCADE, related_name='solution')
     filename = models.CharField(max_length=256)
     archive = models.FileField(upload_to=SERVICE_DIR)
-    description = JSONField()
+    description = models.JSONField()
 
     class Meta:
         db_table = 'solution'

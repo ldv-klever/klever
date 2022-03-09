@@ -20,7 +20,7 @@ import os
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import JSONField, ArrayField
+from django.contrib.postgres.fields import ArrayField
 from django.core.files import File
 from django.db import models
 from django.db.models.signals import post_delete
@@ -120,7 +120,7 @@ class ReportAttr(AttrBase):
 class Computer(models.Model):
     identifier = models.CharField(max_length=128, db_index=True)
     display = models.CharField(max_length=512)
-    data = JSONField()
+    data = models.JSONField()
 
     class Meta:
         db_table = 'computer'
@@ -161,7 +161,7 @@ class ReportComponent(WithFilesMixin, Report):
     start_date = models.DateTimeField(default=now)
     finish_date = models.DateTimeField(null=True)
 
-    data = JSONField(null=True, default=list)
+    data = models.JSONField(null=True, default=list)
     log = models.FileField(upload_to=get_component_path, null=True)
     verifier_files = models.FileField(upload_to=get_component_path, null=True)
 
@@ -198,7 +198,7 @@ class CoverageArchive(WithFilesMixin, models.Model):
     name = models.CharField(max_length=128, default='-')
     identifier = models.CharField(max_length=128, default='')
     archive = models.FileField(upload_to=get_coverage_arch_dir)
-    total = JSONField(null=True)
+    total = models.JSONField(null=True)
     has_extra = models.BooleanField(default=False)
 
     def add_coverage(self, fp, save=False):
@@ -304,7 +304,7 @@ class CoverageStatistics(models.Model):
 class CoverageDataStatistics(models.Model):
     coverage = models.ForeignKey(CoverageArchive, models.CASCADE)
     name = models.CharField(max_length=255)
-    data = JSONField()
+    data = models.JSONField()
 
     class Meta:
         db_table = 'report_coverage_data_statistics'
