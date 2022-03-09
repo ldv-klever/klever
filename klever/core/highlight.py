@@ -175,7 +175,7 @@ class Highlight:
                 continue
             # There is no special highlighting for text but there may be one or more "\n" at the beginning, in the
             # middle or at the end.
-            elif token_type is Text:
+            elif token_type is Text or token_type is Text.Whitespace:
                 for c in token_text:
                     if not self.go_to_next_line(c):
                         # Update current start offset for following tokens.
