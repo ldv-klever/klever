@@ -1,4 +1,4 @@
-amqp==5.0.9
+amqp==5.1.0
 appdirs==1.4.4
 asgiref==3.5.0
 attrs==21.4.0
@@ -24,7 +24,7 @@ consulate==0.6.0
 cryptography==36.0.1
 debtcollector==2.4.0
 decorator==5.1.1
-Django==3.0.6
+Django==4.0.3
 django-appconf==1.0.5
 django-celery-results==2.3.0
 django-compressor==3.1
@@ -44,7 +44,7 @@ jsonpatch==1.32
 jsonpointer==2.2
 jsonschema==3.2.0
 keystoneauth1==4.4.0
-kombu==5.2.3
+kombu==5.2.4
 MarkupSafe==2.1.0
 msgpack==1.0.3
 munch==2.5.0
@@ -68,7 +68,7 @@ pluggy==1.0.0
 ply==3.11
 prettytable==3.1.1
 prompt-toolkit==3.0.28
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.3
 py==1.11.0
 pycparser==2.21
 pycryptodome==3.14.1
