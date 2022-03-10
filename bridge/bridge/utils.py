@@ -95,7 +95,7 @@ class RequreLock(Atomic):
         if lock not in LOCK_MODES:
             raise ValueError('%s is not a PostgreSQL supported lock mode.')
         self._lock = lock
-        super(RequreLock, self).__init__(None, None)
+        super(RequreLock, self).__init__(None, None, False)
 
     def __enter__(self):
         super(RequreLock, self).__enter__()
