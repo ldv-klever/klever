@@ -1,9 +1,9 @@
 {
   "attrs": [],
-  "description": "",
+  "description": "At least some failures can happen due to invalid processing by Frama-C (CIL).",
   "function": "failure: invalid implicit conversion",
   "is_regexp": false,
-  "link": "",
+  "link": "https://forge.ispras.ru/issues/10363",
   "problem_pattern": "InvalidImplicitCast",
   "production": true,
   "is_modifiable": false

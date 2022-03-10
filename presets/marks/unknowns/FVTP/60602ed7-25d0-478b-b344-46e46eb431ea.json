@@ -3,7 +3,7 @@
   "description": "",
   "function": "user error: declaration of array of incomplete type",
   "is_regexp": false,
-  "link": "",
+  "link": "https://forge.ispras.ru/issues/10361",
   "problem_pattern": "IncompleteType",
   "production": true,
   "is_modifiable": false

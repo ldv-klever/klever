@@ -3,7 +3,7 @@
   "description": "",
   "function": "user error: Cannot assign to non-modifiable lval",
   "is_regexp": false,
-  "link": "",
+  "link": "https://forge.ispras.ru/issues/9959",
   "problem_pattern": "ImmutableLvalAssign",
   "production": true,
   "is_modifiable": false
