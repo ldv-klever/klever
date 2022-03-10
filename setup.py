@@ -79,10 +79,10 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "Django==3.0.6",
+        "Django==4.0.3",
         "BenchExec==3.11",
         "clade>=3.4,<3.5",
-        "psycopg2-binary>=2.8,<2.9",
+        "psycopg2-binary",
         "graphviz",
         "celery",
         "django_celery_results",
