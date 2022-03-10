@@ -39,7 +39,7 @@ from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, activate as activate_timezone
-from django.utils.translation import ugettext_lazy as _, activate
+from django.utils.translation import gettext_lazy as _, activate
 
 from rest_framework.pagination import PageNumberPagination
 

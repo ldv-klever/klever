@@ -21,7 +21,7 @@ import zipfile
 from django.conf import settings
 from django.utils.functional import cached_property
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers, exceptions, fields
 

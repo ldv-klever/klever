@@ -19,7 +19,7 @@ import re
 import json
 
 from django.db.models import F, Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
 

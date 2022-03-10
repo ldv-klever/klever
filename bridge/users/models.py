@@ -17,11 +17,10 @@
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework.authtoken.models import Token
 
@@ -118,7 +117,7 @@ class DataView(models.Model):
     type = models.CharField(max_length=2, choices=VIEW_TYPES)
     shared = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
-    view = JSONField()
+    view = models.JSONField()
 
     def __str__(self):
         return self.name

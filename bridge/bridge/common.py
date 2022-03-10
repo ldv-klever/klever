@@ -97,6 +97,8 @@ else:
         }
     }
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 LANGUAGE_CODE = 'en-us'
 
 LANGUAGES = (

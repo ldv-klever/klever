@@ -15,10 +15,11 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict, Mapping
+from collections import OrderedDict
+from collections.abc import Mapping
 from django.db.models import F, Count, Case, When
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers, fields, exceptions
 

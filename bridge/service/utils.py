@@ -19,7 +19,7 @@ import json
 from wsgiref.util import FileWrapper
 
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import DECISION_STATUS, SCHEDULER_TYPE, TASK_STATUS
 from bridge.utils import logger, BridgeException

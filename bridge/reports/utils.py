@@ -25,7 +25,7 @@ from wsgiref.util import FileWrapper
 from django.db.models import Max, Case, When, F, Q, CharField, Value
 from django.db.models.expressions import RawSQL
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.vars import UNSAFE_VERDICTS, UNSAFE_STATUS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SUBJOB_NAME
