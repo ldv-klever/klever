@@ -31,12 +31,12 @@ import re
 import glob
 import multiprocessing
 import sys
-import consulate
+import consul
 from xml.etree import ElementTree
 
 # This should prevent rumbling of urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("consulate").setLevel(logging.WARNING)
+logging.getLogger("consul").setLevel(logging.WARNING)
 
 
 class StreamQueue:
@@ -601,9 +601,9 @@ def kv_upload_solution(logger, identifier, scheduler_type, dataset):
     :return: None
     """
     key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    session = consulate.Session()
+    consul_client = consul.Consul()
     try:
-        session.kv[key] = json.dumps(dataset)
+        consul_client.kv.put(key, json.dumps(dataset))
         return
     except (AttributeError, KeyError):
         logger.warning("Cannot save key {!r} to key-value storage".format(key))
@@ -619,9 +619,10 @@ def kv_get_solution(logger, scheduler_type, identifier):
     :return: None
     """
     key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    session = consulate.Session()
+    consul_client = consul.Consul()
     try:
-        return json.loads(session.kv[key])
+        index, data = consul_client.kv.get(key)
+        return json.loads(data['Value'])
     except (AttributeError, KeyError) as err:
         logger.warning("Cannot obtain key {!r} from key-value storage: {!r}".format(key, err))
 
@@ -636,10 +637,10 @@ def kv_clear_solutions(logger, scheduler_type, identifier=None):
     :return: None
     """
     try:
-        session = consulate.Session()
+        consul_client = consul.Consul()
         if isinstance(identifier, str):
-            session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
+            consul_client.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
         else:
-            session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
+            consul_client.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
     except (AttributeError, KeyError):
         logger.warning("Key-value storage is inaccessible")

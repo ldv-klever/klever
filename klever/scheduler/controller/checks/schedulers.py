@@ -16,7 +16,7 @@
 
 import os
 import json
-import consulate
+import consul
 import subprocess
 import logging
 
@@ -37,7 +37,7 @@ def main():
         conf = json.load(fh)
 
     # Sign in
-    consul = consulate.Consul()
+    consul_client = consul.Consul()
 
     # Update scheduler status
     status = {
@@ -53,14 +53,15 @@ def main():
         status["VerifierCloud"] = "HEALTHY"
 
     # Check the last submit
-    if "schedulers" in consul.kv:
-        kv_status = json.loads(consul.kv["schedulers"])
+    index, data = consul_client.kv.get("schedulers")
+    if data:
+        kv_status = json.loads(data['Value'])
         if kv_status["Klever"] != status["Klever"] or kv_status["VerifierCloud"] != status["VerifierCloud"]:
             set_status(logging, status, conf)
-            consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
+            consul_client.kv.put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
     else:
         try:
-            consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
+            consul_client.kv.put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
         except (AttributeError, KeyError):
             print('Key-value storage is not ready yet')
             exit(1)
