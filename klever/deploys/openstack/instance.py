@@ -154,7 +154,7 @@ class OSKleverInstance:
         if self.args.log_level == 'INFO':
             pip_install_cmd += '--quiet '
 
-        ssh.execute_cmd(pip_install_cmd + 'pip setuptools wheel')
+        ssh.execute_cmd(pip_install_cmd + 'pip setuptools setuptools_scm wheel')
         ssh.execute_cmd(pip_install_cmd + '-r klever/requirements.txt ./klever')
 
     def __deploy_klever(self, ssh, action='install'):

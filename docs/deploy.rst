@@ -82,7 +82,7 @@ For instance, you can run following commands within :term:`$KLEVER_SRC`::
 
 To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
 
-    $ pip install --upgrade pip wheel setuptools
+    $ pip install --upgrade pip wheel setuptools setuptools_scm
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 

@@ -133,7 +133,7 @@ class OSKleverBaseImage:
         ssh.execute_cmd('rm python-debian-11-3.7.12.tar.xz')
 
     def __install_python_packages(self, ssh):
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel', timeout=1)
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools setuptools_scm wheel', timeout=1)
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
 
     def __overwrite_default_base_image_name(self, klever_base_image_name):
