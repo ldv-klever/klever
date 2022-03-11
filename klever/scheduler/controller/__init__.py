@@ -179,8 +179,7 @@ def run_consul(conf, logger, work_dir, config_file):
 
     # Setup GUI
     if "setup GUI" in conf["client-controller"] and conf["client-controller"]["setup GUI"]:
-        args.append("-ui-dir={}".
-                    format(os.path.join(os.path.dirname(conf["client-controller"]["consul"]), "dist")))
+        args.append("-ui")
 
     # Add other commands
     if "consul additional opts" in conf["client-controller"]:
