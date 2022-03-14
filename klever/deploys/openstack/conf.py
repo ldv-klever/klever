@@ -15,10 +15,6 @@
 
 import os
 
-
-PYTHON = '/usr/local/python3-klever/bin/python3'
-KLEVER_DEPLOY_LOCAL = os.path.join(os.path.dirname(PYTHON), 'klever-deploy-local')
-
 OS_USER = 'debian'
 OS_HOME = f'/home/{OS_USER}'
 OS_AUTH_URL = 'https://sky.ispras.ru:13000'  # OpenStack identity service endpoint for authorization
@@ -33,3 +29,10 @@ DEV_MEDIA_DIR = os.path.join(SRC_DIR, 'bridge', 'media')
 VOLUME_DIR = os.path.join(OS_HOME, 'volume')
 VOLUME_MEDIA_DIR = os.path.join(VOLUME_DIR, 'media')
 VOLUME_PGSQL_DIR = os.path.join(VOLUME_DIR, 'postgresql')
+
+PYTHON_ARCHIVE = 'https://forge.ispras.ru/attachments/download/9806/python-debian-11-3.10.2.tar.xz'
+PYTHON_BIN_ORIG = '/usr/local/python3.10-klever/bin/python3'
+# Create Python virtual environment outside directory with Klever sources since it is removed after creation of base
+# image as well as installation and update of Klever itself.
+PYTHON_BIN = os.path.join(OS_HOME, 'venv/bin/python3')
+KLEVER_DEPLOY_LOCAL = os.path.join(os.path.dirname(PYTHON_BIN), 'klever-deploy-local')

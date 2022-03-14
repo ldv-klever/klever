@@ -21,7 +21,7 @@ from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
-from klever.deploys.openstack.conf import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
+from klever.deploys.openstack.conf import PYTHON_BIN, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
     VOLUME_DIR, PROD_MEDIA_DIR, DEV_MEDIA_DIR, VOLUME_PGSQL_DIR, VOLUME_MEDIA_DIR
 
 
@@ -149,7 +149,7 @@ class OSKleverInstance:
                 return instance
 
     def __install_or_update_klever(self, ssh):
-        pip_install_cmd = f'sudo {PYTHON} -m pip install --upgrade '
+        pip_install_cmd = f'{PYTHON_BIN} -m pip install --upgrade '
 
         if self.args.log_level == 'INFO':
             pip_install_cmd += '--quiet '
