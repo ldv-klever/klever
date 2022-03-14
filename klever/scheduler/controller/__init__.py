@@ -113,7 +113,7 @@ def setup_consul(conf, logger):
             check_desc = {
                 "id": "{} {}".format(conf["node configuration"]["node name"], check["name"]),
                 "name": check["name"],
-                "script": check_file,
+                "args": [check_file],
                 "interval": check["interval"]
             }
             consul_config["checks"].append(check_desc)

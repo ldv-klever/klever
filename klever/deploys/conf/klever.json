@@ -21,8 +21,8 @@
       "executable path": "."
     },
     "Consul": {
-      "version": "0.9.2",
-      "path": "https://forge.ispras.ru/attachments/download/8143/consul_0.9.2_linux_amd64.zip",
+      "version": "1.11.4",
+      "path": "https://forge.ispras.ru/attachments/download/9819/consul_1.11.4_linux_amd64.zip",
       "executable path": "consul"
     },
     "JRE": {
