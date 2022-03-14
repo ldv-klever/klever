@@ -86,6 +86,21 @@ class Klever:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_install_or_update(self):
+        # (Re)set environment variable JAVA to point out absolute path to Java executable to be used for executing Java
+        # programs within Klever. At the moment the same Java will be used for all Java programs but that may be changed
+        # in future.
+        with open('/etc/default/klever') as fp:
+            klever_defaults = fp.readlines()
+
+        with open('/etc/default/klever', 'w') as fp:
+            for line in klever_defaults:
+                if not line.startswith('JAVA'):
+                    fp.write(line)
+
+            fp.write("JAVA={}\n".format(
+                os.path.join(os.path.realpath(self.args.deployment_directory), 'klever-addons', 'JRE',
+                             self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
+
         self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
         self._install_klever_build_bases(self.args.source_directory, self.args.deployment_directory)
 
@@ -345,14 +360,6 @@ class Klever:
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
         self._pre_install_or_update()
-
-        # Set environment variable JAVA to point out absolute path to java executable to be used for executing Java
-        # programs within Klever. At the moment the same java will be used for all Java programs but that may be changed
-        # in future.
-        with open('/etc/default/klever', 'a+') as fp:
-            fp.write("JAVA={}\n".format(
-                os.path.join(os.path.realpath(self.args.deployment_directory), 'klever-addons', 'JRE',
-                             self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
 
     def _pre_update(self):
         if not os.path.exists(self.prev_deploy_info_file):
