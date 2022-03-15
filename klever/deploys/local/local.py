@@ -86,6 +86,9 @@ class Klever:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_install_or_update(self):
+        self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
+        self._install_klever_build_bases(self.args.source_directory, self.args.deployment_directory)
+
         # (Re)set environment variable JAVA to point out absolute path to Java executable to be used for executing Java
         # programs within Klever. At the moment the same Java will be used for all Java programs but that may be changed
         # in future.
@@ -100,9 +103,6 @@ class Klever:
             fp.write("JAVA={}\n".format(
                 os.path.join(os.path.realpath(self.args.deployment_directory), 'klever-addons', 'JRE',
                              self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
-
-        self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
-        self._install_klever_build_bases(self.args.source_directory, self.args.deployment_directory)
 
         try:
             version = get_klever_version()
