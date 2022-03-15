@@ -20,7 +20,7 @@ click-repl==0.2.0
 cliff==3.10.1
 cmd2==2.4.0
 cryptography==36.0.1
-debtcollector==2.4.0
+debtcollector==2.5.0
 decorator==5.1.1
 Django==4.0.3
 django-appconf==1.0.5
@@ -54,11 +54,11 @@ osc-lib==2.5.0
 oslo.config==8.8.0
 oslo.context==4.1.0
 oslo.i18n==5.1.0
-oslo.log==4.6.1
+oslo.log==4.7.0
 oslo.serialization==4.3.0
 oslo.utils==4.12.2
 packaging==21.3
-paramiko==2.9.2
+paramiko==2.10.2
 pbr==5.8.1
 pika==1.2.0
 pluggy==1.0.0
@@ -76,9 +76,8 @@ pyOpenSSL==22.0.0
 pyparsing==3.0.7
 pyperclip==1.8.2
 pyrsistent==0.18.1
-pytest==7.0.1
+pytest==7.1.0
 python-cinderclient==8.3.0
-python-consul==1.1.0
 python-dateutil==2.8.2
 python-glanceclient==3.6.0
 python-keystoneclient==4.4.0

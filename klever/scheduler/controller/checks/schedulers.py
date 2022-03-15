@@ -16,11 +16,11 @@
 
 import os
 import json
-import consul
 import subprocess
 import logging
 
 import klever.scheduler.utils.bridge as bridge
+import klever.scheduler.utils.consul as consul
 
 
 def set_status(logger, st, conf):
@@ -37,7 +37,7 @@ def main():
         conf = json.load(fh)
 
     # Sign in
-    consul_client = consul.Consul()
+    consul_client = consul.Session()
 
     # Update scheduler status
     status = {
@@ -53,15 +53,15 @@ def main():
         status["VerifierCloud"] = "HEALTHY"
 
     # Check the last submit
-    index, data = consul_client.kv.get("schedulers")
-    if data:
-        kv_status = json.loads(data['Value'])
-        if kv_status["Klever"] != status["Klever"] or kv_status["VerifierCloud"] != status["VerifierCloud"]:
+    schedulers = consul_client.kv_get("schedulers")
+    if schedulers:
+        schedulers = json.loads(schedulers)
+        if schedulers["Klever"] != status["Klever"] or schedulers["VerifierCloud"] != status["VerifierCloud"]:
             set_status(logging, status, conf)
-            consul_client.kv.put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
+            consul_client.kv_put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
     else:
         try:
-            consul_client.kv.put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
+            consul_client.kv_put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
         except (AttributeError, KeyError):
             print('Key-value storage is not ready yet')
             exit(1)

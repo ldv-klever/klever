@@ -99,7 +99,6 @@ setuptools.setup(
         "requests",
         "setuptools_scm",
         "sortedcontainers",
-        "python-consul",
         "pytest"
     ],
     extras_require={

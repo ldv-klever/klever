@@ -16,14 +16,15 @@
 import os
 import time
 import json
-import consul
 import logging
+
+import klever.scheduler.utils.consul as consul
 
 
 def set_data(consul_client, conf):
     try:
-        consul_client.kv.put("states/{}".format(conf["node configuration"]["node name"]),
-            json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4))
+        consul_client.kv_put("states/{}".format(conf["node configuration"]["node name"]),
+                             json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4))
     except (AttributeError, KeyError):
         print("Key-value storage is inaccessible")
         exit(2)
@@ -38,8 +39,8 @@ def main():
         node_conf = json.load(fh)
 
     # Check content
-    consul_client = consul.Consul()
-    index, data = consul_client.kv.get("states/{}".format(node_conf["node configuration"]["node name"]))
+    consul_client = consul.Session()
+    data = consul_client.kv_get("states/{}".format(node_conf["node configuration"]["node name"]))
     if data:
         # Check last modification data
         secs_since_diff = int(time.time() - os.path.getmtime(expect_file))
