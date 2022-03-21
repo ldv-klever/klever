@@ -9,7 +9,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/.pytest_cache" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (klever)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (klever)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Core" />
     <orderEntry type="module" module-name="Deploys" />
