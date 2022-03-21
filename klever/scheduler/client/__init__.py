@@ -402,7 +402,7 @@ def run(selflogger, args, conf, logger=None):
 
             # Sometimes RunExec may decide to specify "memory" as terminationreason even though the corresponding
             # process finishes successfully, i.e. returnvalue equals to 0. Treat these failures as normal termination.
-            if job_exit and reason:
+            if job_exit != 0 and reason:
                 selflogger.warning("RunExec set termination reason {!r}".format(reason))
                 # Do not overwrite termination reason from disk space controller.
                 if not os.path.exists('termination-reason.txt'):
