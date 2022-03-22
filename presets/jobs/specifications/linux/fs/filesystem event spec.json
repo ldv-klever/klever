@@ -302,7 +302,8 @@
       "mount_bdev, mount_mtd": {
         "comment": "Call fill_super implementation.",
         "headers": [
-          "linux/mtd/mtd.h"
+          "linux/mtd/mtd.h",
+          "include/linux/blk_types.h"
         ],
         "reference": true,
         "declarations": {

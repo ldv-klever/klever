@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "failure: castTo",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "CastFailure",
+  "production": true,
+  "is_modifiable": false
+}

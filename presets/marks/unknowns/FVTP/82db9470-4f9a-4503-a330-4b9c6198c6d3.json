@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "user error: syntax error",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "SyntaxError",
+  "production": true,
+  "is_modifiable": false
+}

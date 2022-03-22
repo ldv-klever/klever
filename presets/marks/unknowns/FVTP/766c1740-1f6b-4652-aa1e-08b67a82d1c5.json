@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "Fatal error: exception Out of memory",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "OutOfMemory",
+  "production": true,
+  "is_modifiable": false
+}

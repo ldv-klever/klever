@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "expression recursion limit is reached",
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "RecursionLimit",
+  "production": true,
+  "is_modifiable": false
+}

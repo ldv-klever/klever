@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "user error: static initialization of flexible array members is an unsupported GNU extension",
+  "is_regexp": false,
+  "link": "https://forge.ispras.ru/issues/10361",
+  "problem_pattern": "FlexArray",
+  "production": true,
+  "is_modifiable": false
+}
