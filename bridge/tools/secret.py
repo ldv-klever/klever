@@ -3,7 +3,7 @@ import os
 import tempfile
 import zipfile
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import COVERAGE_FILE
 from bridge.utils import BridgeException, ArchiveFileContent

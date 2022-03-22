@@ -19,7 +19,7 @@ import copy
 import json
 import re
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import ASSOCIATION_TYPE, PROBLEM_DESC_FILE
 from bridge.utils import BridgeException, logger, ArchiveFileContent, require_lock

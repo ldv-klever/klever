@@ -19,10 +19,10 @@ import json
 import copy
 import time
 import requests
-import consulate
 
 from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
+import klever.scheduler.utils.consul as consul
 
 
 class ResourceManager:
@@ -70,30 +70,32 @@ class ResourceManager:
                                  format(kv_url, r.status_code, r.reason))
             nds = r.json()
             nds = [data["Node"] for data in nds]
-            sess = consulate.Consul()
+
             # test
             if len(nds) == 0:
                 raise KeyError("Expect at least one working node to operate")
-            sess.kv["states/" + nds[0]]
-            return nds, sess
+
+            return nds
 
         url = address + "/v1/catalog/nodes"
+        nodes = []
         if wait_controller:
             done = False
             while not done:
                 try:
-                    nodes, session = request(url)
+                    nodes = request(url)
                     done = True
                 except (requests.exceptions.ConnectionError, KeyError, ValueError):
                     time.sleep(10)
         else:
-            nodes, session = request(url)
+            nodes = request(url)
+
+        consul_client = consul.Session()
 
         cancel_jobs = []
         cancel_tasks = []
         for node in nodes:
-            string = session.kv["states/" + node]
-            node_status = json.loads(string)
+            node_status = json.loads(consul_client.kv_get("states/" + node))
 
             # Get dictionary and compare it with existing one
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":

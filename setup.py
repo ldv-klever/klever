@@ -51,7 +51,7 @@ setuptools.setup(
     license="LICENSE",
     description="Klever is a software verification framework",
     long_description=open("README.md", encoding="utf8").read(),
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     packages=["klever"],
     package_data={"klever": package_files("klever")},
     entry_points={
@@ -79,10 +79,10 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "Django==3.0.6",
+        "Django==4.0.3",
         "BenchExec==3.11",
         "clade>=3.4,<3.5",
-        "psycopg2-binary>=2.8,<2.9",
+        "psycopg2-binary",
         "graphviz",
         "celery",
         "django_celery_results",
@@ -99,7 +99,6 @@ setuptools.setup(
         "requests",
         "setuptools_scm",
         "sortedcontainers",
-        "consulate",
         "pytest"
     ],
     extras_require={

@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
+from django.utils.translation import gettext_lazy as _, pgettext_lazy as __
 
 ETV_FORMAT = 1
 

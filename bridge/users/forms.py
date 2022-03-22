@@ -22,7 +22,7 @@ from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, UsernameField, UserCreationForm
 from django.forms.widgets import Input
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.backends import has_bridge_access
 from users.models import User, SchedulerUser

@@ -16,14 +16,15 @@
 import os
 import time
 import json
-import consulate
 import logging
 
+import klever.scheduler.utils.consul as consul
 
-def set_data(session, conf):
+
+def set_data(consul_client, conf):
     try:
-        session.kv["states/{}".format(conf["node configuration"]["node name"])] = \
-            json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4)
+        consul_client.kv_put("states/{}".format(conf["node configuration"]["node name"]),
+                             json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4))
     except (AttributeError, KeyError):
         print("Key-value storage is inaccessible")
         exit(2)
@@ -38,15 +39,16 @@ def main():
         node_conf = json.load(fh)
 
     # Check content
-    session = consulate.Consul()
-    if "states/{}".format(node_conf["node configuration"]["node name"]) in session.kv:
+    consul_client = consul.Session()
+    data = consul_client.kv_get("states/{}".format(node_conf["node configuration"]["node name"]))
+    if data:
         # Check last modification data
         secs_since_diff = int(time.time() - os.path.getmtime(expect_file))
 
         if secs_since_diff < 30:
-            set_data(session, node_conf)
+            set_data(consul_client, node_conf)
     else:
-        set_data(session, node_conf)
+        set_data(consul_client, node_conf)
 
     exit(0)
 

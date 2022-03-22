@@ -20,7 +20,7 @@ import json
 from django.http import HttpResponse
 from django.template import loader
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from rest_framework import exceptions
 from rest_framework.generics import (

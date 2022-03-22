@@ -46,6 +46,7 @@ ENV/
 .idea/**/dataSources.ids
 .idea/**/dataSources.local.xml
 .idea/**/sqlDataSources.xml
+.idea/shelf
 
 # mypy
 .mypy_cache/

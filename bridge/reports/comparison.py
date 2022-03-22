@@ -22,7 +22,7 @@ from collections import OrderedDict
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import COMPARE_VERDICT, DECISION_WEIGHT
 from bridge.utils import BridgeException

@@ -25,7 +25,7 @@ from django.core.files import File
 from django.db import transaction
 from django.template import loader
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _, get_language
+from django.utils.translation import gettext_lazy as _, get_language
 from django.utils.functional import cached_property
 
 from bridge.vars import ETV_FORMAT

@@ -19,10 +19,10 @@ import uuid
 
 from django.db import models
 from django.db.models.signals import post_delete
-from django.contrib.postgres.fields import ArrayField, JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.vars import MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
@@ -41,7 +41,7 @@ class ConvertedTrace(WithFilesMixin, models.Model):
     hash_sum = models.CharField(max_length=255, db_index=True)
     file = models.FileField(upload_to=CONVERTED_DIR, null=False)
     function = models.CharField(max_length=30, db_index=True)
-    trace_cache = JSONField()
+    trace_cache = models.JSONField()
 
     class Meta:
         db_table = 'cache_marks_trace'
@@ -61,7 +61,7 @@ class Mark(models.Model):
     source = models.CharField(max_length=1, choices=MARK_SOURCE, default=MARK_SOURCE[0][0])
 
     # Only with is_compare=True
-    cache_attrs = JSONField(default=dict)
+    cache_attrs = models.JSONField(default=dict)
 
     def __str__(self):
         return str(self.identifier)

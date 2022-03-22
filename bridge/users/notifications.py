@@ -21,7 +21,7 @@ from email.mime.text import MIMEText
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, activate
+from django.utils.translation import gettext_lazy as _, activate
 
 from bridge.vars import JOB_ROLES, USER_ROLES
 from bridge.utils import logger

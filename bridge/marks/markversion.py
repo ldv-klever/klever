@@ -16,7 +16,7 @@
 #
 
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS, DEFAULT_COMPARE
 

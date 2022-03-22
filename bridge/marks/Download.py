@@ -24,7 +24,7 @@ from wsgiref.util import FileWrapper
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bridge.vars import MARK_SOURCE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException

@@ -156,16 +156,16 @@
       "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking base": {
-      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator base"}}
+      "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator base"}}
     },
     "race checking lightweight": {
-      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator lightweight"}}
+      "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator thread-modular"}}
+      "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator thread-modular"}}
     },
     "race checking rcu": {
-      "CPAchecker": {"CPALockator-update:38751": {"inherit": "CPALockator rcu"}}
+      "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
       "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker SMG memory checking"}}

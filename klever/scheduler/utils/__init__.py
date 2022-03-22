@@ -31,12 +31,12 @@ import re
 import glob
 import multiprocessing
 import sys
-import consulate
 from xml.etree import ElementTree
+
+import klever.scheduler.utils.consul as consul
 
 # This should prevent rumbling of urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("consulate").setLevel(logging.WARNING)
 
 
 class StreamQueue:
@@ -601,10 +601,9 @@ def kv_upload_solution(logger, identifier, scheduler_type, dataset):
     :return: None
     """
     key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    session = consulate.Session()
+    consul_client = consul.Session()
     try:
-        session.kv[key] = json.dumps(dataset)
-        return
+        consul_client.kv_put(key, json.dumps(dataset))
     except (AttributeError, KeyError):
         logger.warning("Cannot save key {!r} to key-value storage".format(key))
 
@@ -619,11 +618,12 @@ def kv_get_solution(logger, scheduler_type, identifier):
     :return: None
     """
     key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    session = consulate.Session()
-    try:
-        return json.loads(session.kv[key])
-    except (AttributeError, KeyError) as err:
-        logger.warning("Cannot obtain key {!r} from key-value storage: {!r}".format(key, err))
+    consul_client = consul.Session()
+    data = consul_client.kv_get(key)
+    if data:
+        return json.loads(data)
+    else:
+        raise RuntimeError("Cannot obtain key {!r} from key-value storage".format(key))
 
 
 def kv_clear_solutions(logger, scheduler_type, identifier=None):
@@ -636,10 +636,10 @@ def kv_clear_solutions(logger, scheduler_type, identifier=None):
     :return: None
     """
     try:
-        session = consulate.Session()
+        consul_client = consul.Session()
         if isinstance(identifier, str):
-            session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
+            consul_client.kv_delete('solutions/{}/{}'.format(scheduler_type, identifier))
         else:
-            session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
+            consul_client.kv_delete('solutions/{}'.format(scheduler_type))
     except (AttributeError, KeyError):
         logger.warning("Key-value storage is inaccessible")

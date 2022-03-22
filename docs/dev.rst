@@ -132,7 +132,7 @@ Run the following commands within :term:`$KLEVER_SRC`::
 
     $ python3 -m venv venv
     $ source venv/bin/activate
-    $ pip install --upgrade pip wheel setuptools
+    $ pip install --upgrade pip wheel setuptools setuptools_scm
     $ pip install .
 
 This will install latest versions of required packages.
@@ -281,9 +281,9 @@ Configuring the Python Interpreter
 #. Select the Python interpreter from the Klever Python virtual environment.
 #. :menuselection:`OK`.
 #. Select the added Python interpreter from the list and press :kbd:`Enter`.
-#. Input *Python 3.7 (klever)* in field :guilabel:`name`.
+#. Input *Python 3.10 (klever)* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. For the rest projects select *Python 3.7 (klever)* in field :guilabel:`Project Interpreter`.
+#. For the rest projects select *Python 3.10 (klever)* in field :guilabel:`Project Interpreter`.
 
 Setting Run/Debug Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -22,7 +22,7 @@ from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
-from klever.deploys.openstack.conf import PYTHON
+from klever.deploys.openstack.conf import PYTHON_ARCHIVE, PYTHON_BIN_ORIG, PYTHON_BIN
 
 
 class OSKleverBaseImage:
@@ -128,13 +128,14 @@ class OSKleverBaseImage:
                         timeout=3)
 
     def __install_klever_python(self, ssh):
-        ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/9752/python-debian-11-3.7.12.tar.xz', timeout=1)
-        ssh.execute_cmd('sudo tar -C / -xf python-debian-11-3.7.12.tar.xz')
-        ssh.execute_cmd('rm python-debian-11-3.7.12.tar.xz')
+        ssh.execute_cmd(f'wget --no-verbose {PYTHON_ARCHIVE}', timeout=1)
+        ssh.execute_cmd('sudo tar -C / -xf {}'.format(os.path.basename(PYTHON_ARCHIVE)))
+        ssh.execute_cmd('rm {}'.format(os.path.basename(PYTHON_ARCHIVE)))
 
     def __install_python_packages(self, ssh):
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel', timeout=1)
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
+        ssh.execute_cmd(f'{PYTHON_BIN_ORIG} -m venv venv')
+        ssh.execute_cmd(f'{PYTHON_BIN} -m pip install --upgrade pip setuptools setuptools_scm wheel', timeout=1)
+        ssh.execute_cmd(f'{PYTHON_BIN} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
 
     def __overwrite_default_base_image_name(self, klever_base_image_name):
         # Most likely the new base image should be used for creating instances by all users.

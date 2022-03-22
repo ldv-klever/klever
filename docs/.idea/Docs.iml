@@ -4,11 +4,10 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/_build" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (klever)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (klever)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
-    <option name="projectConfiguration" value="pytest" />
     <option name="PROJECT_TEST_RUNNER" value="py.test" />
   </component>
 </module>

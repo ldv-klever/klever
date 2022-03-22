@@ -42,12 +42,10 @@ Software Requirements
 
 Klever deployment is designed to work on:
 
-* `Debian 9 <https://wiki.debian.org/DebianStretch>`__, `Debian 10 <https://wiki.debian.org/DebianBuster>`__ and
-  `Debian 11 <https://wiki.debian.org/DebianBullseye>`__.
+* `Debian 11 <https://wiki.debian.org/DebianBullseye>`__.
 * `Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ and
   `Ubuntu 20.04 <https://wiki.ubuntu.com/FocalFossa/ReleaseNotes>`__.
-* `openSUSE 15.2 <https://doc.opensuse.org/release-notes/x86_64/openSUSE/Leap/15.2/>`__ and
-  `openSUSE 15.3 <https://doc.opensuse.org/release-notes/x86_64/openSUSE/Leap/15.3/>`__.
+* `openSUSE 15.3 <https://doc.opensuse.org/release-notes/x86_64/openSUSE/Leap/15.3/>`__.
 
 You can try it for other versions of these distributions, as well as for their derivatives on your own risk.
 
@@ -65,14 +63,13 @@ First of all it is necessary to install packages listed at the following files:
 * Debian/Ubuntu - :file:`klever/deploys/conf/debian-packages.txt` from :term:`$KLEVER_SRC`.
 * openSUSE - :file:`klever/deploys/conf/opensuse-packages.txt` from :term:`$KLEVER_SRC`.
 
-Then you need to install `Python 3.7 or higher <https://www.python.org/>`__ and a corresponding development package.
+Then you need to install `Python 3.10 or higher <https://www.python.org/>`__ and a corresponding development package.
 If your distribution does not have them you can get them from:
 
-* Debian 9, Debian 10 and Ubuntu 18.04 -
-  `here <https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz>`__.
-* Debian 11 - `here <https://forge.ispras.ru/attachments/download/9752/python-debian-11-3.7.12.tar.xz>`__.
-* Ubuntu 20.04 - you can either use the system Python interpreter since it is 3.8+ or use the one as for Debian 11.
-* openSUSE - `here <https://forge.ispras.ru/attachments/download/9073/python-opensuse-3.7.6.tar.xz>`__.
+* Debian 11 and Ubuntu 20.04 -
+  `here <https://forge.ispras.ru/attachments/download/9806/python-debian-11-3.10.2.tar.xz>`__.
+* Ubuntu 18.04 - `here <https://forge.ispras.ru/attachments/download/9834/python-ubuntu-18.04-3.10.2.tar.xz>`__.
+* openSUSE 15.3 - `here <https://forge.ispras.ru/attachments/download/9805/python-opensuse-3.10.2.tar.xz>`__.
 
 To install required Python packages we recommend to create a virtual environment using installed Python.
 For instance, you can run following commands within :term:`$KLEVER_SRC`::
@@ -82,7 +79,7 @@ For instance, you can run following commands within :term:`$KLEVER_SRC`::
 
 To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
 
-    $ pip install --upgrade pip wheel setuptools
+    $ pip install --upgrade pip wheel setuptools setuptools_scm
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 
