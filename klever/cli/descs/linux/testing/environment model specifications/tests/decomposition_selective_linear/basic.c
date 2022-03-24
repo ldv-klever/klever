@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* TODO: it would be better to consider this as a C program rather than a Linux kernel loadable module since there is no
+         any corresponding specifics. */
+
+#include <linux/module.h>
 #include <ldv/linux/emg/test_model.h>
 
 
@@ -43,3 +47,5 @@ void second_callback(int branch, int sp)
     if (branch == 2)
         ldv_invoke_reached();
 }
+
+MODULE_LICENSE("GPL");

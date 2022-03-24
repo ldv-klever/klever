@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* TODO: it would be better to consider this as a C program rather than a Linux kernel loadable module since there is no
+         any corresponding specifics. */
+
+#include <linux/module.h>
 #include <ldv/verifier/nondet.h>
 #include <ldv/linux/emg/test_model.h>
 
@@ -37,3 +41,5 @@ static void callback(void)
 {
     ldv_invoke_callback();
 }
+
+MODULE_LICENSE("GPL");

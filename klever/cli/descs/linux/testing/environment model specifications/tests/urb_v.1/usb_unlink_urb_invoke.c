@@ -29,4 +29,6 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void) {}
 
 module_init(ldv_init);
-module_exit(ldv_exit);
+module_exit(ldv_exit)
+
+MODULE_LICENSE("GPL");

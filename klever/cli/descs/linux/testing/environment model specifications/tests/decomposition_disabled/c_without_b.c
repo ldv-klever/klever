@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* TODO: it would be better to consider this as a C program rather than a Linux kernel loadable module since there is no
+         any corresponding specifics. */
+
+#include <linux/module.h>
 #include <ldv/linux/emg/test_model.h>
 
 int b_called = 0;
@@ -34,3 +38,5 @@ void c(int param)
     if (!b_called && param == 1)
         ldv_invoke_reached();
 }
+
+MODULE_LICENSE("GPL");
