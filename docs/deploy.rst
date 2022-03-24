@@ -74,7 +74,7 @@ If your distribution does not have them you can get them from:
 To install required Python packages we recommend to create a virtual environment using installed Python.
 For instance, you can run following commands within :term:`$KLEVER_SRC`::
 
-    $ /usr/local/python3-klever/bin/python3 -m venv venv
+    $ /usr/local/python3.10-klever/bin/python3 -m venv venv
     $ source venv/bin/activate
 
 To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
