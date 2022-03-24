@@ -21,7 +21,7 @@
 #include <linux/module.h>
 #include <ldv/linux/emg/test_model.h>
 
-static void ldv_entry_point(unsigned long data)
+void ldv_entry_point(unsigned long data)
 {
     ldv_invoke_reached();
 }
