@@ -62,19 +62,20 @@ static const struct tty_port_operations ldv_tty_port_ops = {
 static int __init ldv_init(void)
 {
 	int res = ldv_undef_int();
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
-		driver = alloc_tty_driver(lines);
-		if (driver) {
+		driver = tty_alloc_driver(lines, TTY_DRIVER_REAL_RAW);
+		if (!IS_ERR(driver)) {
 			tty_set_operations(driver, &ldv_tty_ops);
 			ldv_register();
 			res = tty_register_driver(driver);
-			if (res) {
-				put_tty_driver(driver);
-			}
+			if (res)
+				tty_driver_kref_put(driver);
 			ldv_deregister();
 		}
 	}
+
 	return res;
 }
 

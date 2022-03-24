@@ -44,20 +44,23 @@ static const struct tty_port_operations ldv_tty_port_ops = {
 
 static int __init ldv_init(void)
 {
-	int res;
+	int res = 0;
+	struct device *dev;
 
 	ldv_invoke_test();
-	tty_port_init(& port);
-	port.ops = & ldv_tty_port_ops;
+	tty_port_init(&port);
+	port.ops = &ldv_tty_port_ops;
 	
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		res = tty_port_register_device(& port, driver, ldv_undef_int(), device);
-		if (res) {
+		dev = tty_port_register_device(&port, driver, ldv_undef_int(), device);
+		if (IS_ERR(dev)) {
+			res = PTR_ERR(dev);
 			ldv_deregister();
 		}
 	}
+
 	return res;
 }
 

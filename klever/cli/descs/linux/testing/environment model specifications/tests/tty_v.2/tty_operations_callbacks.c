@@ -47,19 +47,21 @@ static struct tty_operations ldv_tty_ops = {
 static int __init ldv_init(void)
 {
 	int res = ldv_undef_int();
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
-		driver = alloc_tty_driver(lines);
-		if (driver) {
+		driver = tty_alloc_driver(lines, TTY_DRIVER_REAL_RAW);
+		if (!IS_ERR(driver)) {
 			tty_set_operations(driver, &ldv_tty_ops);
 			ldv_register();
 			res = tty_register_driver(driver);
 			if (res) {
-				put_tty_driver(driver);
+				tty_driver_kref_put(driver);
 				ldv_deregister();
 			}
 		}
 	}
+
 	return res;
 }
 
@@ -67,7 +69,7 @@ static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
 		tty_unregister_driver(driver);
-		put_tty_driver(driver);
+		tty_driver_kref_put(driver);
 		ldv_deregister();
 	}
 }

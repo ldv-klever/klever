@@ -62,26 +62,31 @@ static const struct tty_port_operations ldv_tty_port_ops = {
 static int __init ldv_init(void)
 {
 	int res = ldv_undef_int();
+	struct device *dev;
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
-		driver = alloc_tty_driver(lines);
-		if (driver) {
+		driver = tty_alloc_driver(lines, TTY_DRIVER_REAL_RAW);
+		if (!IS_ERR(driver)) {
 			tty_set_operations(driver, &ldv_tty_ops);
 			ldv_register();
 			res = tty_register_driver(driver);
 			if (res) {
-				put_tty_driver(driver);
+				tty_driver_kref_put(driver);
 				ldv_deregister();
 			}
 			else {
-				tty_port_init(& port);
-				port.ops = & ldv_tty_port_ops;
-				res = tty_port_register_device(& port, driver, ldv_undef_int(), device);
-				if (res) 
+				tty_port_init(&port);
+				port.ops = &ldv_tty_port_ops;
+				dev = tty_port_register_device(&port, driver, ldv_undef_int(), device);
+				if (IS_ERR(dev)) {
+					res = PTR_ERR(dev);
 					ldv_deregister();
+				}
 			}
 		}
 	}
+
 	return res;
 }
 
@@ -90,7 +95,7 @@ static void __exit ldv_exit(void)
 	if (flip_a_coin) {
 		tty_port_destroy(&port);
 		tty_unregister_driver(driver);
-		put_tty_driver(driver);
+		tty_driver_kref_put(driver);
 		ldv_deregister();
 	}
 }
