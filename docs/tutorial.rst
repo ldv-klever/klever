@@ -14,7 +14,7 @@ Tutorial
 ========
 
 This tutorial describes a basic workflow of using Klever.
-We assume that you deploy Klever :ref:`locally <local_deploy>` on Debian 9 in the production mode with default settings
+We assume that you deploy Klever :ref:`locally <local_deploy>` on Debian 11 in the production mode with default settings
 from the latest master.
 In addition, we assume that your username is **debian** and your home directory is **/home/debian**\ [1]_.
 

@@ -33,7 +33,7 @@ Supported Options
 
 :ref:`openstack_deploy` supports 2 kinds of entities:
 
-* :ref:`klever_base_image` - with default settings this is a Debian 9 OpenStack image with installed Klever
+* :ref:`klever_base_image` - with default settings this is a Debian 11 OpenStack image with installed Klever
   dependencies.
   Using :ref:`klever_base_image` allows to substantially reduce a time for deploying other :ref:`klever_inst`.
 * :ref:`klever_inst` - an OpenStack instance, either for development or production purposes.
