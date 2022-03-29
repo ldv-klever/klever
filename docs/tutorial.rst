@@ -162,6 +162,7 @@ In case of verification of the Linux kernel rather than vanilla 3.14, you may ne
 #. 4.15
 #. 4.17
 #. 5.5
+#. 5.17
 
 These specification sets correspond to vanilla versions of the Linux kernel.
 You should select such a specifications set that matches your custom version of the Linux kernel better through trial
