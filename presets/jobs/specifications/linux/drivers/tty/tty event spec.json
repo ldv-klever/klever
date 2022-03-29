@@ -412,5 +412,371 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "environment processes": {
+      "tty_scenario": {
+        "actions": {
+          "call": {
+            "comment": "Call rest tty callbacks.",
+            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop]).{call[1]} | [close].[shutdown].[remove1].[cleanup].{main[1]}"
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%tty_struct%"
+            ]
+          },
+          "cleanup": {
+            "callback": "%tty_operations.cleanup%",
+            "comment": "Free resources after a tty device has been closed for the last time.",
+            "parameters": [
+              "%tty_struct%"
+            ]
+          },
+          "close": {
+            "callback": "%tty_operations.close%",
+            "comment": "Close a tty device.",
+            "parameters": [
+              "%tty_struct%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%tty_driver% == $ARG1"
+            ],
+            "parameters": [
+              "%tty_driver%",
+              "%tty_operations%"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of file structure.",
+            "statements": [
+              "$FREE(%file%);"
+            ]
+          },
+          "init": {
+            "comment": "Allocate memory for file structure.",
+            "statements": [
+              "$ALLOC(%file%);"
+            ]
+          },
+          "install": {
+            "callback": "%tty_operations.install%",
+            "callback return value": "%ret%",
+            "comment": "Install a new tty into the tty driver internal tables.",
+            "parameters": [
+              "%tty_driver%",
+              "%tty_struct%"
+            ],
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "install_failed": {
+            "comment": "Failed to install a new tty into the tty driver internal tables.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "install_success": {
+            "comment": "Successfully installed a new tty into the tty driver internal tables.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "lookup": {
+            "callback": "%tty_operations.lookup%",
+            "callback return value": "%tty_struct%",
+            "comment": "Return the tty device corresponding to idx.",
+            "parameters": [
+              "%tty_driver%"
+            ],
+            "pre-call": [
+              "/* Expect that tty_mutex is locked */"
+            ]
+          },
+          "main": {
+            "comment": "Install tty or deregister.",
+            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main[1]} | <free>.(deregister)"
+          },
+          "open": {
+            "callback": "%tty_operations.open%",
+            "callback return value": "%ret%",
+            "comment": "Open a tty device.",
+            "parameters": [
+              "%tty_struct%",
+              "%file%"
+            ],
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "open_failed": {
+            "comment": "Failed to open a particular tty device.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "open_success": {
+            "comment": "Successfully opened a particular tty device.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%tty_driver%",
+              "%tty_operations%"
+            ]
+          },
+          "remove1": {
+            "callback": "%tty_operations.remove%",
+            "comment": "Remove a closed tty from the tty driver internal tables.",
+            "parameters": [
+              "%tty_driver%",
+              "%tty_struct%"
+            ]
+          },
+          "remove2": {
+            "callback": "%tty_operations.remove%",
+            "comment": "Remove a closed tty from the tty driver internal tables.",
+            "parameters": [
+              "%tty_driver%",
+              "%tty_struct%"
+            ]
+          },
+          "set_termios": {
+            "callback": "%tty_operations.set_termios%",
+            "comment": "Device's termios settings have changed.",
+            "parameters": [
+              "%tty_struct%"
+            ],
+            "pre-call": [
+              "/* Expect that termios mutex is locked */"
+            ]
+          },
+          "shutdown": {
+            "callback": "%tty_operations.shutdown%",
+            "comment": "Close a tty device for the last time.",
+            "parameters": [
+              "%tty_struct%"
+            ],
+            "pre-call": [
+              "/* Expect that tty_mutex is locked */"
+            ]
+          },
+          "start": {
+            "callback": "%tty_operations.start%",
+            "comment": "Resume sending characters to tty device.",
+            "parameters": [
+              "%tty_struct%"
+            ]
+          },
+          "stop": {
+            "callback": "%tty_operations.stop%",
+            "comment": "Stop outputting characters to the tty device",
+            "parameters": [
+              "%tty_struct%"
+            ]
+          },
+          "throttle": {
+            "callback": "%tty_operations.throttle%",
+            "comment": "Input buffers for the line discipline are close to full.",
+            "parameters": [
+              "%tty_struct%"
+            ],
+            "pre-call": [
+              "/* Expect that termios mutex is locked */"
+            ]
+          },
+          "unthrottle": {
+            "callback": "%tty_operations.unthrottle%",
+            "comment": "Characters can now be sent to the tty without fear of overrunning the input buffers of the line disciplines.",
+            "parameters": [
+              "%tty_struct%"
+            ],
+            "pre-call": [
+              "/* Expect that termios mutex is locked */"
+            ]
+          }
+        },
+        "comment": "Invoke tty callbacks",
+        "headers": [
+          "linux/tty.h",
+          "linux/tty_driver.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "file": {
+            "interface": [
+              "tty.file"
+            ]
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "1"
+          },
+          "tty_driver": {
+            "container": true,
+            "interface": [
+              "tty.tty_driver"
+            ]
+          },
+          "tty_operations": {
+            "container": true,
+            "interface": [
+              "tty.tty_operations"
+            ]
+          },
+          "tty_struct": {
+            "interface": [
+              "tty.tty_struct"
+            ]
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "__tty_alloc_driver": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for tty_driver structure.",
+            "statements": [
+              "$ALLOC(%tty_driver%);"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate memory for tty_driver structure.",
+            "statements": [
+              "return ERR_PTR(-ENOMEM);"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated memory for tty_driver structure.",
+            "statements": [
+              "return %tty_driver%;"
+            ]
+          }
+        },
+        "comment": "Allocate tty driver.",
+        "headers": [
+          "linux/tty.h"
+        ],
+        "labels": {
+          "tty_driver": {
+            "interface": [
+              "tty.tty_driver"
+            ],
+            "resource": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>",
+        "reference": true
+      },
+      "tty_register_driver": {
+        "actions": {
+          "assign": {
+            "comment": "Get a tty driver structure.",
+            "statements": [
+              "%tty_driver% = $ARG1;",
+              "%tty_operations% = %tty_driver%->ops;"
+            ]
+          },
+          "failed": {
+            "comment": "Failed to register TTY driver.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%tty_driver%",
+              "%tty_operations%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered TTY driver.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register tty driver.",
+        "headers": [
+          "linux/tty.h"
+        ],
+        "labels": {
+          "tty_driver": {
+            "interface": [
+              "tty.tty_driver"
+            ],
+            "parameter": true
+          },
+          "tty_operations": {
+            "interface": [
+              "tty.tty_operations"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <failed>",
+        "reference": true
+      },
+      "tty_set_operations": {
+        "actions": {
+          "set": {
+            "comment": "Set field ops.",
+            "statements": [
+              "$ARG1->ops = $ARG2;"
+            ]
+          }
+        },
+        "comment": "Save tty_operations at tty_driver.",
+        "labels": {},
+        "process": "<set>",
+        "reference": true
+      },
+      "tty_unregister_driver": {
+        "actions": {
+          "assign": {
+            "comment": "Get a tty driver structure.",
+            "statements": [
+              "%tty_driver% = $ARG1;",
+              "%tty_operations% = %tty_driver%->ops;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%tty_driver%",
+              "%tty_operations%"
+            ]
+          }
+        },
+        "comment": "Unregister a tty device.",
+        "headers": [
+          "linux/tty.h"
+        ],
+        "labels": {
+          "tty_driver": {
+            "interface": [
+              "tty.tty_driver"
+            ],
+            "parameter": true
+          },
+          "tty_operations": {
+            "interface": [
+              "tty.tty_operations"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
+      }
+    }
   }
 }

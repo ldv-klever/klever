@@ -491,5 +491,123 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "categories": {
+      "tty": {
+        "callbacks": {
+          "cleanup": {
+            "declaration": "void (*cleanup)(%tty.tty_struct%)"
+          },
+          "close": {
+            "declaration": "void (*close)(%tty.tty_struct%, %tty.file%)"
+          },
+          "install": {
+            "declaration": "int  (*install)(%tty.tty_driver%, %tty.tty_struct%)"
+          },
+          "lookup": {
+            "declaration": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, struct file *filp, int idx)"
+          },
+          "open": {
+            "declaration": "int  (*open)(%tty.tty_struct%, %tty.file%)"
+          },
+          "port_activate": {
+            "declaration": "int (*port_activate)(%tty.tty_port%, %tty.tty_struct%)"
+          },
+          "port_shutdown": {
+            "declaration": "void (*port_shutdown)(%tty.tty_port%)"
+          },
+          "remove": {
+            "declaration": "void (*remove)(%tty.tty_driver%, %tty.tty_struct%)"
+          },
+          "set_termios": {
+            "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
+          },
+          "shutdown": {
+            "declaration": "void (*shutdown)(%tty.tty_struct%)"
+          },
+          "start": {
+            "declaration": "void (*start)(%tty.tty_struct%)"
+          },
+          "stop": {
+            "declaration": "void (*stop)(%tty.tty_struct%)"
+          },
+          "throttle": {
+            "declaration": "void (*throttle)(%tty.tty_struct%)"
+          },
+          "unthrottle": {
+            "declaration": "void (*unthrottle)(%tty.tty_struct%)"
+          }
+        },
+        "containers": {
+          "tty_operations": {
+            "declaration": "struct tty_operations ops",
+            "fields": {
+              "cleanup": "%tty.cleanup%",
+              "close": "%tty.close%",
+              "install": "%tty.install%",
+              "lookup": "%tty.lookup%",
+              "open": "%tty.open%",
+              "remove": "%tty.remove%",
+              "set_termios": "%tty.set_termios%",
+              "shutdown": "%tty.shutdown%",
+              "start": "%tty.start%",
+              "stop": "%tty.stop%",
+              "throttle": "%tty.throttle%",
+              "unthrottle": "%tty.unthrottle%"
+            },
+            "header": "linux/tty_driver.h"
+          },
+          "tty_port_operations": {
+            "declaration": "struct tty_port_operations ops",
+            "fields": {
+              "activate": "%tty.port_activate%",
+              "shutdown": "%tty.port_shutdown%"
+            },
+            "header": "linux/tty.h"
+          }
+        },
+        "resources": {
+          "file": {
+            "declaration": "struct file *port",
+            "header": "linux/fs.h"
+          },
+          "tty_driver": {
+            "--header": "linux/tty_driver.h",
+            "declaration": "struct tty_driver *driver"
+          },
+          "tty_port": {
+            "declaration": "struct tty_port *port",
+            "header": "linux/tty.h"
+          },
+          "tty_struct": {
+            "declaration": "struct tty_struct *str",
+            "header": "linux/tty.h"
+          }
+        }
+      }
+    },
+    "functions models": {
+      "__tty_alloc_driver": {
+        "declaration": "%tty.tty_driver% __tty_alloc_driver(unsigned int lines, struct module *owner, unsigned long flags)",
+        "header": "linux/tty_driver.h",
+        "reference": true
+      },
+      "tty_register_driver": {
+        "declaration": "int tty_register_driver(%tty.tty_driver%)",
+        "header": "linux/tty.h",
+        "reference": true
+      },
+      "tty_set_operations": {
+        "declaration": "void tty_set_operations(%tty.tty_driver%, *%tty.tty_operations%)",
+        "header": "linux/tty_driver.h",
+        "reference": true
+      },
+      "tty_unregister_driver": {
+        "declaration": "void tty_unregister_driver(%tty.tty_driver%)",
+        "header": "linux/tty_driver.h",
+        "reference": true
+      }
+    }
   }
 }
