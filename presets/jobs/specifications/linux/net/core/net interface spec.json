@@ -16,7 +16,7 @@
         "containers": {
           "ethtool_ops": {
             "declaration": "struct ethtool_ops ethtool_ops",
-            "header": "linux/netdevice.h"
+            "header": "linux/ethtool.h"
           },
           "net_device": {
             "declaration": "struct net_device net_device",
