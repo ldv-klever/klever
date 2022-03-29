@@ -21,7 +21,7 @@
 #include <ldv/verifier/nondet.h>
 
 unsigned long data;
-static struct tasklet_struct t;
+static struct tasklet_struct ldv_tasklet;
 
 static void ldv_handler(unsigned long data)
 {
@@ -32,14 +32,14 @@ static int __init ldv_init(void)
 {
 	ldv_invoke_test();
 	data = ldv_undef_ulong();
-	tasklet_init(&t, ldv_handler, data);
-	tasklet_hi_schedule_first(&t);
+	tasklet_init(&ldv_tasklet, ldv_handler, data);
+	tasklet_hi_schedule_first(&ldv_tasklet);
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	tasklet_kill(&t);
+	tasklet_kill(&ldv_tasklet);
 }
 
 module_init(ldv_init);
