@@ -33,7 +33,7 @@ static int __init ldv_init(void)
 	ldv_invoke_test();
 	data = ldv_undef_ulong();
 	tasklet_init(&ldv_tasklet, ldv_handler, data);
-	tasklet_hi_schedule(&t);
+	tasklet_hi_schedule(&ldv_tasklet);
 	return 0;
 }
 
