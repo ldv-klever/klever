@@ -148,5 +148,38 @@
         "header": "linux/rtc.h"
       }
     }
+  },
+  "5.17": {
+    "categories": {
+      "rtc": {
+        "callbacks": {},
+        "containers": {
+          "rtc_class_ops": {
+            "declaration": "struct rtc_class_ops ops",
+            "header": "linux/rtc.h"
+          },
+          "rtc_device": {
+            "declaration": "struct rtc_device dev",
+            "fields": {
+              "ops": "*%rtc.rtc_class_ops%"
+            },
+            "header": "linux/rtc.h"
+          }
+        },
+        "resources": {
+          "device": {
+            "declaration": "struct device *dev",
+            "header": "linux/device.h",
+            "implemented in kernel": true
+          }
+        }
+      }
+    },
+    "functions models": {
+      "__devm_rtc_register_device": {
+        "declaration": "int __devm_rtc_register_device(struct module *owner, *%rtc.rtc_device%)",
+        "header": "linux/rtc.h"
+      }
+    }
   }
 }
