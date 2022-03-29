@@ -94,6 +94,8 @@
         "ext-modules/tasklet_v.1/__tasklet_schedule_invoke.ko",
         "ext-modules/tasklet_v.2/__tasklet_hi_schedule_invoke.ko",
         "ext-modules/tasklet_v.2/__tasklet_schedule_invoke.ko",
+        "ext-modules/tasklet_v.3/__tasklet_hi_schedule_invoke.ko",
+        "ext-modules/tasklet_v.3/__tasklet_schedule_invoke.ko",
         "ext-modules/urb_v.1/usb_kill_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_unlink_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_poison_urb_invoke.ko",
@@ -460,7 +462,7 @@
         "ext-modules/timer_v.3",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
-        "ext-modules/tasklet_v.2",
+        "ext-modules/tasklet_v.3",
         "ext-modules/kthread_v.1",
         "ext-modules/inodes_v.1"
       ],
