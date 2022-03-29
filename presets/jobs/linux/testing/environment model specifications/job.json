@@ -9,6 +9,7 @@
       "program fragments": [
         "ext-modules/atmdev_ops_v.1/atm_dev_invoke.ko",
         "ext-modules/block_device_operations_v.1/disk_invoke.ko",
+        "ext-modules/block_device_operations_v.2/disk_invoke.ko",
         "ext-modules/class_v.1/class_invoke.ko",
         "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
         "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
@@ -351,7 +352,7 @@
       "build base": "linux/testing/environment model specifications/0efcaac",
       "specifications set": "5.17",
       "targets": [
-        "ext-modules/block_device_operations_v.1",
+        "ext-modules/block_device_operations_v.2",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.3",

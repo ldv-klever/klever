@@ -48,5 +48,13 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "functions models": {
+      "add_disk": {
+        "declaration": "int add_disk(*%block_device.gendisk%)",
+        "header": "linux/genhd.h"
+      }
+    }
   }
 }

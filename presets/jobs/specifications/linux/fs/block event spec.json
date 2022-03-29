@@ -175,5 +175,60 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "functions models": {
+      "add_disk": {
+        "actions": {
+          "assign": {
+            "comment": "Get disk from arguments.",
+            "trace relevant": true,
+            "statements": [
+              "$ALLOC(%block%);",
+              "%disk% = $ARG1;",
+              "%block%->bd_disk = %disk%;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%block%",
+              "%disk%"
+            ]
+          },
+          "failed": {
+            "comment": "Failed to add disk.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Successfully added disk.",
+            "statements": [
+              "ldv_add_disk();",
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Add partitioning information to kernel list.",
+        "labels": {
+          "block": {
+            "interface": [
+              "block_device.block_dev"
+            ],
+            "parameter": true,
+            "pointer": true,
+            "resource": true
+          },
+          "disk": {
+            "container": true,
+            "interface": [
+              "block_device.gendisk"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <failed>"
+      }
+    }
   }
 }
