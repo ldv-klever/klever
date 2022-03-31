@@ -107,5 +107,25 @@
       }
     },
     "functions models": {}
+  },
+  "5.17": {
+    "categories": {
+      "scsi_host_template": {
+        "containers": {
+          "host": {
+            "declaration": "struct Scsi_Host host",
+            "fields": {
+              "hostt": "*%scsi_host_template.scsi_host_template%"
+            },
+            "header": "scsi/scsi_host.h"
+          },
+          "scsi_host_template": {
+            "declaration": "struct scsi_host_template ops",
+            "header": "scsi/scsi_host.h"
+          }
+        }
+      }
+    },
+    "functions models": {}
   }
 }
