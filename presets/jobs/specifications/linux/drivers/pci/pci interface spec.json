@@ -152,5 +152,78 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "categories": {
+      "pci": {
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%pci.dev%, %pci.pci_device_id%)"
+          },
+          "release": {
+            "declaration": "void (*release)(%pci.dev%)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%pci.dev%)"
+          },
+          "shutdown": {
+            "declaration": "void (*shutdown)(%pci.dev%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%pci.dev%, %pci.pm_message%)"
+          }
+        },
+        "containers": {
+          "pci_driver": {
+            "declaration": "struct pci_driver driver",
+            "fields": {
+              "probe": "%pci.probe%",
+              "remove": "%pci.release%",
+              "resume": "%pci.resume%",
+              "shutdown": "%pci.shutdown%",
+              "suspend": "%pci.suspend%"
+            },
+            "header": "linux/pci.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct pci_device_id x[]",
+            "header": "linux/pci.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "dev": {
+            "declaration": "struct pci_dev *dev",
+            "header": "linux/pci.h",
+            "implemented in kernel": true
+          },
+          "pm_message": {
+            "declaration": "pm_message_t state",
+            "header": "linux/pm.h"
+          },
+          "pci_device_id": {
+            "declaration": "struct pci_device_id *",
+            "header": "linux/pci.h"
+          }
+        }
+      }
+    },
+    "functions models": {
+      "__pci_register_driver": {
+        "declaration": "int __pci_register_driver(*%pci.pci_driver%, struct module *owner, const char *mod_name)",
+        "header": "linux/pci.h",
+        "reference": true
+      },
+      "pci_register_driver": {
+        "declaration": "int pci_register_driver(*%pci.pci_driver%)",
+        "header": "linux/pci.h",
+        "reference": true
+      },
+      "pci_unregister_driver": {
+        "declaration": "void pci_unregister_driver(*%pci.pci_driver%)",
+        "header": "linux/pci.h",
+        "reference": true
+      }
+    }
   }
 }
