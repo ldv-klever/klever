@@ -35,7 +35,7 @@ You can try to execute similar steps for other versions and configurations of th
 To build new versions of the Linux kernel you may need newer versions of GCC.
 
 You can download the archive of the target build base prepared in advance from
-`here <https://forge.ispras.ru/attachments/download/7328/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/9947/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__.
 Let’s assume that you decompress this archive into directory
 **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig** so that there should be file *meta.json* directly at the
 top level in that directory.
@@ -49,6 +49,11 @@ To prepare the target build base from scratch you can follow the next steps::
    $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8 modules
 
 Then you will need to wait for quite a long period of time depending on the performance of your machine.
+
+Besides, you can use in a similar way build bases prepared for
+`Linux 5.5 <https://forge.ispras.ru/attachments/download/9948/build-base-linux-5.5-x86_64-allmodconfig.tar.xz>`__ and
+`Linux 5.10.27 <https://forge.ispras.ru/attachments/download/9949/build-base-linux-5.10.27-x86_64-allmodconfig.tar.xz>`__.
+Do not forget to point out specifications set *5.5* in :file:`job.json`.
 
 Signing in
 ----------
