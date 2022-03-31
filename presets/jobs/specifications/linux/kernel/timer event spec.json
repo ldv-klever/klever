@@ -375,5 +375,80 @@
         "process": "<assign>.[instance_register]"
       }
     }
+  },
+  "5.17": {
+    "environment processes": {
+      "timer_scenario": {
+        "actions": {
+          "callback": {
+            "callback": "%container.handler%",
+            "comment": "Time has come: call the timer callback.",
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "instance_deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "instance_register": {
+            "parameters": [
+              "%container%"
+            ]
+          }
+        },
+        "comment": "Invoke a timer callback.",
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "(!instance_register).[callback].(instance_deregister)"
+      }
+    },
+    "functions models": {
+      "setup_timer, setup_timer_on_stack": {
+        "actions": {
+          "assign": {
+            "comment": "Get timer representing structure and fill it up.",
+            "statements": [
+              "%timer_list% = $ARG1;",
+              "%function% = $ARG2",
+              "%timer_list.function%=%function%;"
+            ]
+          },
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          }
+        },
+        "comment": "Setup a new timer.",
+        "labels": {
+          "function": {
+            "callback": true,
+            "interface": [
+              "timer.callback"
+            ],
+            "parameter": true
+          },
+          "timer_list": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[instance_register]"
+      }
+    }
   }
 }
