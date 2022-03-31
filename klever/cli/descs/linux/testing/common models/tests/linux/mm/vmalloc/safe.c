@@ -82,3 +82,5 @@ static int __init ldv_init(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

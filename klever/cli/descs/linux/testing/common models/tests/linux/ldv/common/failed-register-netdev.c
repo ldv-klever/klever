@@ -35,3 +35,5 @@ void ldv_failed_register_netdev(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

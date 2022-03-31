@@ -124,6 +124,8 @@ static void __exit ldv_exit(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");
 module_exit(ldv_exit);
 
 void ldv_check_final_state(void)
