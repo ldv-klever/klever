@@ -20,12 +20,8 @@
 #include <ldv/linux/emg/test_model.h>
 #include <ldv/verifier/nondet.h>
 
+#include "mkdir-reached.h"
 
-static int ldv_mkdir(struct inode *parent, struct dentry *new, umode_t mode)
-{
-	ldv_invoke_reached();
-	return 0;
-}
 
 static int ldv_rmdir(struct inode *parent, struct dentry *child)
 {

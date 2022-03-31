@@ -61,13 +61,47 @@
         },
         "callbacks": {
           "mkdir": {
-            "declaration": "int (*mkdir) (%inode.inode%, %inode.dentry%,umode_t)"
+            "declaration": "int (*mkdir) (%inode.inode%, %inode.dentry%, umode_t)"
           },
           "rmdir": {
             "declaration": "int (*rmdir) (%inode.inode%, %inode.dentry%)"
           }
         },
         "reference": true
+      }
+    }
+  },
+  "5.17": {
+    "categories": {
+      "inode": {
+        "containers": {
+          "inode_operations": {
+            "declaration": "struct inode_operations ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "mkdir": "%inode.mkdir%",
+              "rmdir": "%inode.rmdir%"
+            }
+          }
+        },
+        "resources": {
+          "inode": {
+            "declaration": "struct inode *inode",
+            "header": "linux/fs.h"
+          },
+          "dentry": {
+            "declaration": "struct dentry *dentry",
+            "header": "linux/dcache.h"
+          }
+        },
+        "callbacks": {
+          "mkdir": {
+            "declaration": "int (*mkdir) (struct user_namespace *, %inode.inode%, %inode.dentry%, umode_t)"
+          },
+          "rmdir": {
+            "declaration": "int (*rmdir) (%inode.inode%, %inode.dentry%)"
+          }
+        }
       }
     }
   }

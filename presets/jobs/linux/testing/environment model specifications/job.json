@@ -22,6 +22,8 @@
         "ext-modules/filesystem_v.2/fs_invoke.ko",
         "ext-modules/inodes_v.1/inode_invoke.ko",
         "ext-modules/inodes_v.1/alloc_inode_invoke.ko",
+        "ext-modules/inodes_v.2/inode_invoke.ko",
+        "ext-modules/inodes_v.2/alloc_inode_invoke.ko",
         "ext-modules/generic/default_array_invoke.ko",
         "ext-modules/generic/default_invoke.ko",
         "ext-modules/generic/double_invoke.ko",
@@ -465,7 +467,7 @@
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.3",
         "ext-modules/kthread_v.1",
-        "ext-modules/inodes_v.1"
+        "ext-modules/inodes_v.2"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
