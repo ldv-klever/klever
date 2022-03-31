@@ -226,7 +226,7 @@
       }
     }
   },
-  "5.5": {
+  "4.17": {
     "environment processes": {
       "timer_scenario": {
         "actions": {
@@ -301,7 +301,7 @@
       }
     }
   },
-  "4.17": {
+  "5.5": {
     "environment processes": {
       "timer_scenario": {
         "actions": {
