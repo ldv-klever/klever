@@ -181,5 +181,67 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "functions models": {
+      "iio_triggered_buffer_setup_ext": {
+        "actions": {
+          "assign": {
+            "comment": "Get IIO device structure and handler functions.",
+            "statements": [
+              "%dev% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = $ARG3;"
+            ]
+          },
+          "fail": {
+            "comment": "Industrial I/O triggered buffer setup has failed.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register top and bottom halves handlers for a poll function.",
+            "parameters": [
+              "%dev%",
+              "%callback%",
+              "%thread%"
+            ]
+          },
+          "success": {
+            "comment": "Industrial I/O triggered buffer setup has finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Setup industrial I/O triggered buffer.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.handler"
+            ],
+            "parameter": true
+          },
+          "dev": {
+            "interface": [
+              "iio_triggered_buffer.dev"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.thread"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
+      }
+    }
   }
 }

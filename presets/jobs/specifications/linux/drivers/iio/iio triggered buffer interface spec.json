@@ -19,7 +19,7 @@
           },
           "dev": {
             "declaration": "struct iio_dev *dev",
-            "header": "linux/iio/iio.h"
+            "header": "linux/iio/triggered_buffer.h"
           },
           "line": {
             "declaration": "int line"
@@ -35,6 +35,15 @@
       },
       "iio_triggered_buffer_setup": {
         "declaration": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, const struct iio_buffer_setup_ops *setup_ops)",
+        "header": "linux/iio/triggered_buffer.h",
+        "reference": true
+      }
+    }
+  },
+  "5.17": {
+    "functions models": {
+      "iio_triggered_buffer_setup_ext": {
+        "declaration": "int iio_triggered_buffer_setup_ext(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, enum iio_buffer_direction direction, const struct iio_buffer_setup_ops *setup_ops, const struct attribute **buffer_attrs)",
         "header": "linux/iio/triggered_buffer.h",
         "reference": true
       }
