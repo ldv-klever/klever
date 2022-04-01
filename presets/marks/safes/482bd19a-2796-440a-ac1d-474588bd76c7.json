@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/rtc_class_ops_v.3/rtc_device_register.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:EMG"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}
