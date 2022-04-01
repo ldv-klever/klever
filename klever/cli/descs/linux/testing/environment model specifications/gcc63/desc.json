@@ -2,7 +2,7 @@
     {
         "build base": "linux/testing/environment model specifications/81b6e0",
         "name": "Linux",
-        "git repository version": "v5.5.9",
+        "git repository version": "v5.5.19",
         "external modules": "../tests",
         "loadable kernel modules": [
             "ext-modules/block_device_operations_v.1",
