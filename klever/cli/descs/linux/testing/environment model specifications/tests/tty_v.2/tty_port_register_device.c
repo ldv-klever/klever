@@ -66,12 +66,8 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		tty_port_unregister_device(&port, driver, ldv_undef_int());
-		ldv_deregister();
-	}
-
-	tty_port_destroy(&port);
+	if (flip_a_coin)
+		tty_port_destroy(&port);
 }
 
 module_init(ldv_init);
