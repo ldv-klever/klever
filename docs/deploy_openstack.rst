@@ -33,13 +33,14 @@ Supported Options
 
 :ref:`openstack_deploy` supports 2 kinds of entities:
 
-* :ref:`klever_base_image` - with default settings this is a Debian 9 OpenStack image with installed Klever
+* :ref:`klever_base_image` - with default settings this is a Debian 11 OpenStack image with installed Klever
   dependencies.
-  Using :ref:`klever_base_image` allows to substantially reduce a time for deploying other :ref:`klever_inst`.
+  Using :ref:`klever_base_image` allows to substantially reduce a time for deploying
+  :ref:`Klever Instances <klever_inst>`.
 * :ref:`klever_inst` - an OpenStack instance, either for development or production purposes.
   For development mode many debug options are activated by default.
 
-Almost all deployment commands require you to specify path to the private SSH key and your OpenStack username:
+Almost all deployment commands require you to specify a path to a private SSH key and your OpenStack username:
 
 .. parsed-literal::
 
@@ -47,7 +48,7 @@ Almost all deployment commands require you to specify path to the private SSH ke
 
 For brevity they are omitted from the following examples.
 
-Also, in addition to command-line arguments mentioned above and below, there are several optional command-line arguments
+In addition to command-line arguments mentioned above and below, there are several optional command-line arguments
 which you can find out by running:
 
 .. code-block:: bash
@@ -66,7 +67,7 @@ The common workflow for :ref:`klever_base_image` is :menuselection:`create --> r
 
     $ klever-deploy-openstack create image
 
-Unless specified, name *Klever Base vN* (where N is 1 plus a maximum of 0 and vi) is used for new
+Unless specified, name *Klever Base vN* (where *N* is 1 plus a maximum of 0 and *vi*) is used for new
 :ref:`klever_base_image`.
 Besides, deployment scripts overwrites file :file:`klever/deploys/conf/openstack-base-image.txt` with this name so that
 new instances will be based on the new :ref:`klever_base_image`.
@@ -78,23 +79,33 @@ repository.
 Klever Instance
 ---------------
 
-For :ref:`klever_inst` you can execute actions *show*, *create*, *update*, *ssh*, *remove*, *share* and *hide*.
+For :ref:`klever_inst` you can execute actions *show*, *create*, *update*, *resize*, *share*, *hide*, *ssh* and
+*remove*.
 Basically you should perform actions with :ref:`klever_inst` in the following order:
-:menuselection:`create --> update --> update --> ... --> update --> remove` exactly as for :ref:`local_deploy`, e.g.:
+:menuselection:`create --> update/resize --> update/resize --> ... --> update/resize --> remove` like for
+:ref:`local_deploy`, e.g.:
 
 .. parsed-literal::
 
     $ klever-deploy-openstack create instance
 
-By default Klever is deployed in production mode, but you can change this with the *--mode* command-line argument:
+By default Klever is deployed in the production mode, but you can change this with the *\--mode* command-line argument:
 
 .. parsed-literal::
 
     $ klever-deploy-openstack --mode development create instance
 
-In addition, between creating and removing you can also *share*/*hide* for/from the outside world :ref:`klever_inst`
-and open an SSH connection to it.
-By default name for :ref:`klever_inst` is a concatenation of :term:`$OS_USERNAME`, "klever", and the mode used
+By using *resize* you can increase/decrease occupied computational resources and, thus, either speed up the verification
+process considerably or do not waste always necessary CPU cores and memory.
+You should take into account that it is enough to specify only the number of required CPU cores, e.g. 1, 2, 4, etc.,
+since there is a rule of thumb to compute the appropriate size of memory (4x of the number of CPU cores) while disk
+space can not be modified during resizing.
+In addition, between creation and removal of :ref:`klever_inst` you can also *share*/*hide* it for/from the outside
+world and open an SSH connection to it.
+
+.. note:: You should be especially careful with user credentials when sharing :ref:`klever_inst`.
+
+By default name for created :ref:`klever_inst` is a concatenation of :term:`$OS_USERNAME`, "klever", and the mode used
 (development or production), e.g. *petrov-klever-development*.
 
 .. _klever_insts:
@@ -103,7 +114,7 @@ Multiple Klever Instances
 -------------------------
 
 You can also create a specified number of OpenStack instances for performing various experiments by using the
-*--instances* command-line argument.
+*\--instances* command-line argument.
 In this mode you can only execute actions *show*, *create*, *update* and *remove*.
 The normal workflow for :ref:`klever_insts` is the same as for :ref:`klever_inst`, e.g.:
 

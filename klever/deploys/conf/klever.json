@@ -16,8 +16,8 @@
       "executable path": "bin"
     },
     "CIL": {
-      "version": "f1aab7d",
-      "path": "https://forge.ispras.ru/attachments/download/9382/frama-c-cil-f1aab7d.tar.xz",
+      "version": "c012809",
+      "path": "https://forge.ispras.ru/attachments/download/9905/frama-c-cil-c012809.tar.xz",
       "executable path": "."
     },
     "Consul": {
