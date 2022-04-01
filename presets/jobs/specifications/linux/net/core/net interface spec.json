@@ -111,5 +111,14 @@
         "header": "linux/netdevice.h"
       }
     }
+  },
+  "5.17": {
+    "categories": {},
+    "functions models": {
+      "alloc_netdev_mqs": {
+        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
+        "header": "linux/netdevice.h"
+      }
+    }
   }
 }
