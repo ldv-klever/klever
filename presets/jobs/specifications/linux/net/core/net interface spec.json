@@ -76,6 +76,15 @@
       }
     }
   },
+  "4.6.7": {
+    "categories": {},
+    "functions models": {
+      "alloc_netdev_mqs": {
+        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
+        "header": "linux/netdevice.h"
+      }
+    }
+  },
   "4.15": {
     "categories": {},
     "functions models": {
@@ -95,15 +104,6 @@
     }
   },
   "5.5": {
-    "categories": {},
-    "functions models": {
-      "alloc_netdev_mqs": {
-        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/netdevice.h"
-      }
-    }
-  },
-  "4.6.7": {
     "categories": {},
     "functions models": {
       "alloc_netdev_mqs": {
