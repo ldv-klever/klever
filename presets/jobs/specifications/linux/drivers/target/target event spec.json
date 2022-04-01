@@ -901,5 +901,185 @@
         "process": "<assign>.[register].<success> | <fail>"
       }
     }
+  },
+  "5.17": {
+    "environment processes": {
+      "io_target_scenario": {
+        "actions": {
+          "alloc_failed": {
+            "comment": "Failed to allocate memory for se_device structure.",
+            "condition": [
+              "%se_device% == 0"
+            ]
+          },
+          "alloc_scenario": {
+            "comment": "Device structure is not allocated yet.",
+            "process": "[se_alloc].(<alloc_success>.{call_scenario[1]} | <alloc_failed>.{alloc_scenario[1]}) | <free>.(deregister)"
+          },
+          "alloc_success": {
+            "comment": "Memory has been allocated for se_device structure successfully.",
+            "condition": [
+              "%se_device% != 0"
+            ]
+          },
+          "attach_hba": {
+            "callback": "%target_backend_ops.attach_hba%",
+            "parameters": [
+              "%se_hba%"
+            ]
+          },
+          "call_scenario": {
+            "comment": "Device structure is allocated.",
+            "process": "[callback].{call_scenario[1]} | [attach_hba].[detach_hba].{call_scenario[1]} | [se_free].{alloc_scenario}"
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%se_hba%",
+              "%se_device%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%target_backend_ops% == $ARG1"
+            ],
+            "parameters": [
+              "%target_backend_ops%"
+            ]
+          },
+          "detach_hba": {
+            "callback": "%target_backend_ops.detach_hba%",
+            "parameters": [
+              "%se_hba%"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of se_hba structure.",
+            "statements": [
+              "$FREE(%se_hba%);"
+            ]
+          },
+          "init": {
+            "comment": "Allocate memory for se_hba structure.",
+            "statements": [
+              "$ALLOC(%se_hba%);"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%target_backend_ops%"
+            ]
+          },
+          "se_alloc": {
+            "callback": "%target_backend_ops.alloc%",
+            "callback return value": "%se_device%",
+            "parameters": [
+              "%se_hba%"
+            ]
+          },
+          "se_free": {
+            "callback": "%target_backend_ops.free%",
+            "parameters": [
+              "%se_device%"
+            ]
+          }
+        },
+        "comment": "Invoke Linux-IO target callbacks.",
+        "headers": [
+          "target/target_core_base.h",
+          "target/target_core_backend.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true,
+            "resource": true
+          },
+          "se_device": {
+            "interface": [
+              "target_backend.se_device"
+            ]
+          },
+          "se_hba": {
+            "interface": [
+              "target_backend.se_hba"
+            ],
+            "resource": true
+          },
+          "target_backend_ops": {
+            "container": true,
+            "interface": [
+              "target_backend.target_backend_ops"
+            ]
+          }
+        },
+        "process": "(!register).<init>.{alloc_scenario}"
+      }
+    },
+    "functions models": {
+      "target_backend_unregister": {
+        "actions": {
+          "assign": {
+            "comment": "Get new target backend operations.",
+            "statements": [
+              "%target_backend_ops% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%target_backend_ops%"
+            ]
+          }
+        },
+        "comment": "Deregister new target backend operations.",
+        "labels": {
+          "target_backend_ops": {
+            "container": true,
+            "interface": [
+              "target_backend.target_backend_ops"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]"
+      },
+      "transport_backend_register": {
+        "actions": {
+          "assign": {
+            "comment": "Get new target backend operations.",
+            "statements": [
+              "%target_backend_ops% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to register new target backend operations.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%target_backend_ops%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered new target backend operations.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register new target backend operations.",
+        "labels": {
+          "target_backend_ops": {
+            "container": true,
+            "interface": [
+              "target_backend.target_backend_ops"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>"
+      }
+    }
   }
 }
