@@ -157,10 +157,18 @@ How to generate build bases for testing Klever
 ----------------------------------------------
 
 Most likely you can get actual, prepared in advance build bases for testing Klever from
-*ldvuser@ldvdev:/var/lib/klever/workspace/Branches-and-Tags-Processing/build-bases.tar.gz* (this works just within the
-ISP RAS local network).
+*ldvuser@ldvdev:build-bases/build-bases.tar.xz* (this works just within the ISP RAS local network).
 
-To generate build bases for testing Klever you need to perform following preliminary steps:
+To generate build bases for testing Klever you need to execute following commands within :term:`$KLEVER_SRC`::
+
+   $ docker build -t build-bases -f Dockerfile.build-bases .
+   $ docker create --name dummy build-bases
+   $ docker cp dummy:/usr/src/build-bases.tar.xz build\ bases/
+   $ docker rm dummy
+
+After that the archive with generated build bases will be located ad :file:`build bases/build-bases.tar.xz`.
+
+Besides, you can follow the following steps:
 
 #. Install Klever locally for development purposes according to the user documentation (see :ref:`deploy`).
 #. Create a dedicated directory for sources and build bases and move to it.
