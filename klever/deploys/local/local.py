@@ -319,12 +319,6 @@ class Klever:
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
 
-        with open(self.args.deployment_configuration_file) as fp:
-            self.deploy_conf = json.load(fp)
-
-        self.logger.info('Create deployment directory')
-        os.makedirs(self.args.deployment_directory, exist_ok=True)
-
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_SOURCE_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.source_directory)))
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
@@ -552,9 +546,21 @@ class KleverDevelopment(Klever):
         super().__init__(args, logger)
 
     def install(self):
-        self._pre_install()
-        install_klever_bridge_development(self.logger, self.args.source_directory)
-        self._post_install_or_update(is_dev=True)
+        with open(self.args.deployment_configuration_file) as fp:
+            self.deploy_conf = json.load(fp)
+
+        self.logger.info('Create deployment directory')
+        os.makedirs(self.args.deployment_directory, exist_ok=True)
+
+        if self.args.install_only_klever_addons:
+            with open('/etc/default/klever', 'w') as fp:
+                fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
+
+            self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
+        else:
+            self._pre_install()
+            install_klever_bridge_development(self.logger, self.args.source_directory)
+            self._post_install_or_update(is_dev=True)
 
     def update(self):
         self._pre_update()
