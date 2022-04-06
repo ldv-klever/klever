@@ -41,7 +41,7 @@ RUN $KLEVER_SRC_DIR/venv/bin/python -m pip install -r requirements.txt -e .
 RUN $KLEVER_SRC_DIR/venv/bin/klever-deploy-local --deployment-directory $KLEVER_DEPLOY_DIR \
     --install-only-klever-addons install development
 
-# Copy GCC 4.8 binaries and Git repositories with linux-stable and BusyBox.
+# Copy GCC 4.8 binaries and Git repositories with the Linux kernel stable and BusyBox.
 COPY $GCC_48_SRC_DIR $GCC_48_DEPLOY_DIR
 COPY $LINUX_STABLE_SRC_DIR $LINUX_STABLE_DEPLOY_DIR
 COPY $BUSYBOX_SRC_DIR $BUSYBOX_DEPLOY_DIR
