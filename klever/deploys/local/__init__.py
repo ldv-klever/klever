@@ -56,6 +56,10 @@ def main():
                              ' scripts.')
     parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
                         help='Set logging level to LEVEL (INFO or DEBUG).')
+    parser.add_argument('--install-only-klever-addons', default=False, action='store_true',
+                        help='Install only Klever addons and skip most parts of deployment (default: "%(default)s"). ' +
+                             'This option may be necessary for very specific conditions, e.g. for generating build' +
+                             ' bases using Dockerfile.build-bases.')
     args = parser.parse_args()
 
     logger = get_logger(__name__, args.log_level)
