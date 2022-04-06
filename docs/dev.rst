@@ -157,10 +157,28 @@ How to generate build bases for testing Klever
 ----------------------------------------------
 
 Most likely you can get actual, prepared in advance build bases for testing Klever from
-*ldvuser@ldvdev:/var/lib/klever/workspace/Branches-and-Tags-Processing/build-bases.tar.gz* (this works just within the
-ISP RAS local network).
+*ldvuser@ldvdev:build-bases/build-bases.tar.xz* (this works just within the ISP RAS local network).
 
-To generate build bases for testing Klever you need to perform following preliminary steps:
+To (re)generate build bases for testing Klever you need to do as follows:
+
+#. Make actions described in :ref:`get_gcc_for_generating_test_build_bases`.
+   After all there should be directory :file:`build bases/gcc48` with GCC 4.8 binaries within :term:`$KLEVER_SRC`.
+   Symbolic links are not accepted.
+#. Make actions described in :ref:`get_sources_for_generating_test_build_bases`.
+   After all within :term:`$KLEVER_SRC` there should be directories :file:`build bases/linux-stable` and
+   :file:`build bases/busybox` with Git repositories of the Linux kernel stable and BusyBox respectively.
+   Symbolic links are not accepted.
+#. Execute following commands within :term:`$KLEVER_SRC` (the first command can take several hours depending on your
+   hardware)::
+
+   $ docker build -t build-bases -f Dockerfile.build-bases .
+   $ docker create --name dummy build-bases
+   $ docker cp dummy:/usr/src/build-bases.tar.xz build\ bases/
+   $ docker rm dummy
+
+After that the archive with generated build bases will be located at :file:`build bases/build-bases.tar.xz`.
+
+Besides, you can follow the following steps:
 
 #. Install Klever locally for development purposes according to the user documentation (see :ref:`deploy`).
 #. Create a dedicated directory for sources and build bases and move to it.
@@ -168,17 +186,8 @@ To generate build bases for testing Klever you need to perform following prelimi
    We recommend at least 100 GB.
    In addition, it would be best of all if you will name this directory "build bases" and create it within the root of
    the Klever Git repository (this directory is not tracked by the repository).
-#. Clone a Linux kernel stable Git repository to *linux-stable* (scripts prepare build bases for different versions of
-   the Linux kernel for which the Git repository serves best of all), e.g.::
-
-    $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
-
-   You can use alternative sources of the Git repository, if the above one is not working well and fast enough:
-
-   #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
-   #. https://github.com/gregkh/linux
-
-#. Read notes regarding the compiler after the end of this list.
+#. Make actions described in :ref:`get_sources_for_generating_test_build_bases`.
+#. Make actions described in :ref:`get_gcc_for_generating_test_build_bases`.
 #. Run the following command to find out available descriptions of build bases for testing Klever::
 
     $ klever-build -l
@@ -196,8 +205,10 @@ To generate build bases for testing Klever you need to perform following prelimi
    create a symbolic link with name "build bases" that points to the dedicated directory within the root of the Klever
    Git repository.
 
-Providing an appropriate compiler
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _get_gcc_for_generating_test_build_bases:
+
+Providing appropriate compilers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most of build bases for testing Klever could be built using GCC 4.8 on Debian or Ubuntu.
 Otherwise there is an explicit division of build bases descriptions, e.g.:
@@ -220,6 +231,30 @@ The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
     $ sudo update-alternatives --config gcc
 
 (after executing the last command you need to select GCC 4.8; do not forget to make v.v. after preparing build bases!)
+
+You can download prepared in advance GCC 4.8 binaries from
+`here <https://forge.ispras.ru/attachments/download/9969/gcc48.tar.xz>`__.
+They work on Debian 9.
+Besides, they can work on Ubuntu and new versions of Debian.
+
+.. _get_sources_for_generating_test_build_bases:
+
+Providing sources
+^^^^^^^^^^^^^^^^^
+
+You should clone a Linux kernel stable Git repository to *linux-stable* (scripts prepare build bases for different
+versions of the Linux kernel for which the Git repository serves best of all), e.g.::
+
+    $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
+
+You can use alternative sources of the Git repository, if the above one is not working well and fast enough:
+
+   #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
+   #. https://github.com/gregkh/linux
+
+Also, you should clone a BusyBox Git repository, e.g.::
+
+    $ git clone git://busybox.net/busybox.git
 
 Generating Bare CPAchecker Benchmarks
 -------------------------------------
