@@ -16,6 +16,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/vmalloc.h>
 #include <ldv/common/test.h>
 
 static bool is_check_invoked;
