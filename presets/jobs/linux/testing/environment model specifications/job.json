@@ -283,7 +283,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -314,7 +314,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -345,7 +345,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -376,7 +376,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
