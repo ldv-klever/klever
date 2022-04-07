@@ -25,5 +25,7 @@ void ldv_v4l2_i2c_subdev_init(struct v4l2_subdev *sd, struct i2c_client *client,
 {
 	sd->ops = ops;
 	v4l2_set_subdevdata(sd, client);
+	/* See notes for presets/jobs/specifications/linux/drivers/spi.c. */
 	ldv_dev_set_drvdata(&client->dev, sd);
+	dev_set_drvdata(&client->dev, sd);
 }
