@@ -59,7 +59,7 @@ RUN $KLEVER_SRC_DIR/venv/bin/klever-build \
     "linux/loadable kernel modules sample" \
     "linux/loadable kernel modules sample arm" \
     "linux/loadable kernel modules sample arm64" \
-    "linux/testing/common models" \
+    "linux/testing/common models/gcc48" \
     "linux/testing/decomposition strategies" \
     "linux/testing/environment model specifications/gcc48" \
     "linux/testing/requirement specifications" \
