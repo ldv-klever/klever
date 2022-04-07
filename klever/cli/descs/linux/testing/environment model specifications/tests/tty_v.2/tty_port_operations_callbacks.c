@@ -61,6 +61,8 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
+	tty_unregister_device(driver, ldv_undef_int());
+	ldv_deregister();
 	tty_port_destroy(&port);
 }
 

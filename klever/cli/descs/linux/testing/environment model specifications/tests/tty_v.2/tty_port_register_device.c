@@ -50,7 +50,7 @@ static int __init ldv_init(void)
 	ldv_invoke_test();
 	tty_port_init(&port);
 	port.ops = &ldv_tty_port_ops;
-	
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
@@ -66,8 +66,12 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin)
-		tty_port_destroy(&port);
+	if (flip_a_coin) {
+		tty_unregister_device(driver, ldv_undef_int());
+		ldv_deregister();
+	}
+
+	tty_port_destroy(&port);
 }
 
 module_init(ldv_init);
