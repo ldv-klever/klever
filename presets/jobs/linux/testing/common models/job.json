@@ -1,6 +1,5 @@
 {
   "project": "Linux",
-  "specifications set": "3.14",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
@@ -41,6 +40,7 @@
   "sub-jobs": [
     {
       "build base": "linux/testing/common models/6e6e1c",
+      "specifications set": "3.14",
       "targets": ["**"],
       "exclude targets": [
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
@@ -55,6 +55,7 @@
     },
     {
       "build base": "linux/testing/common models/6e6e1c",
+      "specifications set": "3.14",
       "targets": [
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
@@ -69,6 +70,7 @@
     },
     {
       "build base": "linux/testing/common models/202797",
+      "specifications set": "4.6.7",
       "targets": ["**"],
       "exclude targets": [
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
@@ -83,6 +85,37 @@
     },
     {
       "build base": "linux/testing/common models/202797",
+      "specifications set": "4.6.7",
+      "targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/nondet/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/6f77b5",
+      "specifications set": "4.17",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/6f77b5",
+      "specifications set": "4.17",
       "targets": [
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
