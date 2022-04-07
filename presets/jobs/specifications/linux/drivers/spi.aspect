@@ -20,9 +20,15 @@ before: file("$this")
 struct spi_master;
 struct device;
 struct spi_master *ldv_spi_alloc_master(struct device *host, unsigned size);
+struct spi_controller *ldv_spi_alloc_controller(struct device *host, unsigned size);
 }
 
 around: call(struct spi_master *spi_alloc_master(struct device *host, unsigned size))
 {
     return ldv_spi_alloc_master(host, size);
+}
+
+around: call(static inline struct spi_controller *spi_alloc_master(struct device *host, unsigned size))
+{
+    return ldv_spi_alloc_controller(host, size);
 }

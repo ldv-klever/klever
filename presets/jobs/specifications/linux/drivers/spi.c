@@ -37,3 +37,24 @@ struct spi_master *ldv_spi_alloc_master(struct device *host, unsigned size)
 
 	return master;
 }
+
+/* It is almost like ldv_spi_alloc_master() above, but it works with another structure that replaced the former one
+   in new versions of the Linux kernel.
+   This model is under conditions since spi_controller is not defined in old versions of the Linux kernel while we need
+   to know its size. It is possible to avoid these conditions by inlining this model directly to advice body. */
+#if !defined(LDV_SPECS_SET_2_6_33) && !defined(LDV_SPECS_SET_3_2) && !defined(LDV_SPECS_SET_3_14) && !defined(LDV_SPECS_SET_4_6_7)
+struct spi_controller *ldv_spi_alloc_controller(struct device *host, unsigned size)
+{
+	struct spi_controller *controller;
+
+	controller = ldv_zalloc(size + sizeof(struct spi_controller));
+
+	if (!controller)
+		return NULL;
+
+    ldv_dev_set_drvdata(&controller->dev, &controller[1]);
+    dev_set_drvdata(&controller->dev, &controller[1]);
+
+	return controller;
+}
+#endif
