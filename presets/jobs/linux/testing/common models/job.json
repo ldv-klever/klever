@@ -127,6 +127,36 @@
         "ext-modules/verifier/nondet/*"
       ],
       "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/0e6af3",
+      "specifications set": "5.5",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/0e6af3",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/nondet/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
     }
   ]
 }
