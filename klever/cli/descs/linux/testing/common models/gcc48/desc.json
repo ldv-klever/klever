@@ -4,6 +4,7 @@
         "name": "Linux",
         "external modules": "../tests",
         "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/dd",
             "ext-modules/linux/drivers/base/devres",
@@ -40,6 +41,7 @@
         "git repository version": "v4.6.7",
         "external modules": "../tests",
         "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",
@@ -75,6 +77,7 @@
         "git repository version": "v4.17.19",
         "external modules": "../tests",
         "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",

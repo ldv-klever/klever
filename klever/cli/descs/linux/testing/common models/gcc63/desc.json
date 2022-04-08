@@ -5,6 +5,7 @@
         "git repository version": "v5.5.9",
         "external modules": "../tests",
         "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",
