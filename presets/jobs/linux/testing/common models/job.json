@@ -23,7 +23,9 @@
         "ext-modules/linux/mm/slab-memory-safety/safe.ko",
         "ext-modules/linux/mm/util/safe.ko",
         "ext-modules/linux/mm/vmalloc/safe.ko",
+        "ext-modules/linux/mm/vmalloc-v2/safe.ko",
         "ext-modules/linux/mm/vmalloc-memory-safety/safe.ko",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/safe.ko",
         "ext-modules/verifier/common/safe.ko",
         "ext-modules/verifier/gcc/safe.ko",
         "ext-modules/verifier/map/safe.ko",
@@ -162,6 +164,38 @@
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/nondet/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/051613",
+      "specifications set": "5.17",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/051613",
+      "specifications set": "5.17",
+      "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
         "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
         "ext-modules/verifier/nondet/*"
       ],
