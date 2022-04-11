@@ -168,13 +168,19 @@ To (re)generate build bases for testing Klever you need to do as follows:
    After all within :term:`$KLEVER_SRC` there should be directories :file:`build bases/linux-stable` and
    :file:`build bases/busybox` with Git repositories of the Linux kernel stable and BusyBox respectively.
    Symbolic links are not accepted.
-#. Execute following commands within :term:`$KLEVER_SRC` (the first command can take several hours depending on your
-   hardware)::
+#. Execute following commands within :term:`$KLEVER_SRC` (you may need to run them using *sudo*, the first command can
+   take several hours depending on your hardware)::
 
    $ docker build -t build-bases -f Dockerfile.build-bases .
    $ docker create --name dummy build-bases
    $ docker cp dummy:/usr/src/build-bases.tar.xz build\ bases/
    $ docker rm dummy
+
+#. Periodically run following commands to clean up useless containers and images, especially after failed builds (this
+   can help to considerably reduce the occupied disk space):
+
+   $ docker ps --filter status=exited -q | xargs docker rm
+   $ docker images -q -f dangling=true | xargs docker rmi
 
 After that the archive with generated build bases will be located at :file:`build bases/build-bases.tar.xz`.
 
