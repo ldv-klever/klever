@@ -50,6 +50,7 @@ RUN $KLEVER_SRC_DIR/venv/bin/klever-deploy-local --deployment-directory $KLEVER_
 WORKDIR $WORK_DIR
 RUN mkdir -p "$BUILD_BASES_DIR/linux" "$BUILD_BASES_DIR/userspace"
 RUN $KLEVER_SRC_DIR/venv/bin/klever-build \
+    "linux/testing/common models/gcc63" \
     "linux/testing/environment model specifications/gcc63" \
     "linux/validation/bugs found by Klever" \
     "linux/validation/fixed bugs found by Klever" \
