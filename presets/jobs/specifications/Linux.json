@@ -33,6 +33,7 @@
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
               "common/inline_asm.c",
+              "linux/arch/asm/bitops.c",
               "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/common.c",

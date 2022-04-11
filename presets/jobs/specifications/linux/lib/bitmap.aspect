@@ -20,18 +20,6 @@ before: file("$this")
 #include <ldv/linux/bitmap.h>
 }
 
-around: call(static inline void set_bit(long nr, volatile unsigned long *addr)) ||
-        call($ void set_bit(int nr, volatile unsigned long *addr))
-{
-	ldv_set_bit(nr, addr);
-}
-
-around: call(static inline void clear_bit(long nr, volatile unsigned long *addr)) ||
-        call($ void clear_bit(int nr, volatile unsigned long *addr))
-{
-	ldv_clear_bit(nr, addr);
-}
-
 around: call(static inline void bitmap_set(unsigned long *map, unsigned int start, unsigned int nbits)) ||
         call(void bitmap_set(unsigned long *map, int start, int nbits)) ||
         call(void bitmap_set(unsigned long *map, unsigned int start, int nbits))

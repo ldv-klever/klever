@@ -19,16 +19,6 @@
 #include <ldv/linux/find_bit.h>
 #include <ldv/verifier/memory.h>
 
-void ldv_set_bit(long nr, volatile unsigned long *addr)
-{
-	addr[nr / (8 * sizeof(long))] |= 1UL << nr % (8 * sizeof(long));
-}
-
-void ldv_clear_bit(long nr, volatile unsigned long *addr)
-{
-	addr[nr / (8 * sizeof(long))] &= ~(1UL << nr % (8 * sizeof(long)));
-}
-
 void ldv_bitmap_set(unsigned long *map, unsigned int start, int nbits)
 {
 	unsigned long *p = map + start / (8 * sizeof(long));
