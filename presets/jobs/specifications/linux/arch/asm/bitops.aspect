@@ -31,3 +31,9 @@ around: call(static inline void clear_bit(long nr, volatile unsigned long *addr)
 {
 	ldv_clear_bit(nr, addr);
 }
+
+around: call(static inline bool test_bit(long nr, const volatile unsigned long *addr)) ||
+        call(static inline int test_bit(int nr, const volatile unsigned long *addr))
+{
+	return ldv_test_bit(nr, addr);
+}

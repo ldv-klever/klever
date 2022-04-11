@@ -26,3 +26,8 @@ void ldv_clear_bit(long nr, volatile unsigned long *addr)
 {
 	addr[nr / (8 * sizeof(long))] &= ~(1UL << nr % (8 * sizeof(long)));
 }
+
+int ldv_test_bit(long nr, const volatile unsigned long *addr)
+{
+	return 1UL & (addr[nr / (8 * sizeof(long))] >> (nr & (8 * sizeof(long) - 1)));
+}

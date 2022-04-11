@@ -20,5 +20,6 @@
 
 extern void ldv_set_bit(long nr, volatile unsigned long *addr);
 extern void ldv_clear_bit(long nr, volatile unsigned long *addr);
+extern int ldv_test_bit(long nr, const volatile unsigned long *addr);
 
 #endif /* __LDV_LINUX_BITOPS_H */
