@@ -172,7 +172,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
       ],
       "requirement specifications": ["test:common"]
     },
