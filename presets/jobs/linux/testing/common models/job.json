@@ -85,8 +85,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -100,9 +99,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
-        "ext-modules/verifier/nondet/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:memory safety"]
     },
@@ -117,8 +114,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -132,9 +128,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
-        "ext-modules/verifier/nondet/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:memory safety"]
     },
@@ -149,8 +143,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -164,9 +157,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
-        "ext-modules/verifier/nondet/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:memory safety"]
     },
@@ -181,8 +172,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -196,9 +186,7 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
-        "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
-        "ext-modules/verifier/nondet/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
       ],
       "requirement specifications": ["test:memory safety"]
     }

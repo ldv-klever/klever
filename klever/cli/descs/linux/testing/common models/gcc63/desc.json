@@ -16,7 +16,6 @@
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
-            "ext-modules/linux/ldv/common",
             "ext-modules/linux/lib/bitmap",
             "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
@@ -24,16 +23,7 @@
             "ext-modules/linux/mm/slab-memory-safety",
             "ext-modules/linux/mm/util",
             "ext-modules/linux/mm/vmalloc",
-            "ext-modules/linux/mm/vmalloc-memory-safety",
-            "ext-modules/verifier/common",
-            "ext-modules/verifier/gcc",
-            "ext-modules/verifier/map",
-            "ext-modules/verifier/memory",
-            "ext-modules/verifier/nondet",
-            "ext-modules/verifier/set/counter",
-            "ext-modules/verifier/set/flag",
-            "ext-modules/verifier/set/nonnegative-counter",
-            "ext-modules/verifier/thread"
+            "ext-modules/linux/mm/vmalloc-memory-safety"
         ]
     },
     {
@@ -53,7 +43,6 @@
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
-            "ext-modules/linux/ldv/common",
             "ext-modules/linux/lib/bitmap",
             "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
@@ -61,16 +50,7 @@
             "ext-modules/linux/mm/slab-memory-safety",
             "ext-modules/linux/mm/util",
             "ext-modules/linux/mm/vmalloc-v2",
-            "ext-modules/linux/mm/vmalloc-memory-safety-v2",
-            "ext-modules/verifier/common",
-            "ext-modules/verifier/gcc",
-            "ext-modules/verifier/map",
-            "ext-modules/verifier/memory",
-            "ext-modules/verifier/nondet",
-            "ext-modules/verifier/set/counter",
-            "ext-modules/verifier/set/flag",
-            "ext-modules/verifier/set/nonnegative-counter",
-            "ext-modules/verifier/thread"
+            "ext-modules/linux/mm/vmalloc-memory-safety-v2"
         ]
     }
 ]
