@@ -1,0 +1,53 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/mm/vmalloc-memory-safety-v2/vmalloc_32.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:memory safety"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'undef_uint'": []
+                },
+                {
+                  "Instrumented function 'vmalloc_32'": [
+                    {
+                      "LDV model 'vmalloc'": [
+                        {
+                          "LDV model 'malloc'": [
+                            {
+                              "LDV model 'reference_malloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
