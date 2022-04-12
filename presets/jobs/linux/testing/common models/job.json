@@ -4,6 +4,7 @@
     {
       "ideal verdict": "safe",
       "program fragments": [
+        "ext-modules/linux/arch/asm/atomic/safe.ko",
         "ext-modules/linux/arch/asm/bitops/safe.ko",
         "ext-modules/linux/arch/asm/current/safe.ko",
         "ext-modules/linux/drivers/base/dd/safe.ko",
