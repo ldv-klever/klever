@@ -20,7 +20,9 @@ before: file("$this")
 #include <ldv/linux/string.h>
 }
 
-around: call(size_t strlen(const char *s)) || call(__kernel_size_t strlen(const char *s))
+around: call(size_t strlen(const char *s))
+        || call(__kernel_size_t strlen(const char *s))
+        || call(inline size_t strlen(const char *s))
 {
 	return ldv_strlen(s);
 }
