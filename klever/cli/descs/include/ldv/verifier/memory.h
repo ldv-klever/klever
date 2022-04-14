@@ -29,18 +29,19 @@ extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *);
 
-/* Like for memset() below. */
-#undef memcpy
 
 /* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
 extern void *memcpy(void *s1, const void *s2, size_t n);
 
-/* This is actual, say, for the Linux kernel on ARM
-   (https://elixir.bootlin.com/linux/v3.14.79/source/arch/arm/include/asm/string.h). */
-#undef memset
-
 /* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
 extern void *memset(void *s, int c, size_t n);
+
+/* In some cases, e.g. for OS kernels, mem*() functions can be defined in some fancy way, so that verifiers will not
+   recognize them anymore. One should bypass this issue by developing appropriate models referring __VERIFIER_mem*()
+   analogues. Those functions are known for verifiers through appropriate configuration settings. */
+extern void *__VERIFIER_memcpy(void *s1, const void *s2, size_t n);
+extern void *__VERIFIER_memset(void *s, int c, size_t n);
+
 
 extern unsigned int ldv_is_memory_alloc_failures;
 

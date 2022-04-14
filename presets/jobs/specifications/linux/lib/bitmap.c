@@ -62,7 +62,7 @@ void ldv_bitmap_clear(unsigned long *map, unsigned int start, int nbits)
 void ldv_bitmap_zero(unsigned long *dst, unsigned int nbits)
 {
 	unsigned int len = (nbits + 8 * sizeof(long) - 1) / (8 * sizeof(long)) * sizeof(unsigned long);
-	memset(dst, 0, len);
+	__VERIFIER_memset(dst, 0, len);
 }
 
 unsigned long ldv_bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask)
