@@ -177,7 +177,7 @@ To (re)generate build bases for testing Klever you need to do as follows:
    $ docker rm dummy
 
 #. Periodically run following commands to clean up useless containers and images, especially after failed builds (this
-   can help to considerably reduce the occupied disk space):
+   can help to considerably reduce the occupied disk space)::
 
    $ docker ps --filter status=exited -q | xargs docker rm
    $ docker images -q -f dangling=true | xargs docker rmi
