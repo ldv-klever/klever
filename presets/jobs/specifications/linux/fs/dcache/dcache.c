@@ -19,7 +19,7 @@ struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *nam
 		dentry = ldv_zalloc(sizeof(struct dentry));
 
 		/* Set the string */
-		memcpy(&dentry->d_name, name, sizeof(struct qstr));
+		__VERIFIER_memcpy(&dentry->d_name, name, sizeof(struct qstr));
 
 		dentry->d_sb = sb;
 		dentry->d_parent = dentry;

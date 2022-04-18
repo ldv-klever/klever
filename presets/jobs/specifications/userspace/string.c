@@ -32,7 +32,7 @@ char *ldv_strdup(const char *s)
     char *new;
     if (ldv_undef_int()) {
         new = ldv_xmalloc(sizeof(char) * ldv_strlen(s));
-        memcpy(new, s, ldv_strlen(s));
+        __VERIFIER_memcpy(new, s, ldv_strlen(s));
         return new;
     } else {
         return 0;
@@ -60,6 +60,6 @@ char *ldv_strncpy(char *dest, const char *src, size_t n)
 
 char *ldv_strcpy(char *dest, const char *src)
 {
-    memcpy(dest, src, ldv_strlen(src));
+    __VERIFIER_memcpy(dest, src, ldv_strlen(src));
     return dest;
 }

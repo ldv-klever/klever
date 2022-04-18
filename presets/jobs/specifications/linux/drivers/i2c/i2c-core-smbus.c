@@ -36,7 +36,7 @@ s32 ldv_i2c_smbus_read_block_data(u8 *values)
 		/* NOTE "Read" bytes */
 		bytes = ldv_xmalloc(size);
 		/* NOTE Copy read bytes to buffer */
-		memcpy(values, bytes, size);
+		__VERIFIER_memcpy(values, bytes, size);
 		ldv_free(bytes);
 		/* NOTE Return the number of read bytes */
 		return size;
