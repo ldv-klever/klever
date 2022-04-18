@@ -23,6 +23,11 @@ before: file("$this")
 #include <ldv/verifier/nondet.h>
 }
 
+around: call(void *memset(void *s, int c, size_t n))
+{
+	return __VERIFIER_memset(s, c, n);
+}
+
 around: call(void *realloc(..))
 {
     return ldv_realloc($arg1, $arg2);
