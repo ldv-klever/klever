@@ -277,6 +277,20 @@ class RSG(klever.core.vtg.plugins.Plugin):
                                         for aspect in aspects]
                         }
                     ]
+                elif model['options'].get('weave in aspects'):
+                    aspects = []
+
+                    for aspect in model['options']['weave in aspects']:
+                        aspect = klever.core.vtg.utils.find_file_or_dir(self.logger,
+                                                                        self.conf['main working directory'], aspect)
+                        aspects.append(os.path.relpath(aspect, self.conf['main working directory']))
+
+                    extra_cc['plugin aspects'] = [
+                        {
+                            'plugin': self.name,
+                            'aspects': aspects
+                        }
+                    ]
 
             model_grp['Extra CCs'].append(extra_cc)
 
