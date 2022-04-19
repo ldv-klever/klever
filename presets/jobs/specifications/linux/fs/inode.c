@@ -63,7 +63,7 @@ struct inode *ldv_alloc_inode(struct super_block *sb)
 
 void ldv_inode_init_once(struct inode *inode)
 {
-	__VERIFIER_memsetinode, 0, sizeof(struct inode));
+	__VERIFIER_memset(inode, 0, sizeof(struct inode));
 }
 
 void ldv_clear_inode(struct inode *inode)
