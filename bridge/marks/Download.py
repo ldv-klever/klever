@@ -130,16 +130,25 @@ class UnsafeMarkGenerator(MarkGeneratorBase):
     def versions_queryset(self):
         return self.mark.versions.select_related('error_trace')
 
+    def common_data(self):
+        data = super().common_data()
+        data['function'] = self.mark.function
+        return data
+
     def version_data(self, version):
         data = super().version_data(version)
-        with version.error_trace.file.file as fp:
-            error_trace = fp.read().decode('utf8')
+
+        error_trace = None
+        if version.error_trace:
+            with version.error_trace.file.file as fp:
+                error_trace = fp.read().decode('utf8')
+
         data.update({
             'verdict': version.verdict,
             'status': version.status,
-            'function': version.function,
+            'threshold': version.threshold_percentage,
             'error_trace': error_trace,
-            'threshold': version.threshold_percentage
+            'regexp': version.regexp if error_trace is None else ""
         })
         return data
 
@@ -331,10 +340,12 @@ class MarksUploader:
             if mark is None:
                 # Get identifier and is_modifiable from mark_data
                 mark_version.update(mark_data)
-                serializer_fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version', 'function')
+                serializer_fields = (
+                    'identifier', 'is_modifiable', 'verdict', 'mark_version', 'function', 'error_trace', 'regexp'
+                )
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
             else:
-                serializer_fields = ('verdict', 'mark_version', 'function')
+                serializer_fields = ('verdict', 'mark_version', 'error_trace', 'regexp')
                 save_kwargs = {}
 
             serializer = UnsafeMarkSerializer(instance=mark, data=mark_version, context={

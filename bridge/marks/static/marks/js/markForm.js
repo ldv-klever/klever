@@ -66,15 +66,30 @@ function collect_markdata(action, mark_type) {
     else {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
-        if (mark_type === 'unsafe') {
-            mark_data['status'] = $("input[name='selected_status']:checked").val();
-            mark_data['function'] = $("#compare_name").val();
-            mark_data['threshold'] = $('#threshold').val();
+    }
+    if (mark_type === 'unsafe') {
+        mark_data['status'] = $("input[name='selected_status']:checked").val();
+        mark_data['threshold'] = $('#threshold').val();
+
+        if (action === 'edit') {
+            const traceInput = $('#mark_error_trace');
+            if (traceInput.length) {
+                mark_data['error_trace'] = traceInput.val();
+            } else {
+                mark_data['regexp'] = $('#mark_regexp').val();
+            }
+        } else {
+            const selectedFunction = $("#compare_name").val();
+            mark_data['function'] = selectedFunction;
+            const isRegexp = parseInt($('#unsafe_functions')
+                .find(`.compare-func[data-name="${selectedFunction}"]`)
+                .find('.compare-regexp').val());
+            if (isRegexp) {
+                mark_data['regexp'] = $('#mark_regexp').val();
+            }
         }
     }
-    if (mark_type === 'unsafe' && action === 'edit') {
-        mark_data['error_trace'] = $('#mark_error_trace').val();
-    }
+
     return mark_data;
 }
 
@@ -154,6 +169,13 @@ $(document).ready(function () {
         $('#compare_desc').text(data_container.find('.compare-desc').text());
         $('#convert_desc').text(data_container.find('.convert-desc').text());
         $('#convert_name').text(data_container.find('.convert-desc').data('name'));
+
+        const isRegexp = parseInt(data_container.find('.compare-regexp').val());
+        if (isRegexp) {
+            $('#unsafe_regexp_segment').show();
+        } else {
+            $('#unsafe_regexp_segment').hide();
+        }
     });
 
     let verdict_column = $('#verdict_column'), status_div = $('#status_column');

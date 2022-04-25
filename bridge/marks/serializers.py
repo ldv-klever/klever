@@ -23,7 +23,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
 
-from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS, CONVERT_FUNCTIONS, COMPARE_FUNCTIONS
+from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS, COMPARE_FUNCTIONS
 from bridge.utils import logger
 from bridge.serializers import DynamicFieldsModelSerializer
 
@@ -33,7 +33,7 @@ from marks.models import (
     MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnsafeReport
 )
 from marks.tags import get_all_tags
-from marks.UnsafeUtils import save_converted_trace, convert_error_trace
+from marks.UnsafeUtils import ErrorTraceConverter
 
 
 def create_mark_version(mark, cache=True, **kwargs):
@@ -62,15 +62,11 @@ def create_mark_version(mark, cache=True, **kwargs):
             mark.cache_attrs = dict((attr['name'], attr['value']) for attr in attrs if attr['is_compare'])
             mark.save()
     elif isinstance(mark, MarkUnsafe):
-        if 'error_trace' not in kwargs:
-            # Use old error trace if it wasn't provided (inline mark form)
-            kwargs['error_trace_id'] = mark.error_trace_id
         mark_version = MarkUnsafeHistory.objects.create(mark=mark, **kwargs)
         MarkUnsafeTag.objects.bulk_create(list(MarkUnsafeTag(tag_id=t, mark_version=mark_version) for t in tags))
         MarkUnsafeAttr.objects.bulk_create(list(MarkUnsafeAttr(mark_version=mark_version, **attr) for attr in attrs))
 
         if cache:
-            mark.error_trace = mark_version.error_trace
             mark.cache_tags = list(Tag.objects.filter(id__in=tags).order_by('name').values_list('name', flat=True))
             mark.cache_attrs = dict((attr['name'], attr['value']) for attr in attrs if attr['is_compare'])
             mark.save()
@@ -254,10 +250,14 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
+    default_error_messages = {
+        'wrong_regexp': _('Regular expression is wrong.')
+    }
+
     tags = fields.ListField(child=fields.CharField(), allow_empty=True, write_only=True)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
-    error_trace = fields.CharField(write_only=True, required=False)
     threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
+    regexp = fields.CharField(required=False)
 
     def validate_tags(self, tags):
         return self.get_tags_ids(tags)
@@ -265,22 +265,16 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     def validate_threshold(self, value):
         return value / 100
 
-    def __validate_error_trace(self, err_trace_str, compare_func):
-        convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
-        assert convert_func in CONVERT_FUNCTIONS
-        forests = json.loads(err_trace_str)
-        return save_converted_trace(forests, convert_func)
+    def validate_regexp(self, value):
+        try:
+            re.compile(value)
+        except Exception as e:
+            logger.error(e)
+            self.fail('wrong_regexp')
+        return value
 
     def validate(self, attrs):
         res = super().validate(attrs)
-        if 'error_trace' in res:
-            try:
-                res['error_trace'] = self.__validate_error_trace(res.pop('error_trace'), res['function'])
-            except Exception as e:
-                logger.exception(e)
-                raise exceptions.ValidationError(detail={
-                    'error_trace': _('Wrong error trace is provided')
-                })
         if res['verdict'] != UNSAFE_VERDICTS[1][0]:
             res['status'] = None
         elif not res.get('status'):
@@ -291,11 +285,7 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
         return dictionary
 
     def create(self, validated_data):
-        if 'mark' not in validated_data:
-            raise exceptions.ValidationError(detail={'mark': 'Required'})
-        if 'error_trace' not in validated_data:
-            raise exceptions.ValidationError(detail={'error_trace': 'Required'})
-        return create_mark_version(validated_data.pop('mark'), **validated_data)
+        raise RuntimeError('Use create_mark_version() instead')
 
     def update(self, instance, validated_data):
         raise RuntimeError('Update of mark version object is not allowed')
@@ -303,28 +293,58 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     def to_representation(self, instance):
         res = super().to_representation(instance)
         if isinstance(instance, MarkUnsafeHistory):
-            conv = ConvertedTrace.objects.get(id=instance.error_trace_id)
-            with conv.file.file as fp:
-                res['error_trace'] = json.loads(fp.read().decode('utf-8'))
-            res['attrs'] = UnsafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
             res['tags'] = list(instance.tags.values_list('tag__name', flat=True))
+            res['attrs'] = UnsafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
             res['threshold'] = instance.threshold_percentage
         return res
 
     class Meta:
         model = MarkUnsafeHistory
-        fields = (
-            'change_date', 'comment', 'description', 'verdict', 'status',
-            'tags', 'attrs', 'function', 'error_trace', 'threshold'
-        )
+        fields = ('change_date', 'comment', 'description', 'verdict', 'status', 'tags', 'attrs', 'regexp', 'threshold')
 
 
 class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
+    default_error_messages = {
+        'error_trace_for_raw_trace': _('Error trace was provided for mark with raw error trace extraction.')
+    }
+
     mark_version = UnsafeMarkVersionSerializer(write_only=True)
     threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
+    regexp = fields.CharField(required=False)
+    error_trace = fields.CharField(write_only=True, required=False, allow_null=True)
 
     def validate_threshold(self, value):
         return value / 100
+
+    def validate(self, attrs):
+        res = super().validate(attrs)
+
+        error_trace = res.pop('error_trace', None)
+        if self.instance:
+            convert_func = COMPARE_FUNCTIONS[self.instance.function]['convert']
+        else:
+            convert_func = COMPARE_FUNCTIONS[res['function']]['convert']
+
+        if error_trace is not None:
+            if convert_func == 'raw_text_extraction':
+                self.fail('error_trace_for_raw_trace')
+            try:
+                forests = json.loads(error_trace)
+                res['error_trace'] = ErrorTraceConverter(convert_func).save_forests(forests)
+            except Exception as e:
+                logger.exception(e)
+                raise exceptions.ValidationError(detail={
+                    'error_trace': _('Wrong error trace is provided')
+                })
+        elif convert_func == 'raw_text_extraction':
+            if 'regexp' not in res:
+                raise exceptions.ValidationError(detail={'regexp': 'Required'})
+            res['error_trace'] = None
+        elif self.instance:
+            # Error trace is not provided in case of lightweight edit
+            res['error_trace'] = self.instance.error_trace
+
+        return res
 
     def create(self, validated_data):
         # Save kwargs:
@@ -335,14 +355,11 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
 
         version_data = validated_data.pop('mark_version')
 
-        if 'error_trace' in validated_data:
-            # ConvertedTrace instance from save kwargs, used on GUI creation (on report base)
-            version_data['error_trace'] = validated_data['error_trace']
-        elif 'error_trace' in version_data:
-            # ConvertedTrace object from version serializer, used in population and upload
-            validated_data['error_trace'] = version_data['error_trace']
-        else:
+        # ConvertedTrace instance from save kwargs (GUI creation, based on report)
+        # or serializer data (population and upload). None for regexp marks.
+        if 'error_trace' not in validated_data:
             raise exceptions.ValidationError(detail={'error_trace': 'Required'})
+        version_data['error_trace'] = validated_data['error_trace']
 
         # Get user from context (on GUI creation)
         if 'request' in self.context:
@@ -358,6 +375,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     def update(self, instance, validated_data):
         assert isinstance(instance, MarkUnsafe)
         version_data = validated_data.pop('mark_version')
+        version_data['error_trace'] = validated_data['error_trace']
         if 'request' in self.context:
             version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
@@ -371,6 +389,11 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     def to_representation(self, instance):
         value = super().to_representation(instance)
         if isinstance(instance, MarkUnsafe):
+            if instance.error_trace:
+                conv = ConvertedTrace.objects.get(id=instance.error_trace_id)
+                with conv.file.file as fp:
+                    value['error_trace'] = json.loads(fp.read().decode('utf-8'))
+
             last_version = MarkUnsafeHistory.objects.get(mark=instance, version=instance.version)
             value['mark_version'] = UnsafeMarkVersionSerializer(instance=last_version).data
             value['threshold'] = instance.threshold_percentage
@@ -378,7 +401,10 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = MarkUnsafe
-        fields = ('id', 'identifier', 'is_modifiable', 'verdict', 'status', 'mark_version', 'function', 'threshold')
+        fields = (
+            'id', 'identifier', 'is_modifiable', 'verdict', 'status', 'function',
+            'mark_version', 'threshold', 'error_trace', 'regexp'
+        )
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):
@@ -537,6 +563,10 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
         ).values_list('tag__name', flat=True))
 
     def get_error_trace(self, instance):
+        convert_func = COMPARE_FUNCTIONS[instance.function]['convert']
+        if convert_func == 'raw_text_extraction':
+            return None
+
         report_id = self.context['request'].query_params.get('report')
 
         # Get the most relevant mark association
@@ -549,14 +579,14 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
 
         # Trying to get converted report's error trace
         converted = ConvertedTrace.objects.filter(
-            unsafeconvertioncache__unsafe=mark_report.report, function=instance.function
+            unsafeconvertioncache__unsafe=mark_report.report, function=convert_func
         ).first()
 
         if not converted:
-            # If not found convert error trace and save the convertion cache
+            # If not found, convert error trace and save the convertion cache
             with open(mark_report.report.error_trace.path, mode='r', encoding='utf-8') as fp:
                 error_trace = json.load(fp)
-            converted = convert_error_trace(error_trace, instance.function)
+            converted = ErrorTraceConverter(convert_func).convert(error_trace)
             UnsafeConvertionCache.objects.create(unsafe_id=mark_report.report_id, converted_id=converted.id)
 
         with open(converted.file.path, mode='r', encoding='utf-8') as fp:
@@ -570,5 +600,6 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarkUnsafe
         fields = (
-            'is_modifiable', 'description', 'attrs', 'verdict', 'status', 'function', 'threshold', 'tags', 'error_trace'
+            'is_modifiable', 'description', 'attrs', 'verdict', 'status',
+            'function', 'regexp', 'threshold', 'tags', 'error_trace'
         )

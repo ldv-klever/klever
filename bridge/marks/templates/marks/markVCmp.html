@@ -81,26 +81,19 @@
     <div class="ui divider"></div>
 {% endif %}
 
-{% if data.unsafe_func %}
-    <h5>{% trans 'Error trace comparison function was changed' %}</h5>
-
-    <i class="ui red minus icon"></i> <b>{{ data.unsafe_func.0.compare_name }}</b>
-    <div class="func-description">{{ data.unsafe_func.0.compare_desc }}</div>
-    <br>
-    <b>{{ data.unsafe_func.0.convert_name }}</b>
-    <div class="func-description">{{ data.unsafe_func.0.convert_desc }}</div>
-    <br><br>
-    <i class="ui green plus icon"></i> <b>{{ data.unsafe_func.1.compare_name }}</b>
-    <div class="func-description">{{ data.unsafe_func.1.compare_desc }}</div>
-    <br>
-    <b>{{ data.unsafe_func.1.convert_name }}</b>
-    <div class="func-description">{{ data.unsafe_func.1.convert_desc }}</div>
-    <div class="ui divider"></div>
-{% endif %}
-
 {% if data.error_trace %}
     <h5>{% trans 'Error trace was changed' %}</h5>
     <span class="filecontent" style="max-height: 30vh;">{{ data.error_trace }}</span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.unsafe_regexp %}
+    <h5>{% trans 'Regular expression' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i> {{ data.unsafe_regexp.0 }}
+        <br>
+        <i class="ui green plus icon"></i> {{ data.unsafe_regexp.1 }}
+    </span>
     <div class="ui divider"></div>
 {% endif %}
 

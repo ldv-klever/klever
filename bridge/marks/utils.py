@@ -22,7 +22,7 @@ from django.utils.translation import gettext as _
 
 from rest_framework.exceptions import APIException
 
-from bridge.vars import USER_ROLES, JOB_ROLES, ASSOCIATION_TYPE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
+from bridge.vars import USER_ROLES, JOB_ROLES, ASSOCIATION_TYPE
 
 from users.models import User
 from jobs.models import Job, UserRole
@@ -195,25 +195,12 @@ class CompareMarkVersions:
         ]
 
     @cached_property
-    def unsafe_func(self):
-        if self.type != 'unsafe' or self.v1.function == self.v2.function:
-            return None
-        return [{
-            'compare_name': self.v1.function,
-            'compare_desc': COMPARE_FUNCTIONS[self.v1.function]['desc'],
-            'convert_name': COMPARE_FUNCTIONS[self.v1.function]['convert'],
-            'convert_desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.v1.function]['convert']]
-        }, {
-            'compare_name': self.v2.function,
-            'compare_desc': COMPARE_FUNCTIONS[self.v2.function]['desc'],
-            'convert_name': COMPARE_FUNCTIONS[self.v2.function]['convert'],
-            'convert_desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.v2.function]['convert']]
-        }]
-
-    @cached_property
     def error_trace(self):
         if self.type != 'unsafe' or self.v1.error_trace_id == self.v2.error_trace_id:
             return None
+        if self.v1.error_trace_id is None or self.v2.error_trace_id is None:
+            return None
+
         diff_result = []
         f1 = ConvertedTrace.objects.get(id=self.v1.error_trace_id)
         f2 = ConvertedTrace.objects.get(id=self.v2.error_trace_id)
@@ -221,6 +208,14 @@ class CompareMarkVersions:
             for line in unified_diff(fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n')):
                 diff_result.append(line)
         return '\n'.join(diff_result)
+
+    @cached_property
+    def unsafe_regexp(self):
+        if self.type != 'unsafe' or self.mark.function != 'regexp_match':
+            return None
+        if self.v1.regexp == self.v2.regexp:
+            return None
+        return [self.v1.regexp, self.v2.regexp]
 
     @cached_property
     def attrs(self):

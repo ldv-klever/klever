@@ -165,39 +165,61 @@
                     <input id="threshold" type="hidden" value="{% if data.threshold is not None %}{{ data.threshold }}{% else %}{{ user.default_threshold_percentage }}{% endif %}">
                 </div>
 
-                {# Comparison function #}
-                <div class="ui teal segment">
-                    <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
-                    <label for="compare_name" class="purple-title"></label>
-                    <select id="compare_name" class="ui dropdown fluid top attached">
-                        {% for f in data.functions %}
-                            <option value="{{ f.name }}"{% if f.name == data.function %} selected{% endif %}>{{ f.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="ui teal segment">
-                        <p id="compare_desc" class="func-description">{{ data.compare_desc }}</p>
-                        <h5 id="convert_name">{{ data.convert_func.name }}</h5>
-                        <p id="convert_desc" class="func-description">{{ data.convert_func.desc }}</p>
-                    </div>
-                    <div id="unsafe_functions" hidden>
-                        {% for f in data.functions %}
-                            <div class="compare-func" data-name="{{ f.name }}">
-                                <div class="compare-desc">{{ f.desc }}</div>
-                                <div class="convert-desc" data-name="{{ f.convert.name }}">{{ f.convert.desc }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <br>
-                </div>
                 {% if data.action == 'edit' %}
-                    <div class="ui blue segment">
-                        <h4 class="header ui blue">{% trans 'Converted error trace' %}</h4>
-                        <div class="ui form">
-                            <label for="mark_error_trace"></label>
-                            <textarea id="mark_error_trace" rows="15" style="resize:none">{{ data.error_trace }}</textarea>
+                    {# Comparison function and error trace #}
+                    <div class="ui teal segment">
+                        <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
+                        <div class="ui teal raised segment">
+                            <span class="ui teal ribbon label">{{ data.function }}</span>
+                            <p class="func-description">{{ data.compare_func.desc }}</p>
+                            <h5>{{ data.convert_func.name }}</h5>
+                            <p class="func-description">{{ data.convert_func.desc }}</p>
                         </div>
+
+                        {% if not data.compare_func.is_regexp %}
+                            <h4 class="header ui blue">{% trans 'Converted error trace' %}</h4>
+                            <div class="ui form">
+                                <label for="mark_error_trace"></label>
+                                <textarea id="mark_error_trace" rows="15" style="resize:none">{{ data.error_trace }}</textarea>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {# Comparison function #}
+                    <div class="ui teal segment">
+                        <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
+                        <label for="compare_name" class="purple-title"></label>
+                        <select id="compare_name" class="ui dropdown fluid top attached">
+                            {% for f in data.functions %}
+                                <option value="{{ f.name }}"{% if f.name == data.function %} selected{% endif %}>{{ f.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="ui teal segment">
+                            <p id="compare_desc" class="func-description">{{ data.compare_func.desc }}</p>
+                            <h5 id="convert_name">{{ data.convert_func.name }}</h5>
+                            <p id="convert_desc" class="func-description">{{ data.convert_func.desc }}</p>
+                        </div>
+                        <div id="unsafe_functions" hidden>
+                            {% for f in data.functions %}
+                                <div class="compare-func" data-name="{{ f.name }}">
+                                    <div class="compare-desc">{{ f.desc }}</div>
+                                    <div class="convert-desc" data-name="{{ f.convert.name }}">{{ f.convert.desc }}</div>
+                                    <input class="compare-regexp" type="hidden" value="{% if f.is_regexp %}1{% else %}0{% endif %}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <br>
                     </div>
                 {% endif %}
+
+                <div id="unsafe_regexp_segment" class="ui blue segment"{% if not data.compare_func.is_regexp %} style="display: none;"{% endif %}>
+                    <h4 class="header ui blue">{% trans 'Regular expression' %}</h4>
+                    <div class="ui form">
+                        <label for="mark_regexp"></label>
+                        <textarea id="mark_regexp" rows="5" style="resize:none">{{ data.unsafe_regexp }}</textarea>
+                    </div>
+                </div>
+
             {% elif data.type == 'unknown' and problem_description %}
                 <div class="ui red segment filecontent" style="min-height:50vh;max-height:70vh;">{{ problem_description }}</div>
             {% endif %}

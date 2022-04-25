@@ -19,12 +19,15 @@ import io
 import json
 import copy
 import hashlib
+import re
+
 from collections import OrderedDict
 
 from django.core.files import File
 from django.db.models import Count, Case, When, Q
+from django.utils.functional import cached_property
 
-from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
+from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS
 from bridge.utils import logger, BridgeException, ArchiveFileContent, RequreLock, file_checksum, require_lock
 
 from reports.models import ReportUnsafe
@@ -38,16 +41,20 @@ ET_FILE_NAME = 'converted-error-trace.json'
 
 
 def perform_unsafe_mark_create(user, report, serializer):
-    convert_func = serializer.validated_data['function']
-    with RequreLock(UnsafeConvertionCache):
-        try:
-            conv = UnsafeConvertionCache.objects.get(unsafe=report, converted__function=convert_func).converted
-        except UnsafeConvertionCache.DoesNotExist:
-            error_trace = get_report_trace(report)
-            conv = convert_error_trace(error_trace, convert_func)
-            UnsafeConvertionCache.objects.create(unsafe=report, converted=conv)
+    error_trace = None
 
-    mark = serializer.save(job=report.decision.job, error_trace=conv)
+    convert_func = COMPARE_FUNCTIONS[serializer.validated_data['function']]['convert']
+    if convert_func != 'raw_text_extraction':
+        with RequreLock(UnsafeConvertionCache):
+            try:
+                error_trace = UnsafeConvertionCache.objects.get(
+                    unsafe=report, converted__function=convert_func
+                ).converted
+            except UnsafeConvertionCache.DoesNotExist:
+                error_trace = ErrorTraceConverter(convert_func).convert(get_report_trace(report))
+                UnsafeConvertionCache.objects.create(unsafe=report, converted=error_trace)
+
+    mark = serializer.save(job=report.decision.job, error_trace=error_trace)
     res = ConnectUnsafeMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateUnsafeCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()
@@ -59,8 +66,8 @@ def perform_unsafe_mark_update(user, serializer):
 
     # Preserve data before we change the mark
     old_cache = {
-        'function': mark.function,
         'error_trace': mark.error_trace_id,
+        'regexp': mark.regexp,
         'attrs': copy.deepcopy(mark.cache_attrs),
         'tags': copy.deepcopy(mark.cache_tags),
         'verdict': mark.verdict,
@@ -72,9 +79,9 @@ def perform_unsafe_mark_update(user, serializer):
     mark = serializer.save()
 
     # Update reports cache
-    if old_cache['attrs'] != mark.cache_attrs or \
-            old_cache['function'] != mark.function or \
-            old_cache['error_trace'] != mark.error_trace_id:
+    if old_cache['attrs'] != mark.cache_attrs \
+            or old_cache['error_trace'] != mark.error_trace_id \
+            or old_cache['regexp'] != mark.regexp:
         res = ConnectUnsafeMark(mark, author=user)
         cache_upd = UpdateUnsafeCachesOnMarkChange(mark, res.old_links, res.new_links)
         cache_upd.update_all()
@@ -108,6 +115,10 @@ def jaccard(forest1: set, forest2: set):
     return similar / res
 
 
+def regexp_match(error_trace_text: str, regexp):
+    return int(bool(re.match(re.compile(regexp, flags=re.M | re.S), error_trace_text)))
+
+
 def get_report_trace(report):
     try:
         error_trace_str = ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8')
@@ -117,35 +128,43 @@ def get_report_trace(report):
     return json.loads(error_trace_str)
 
 
-@require_lock(ConvertedTrace)
-def save_converted_trace(forests, function):
-    fp = io.BytesIO(json.dumps(forests, ensure_ascii=False, sort_keys=True, indent=2).encode('utf8'))
-    hash_sum = file_checksum(fp)
-    try:
-        return ConvertedTrace.objects.get(hash_sum=hash_sum, function=function)
-    except ConvertedTrace.DoesNotExist:
-        conv = ConvertedTrace(hash_sum=hash_sum, function=function)
+class ErrorTraceConverter:
+    def __init__(self, convert_function):
+        self.function = convert_function
 
-    forests_hashsums = []
-    for forest in forests:
-        forest_str = json.dumps(forest, ensure_ascii=False)
-        forest_hash = hashlib.md5(forest_str.encode('utf8')).hexdigest()
-        forests_hashsums.append(forest_hash)
+    @require_lock(ConvertedTrace)
+    def __save(self, content: str, forests=None):
+        fp = io.BytesIO(content.encode('utf8'))
+        hash_sum = file_checksum(fp)
+        try:
+            return ConvertedTrace.objects.get(hash_sum=hash_sum, function=self.function)
+        except ConvertedTrace.DoesNotExist:
+            conv = ConvertedTrace(hash_sum=hash_sum, function=self.function)
 
-    conv.trace_cache = {'forest': forests_hashsums}
-    conv.file.save(ET_FILE_NAME, File(fp), save=True)
-    return conv
+        if forests is None:
+            conv.trace_cache = {}
+        else:
+            forests_hashsums = []
+            for forest in forests:
+                forest_str = json.dumps(forest, ensure_ascii=False)
+                forest_hash = hashlib.md5(forest_str.encode('utf8')).hexdigest()
+                forests_hashsums.append(forest_hash)
+            conv.trace_cache = {'forest': forests_hashsums}
 
+        conv.file.save(ET_FILE_NAME, File(fp), save=True)
+        return conv
 
-def convert_error_trace(error_trace, function):
-    # Convert error trace to forests
-    if function == 'relevant_call_forests':
-        forests = RelevantCallForests(error_trace).forests
-    elif function == 'thread_call_forests':
-        forests = ThreadCallForests(error_trace).forests
-    else:
+    def save_forests(self, forests):
+        return self.__save(json.dumps(forests, ensure_ascii=False, sort_keys=True, indent=2), forests=forests)
+
+    def convert(self, error_trace):
+        if self.function == 'relevant_call_forests':
+            return self.save_forests(RelevantCallForests(error_trace).forests)
+        if self.function == 'thread_call_forests':
+            return self.save_forests(ThreadCallForests(error_trace).forests)
+        if self.function == 'raw_text_extraction':
+            return self.__save(RawTraceExtractor(error_trace).content)
         raise ValueError('Error trace convert function is not supported')
-    return save_converted_trace(forests, function)
 
 
 class RemoveUnsafeMark:
@@ -211,7 +230,7 @@ class ConnectUnsafeMark:
             new_association = MarkUnsafeReport(
                 mark=self._mark, report_id=report.id, author=author, **compare_results[report.id]
             )
-            if prime_id and report.id == prime_id:
+            if prime_id and report.id == prime_id and new_association.associated:
                 new_association.type = ASSOCIATION_TYPE[3][0]
             elif report.cache.marks_confirmed:
                 # Do not count automatic associations if report has confirmed ones
@@ -247,7 +266,7 @@ class ThreadCallForests:
             children_call_trees = []
             for child in node['children']:
                 children_call_trees.extend(self.__parse_child(child, node['thread']))
-            # If thread has forests and don't have any relevant actions, than add forests for that thread
+            # If thread has forests and don't have any relevant actions, then add forests for that thread
             if children_call_trees and not self._forests_dict[node['thread']]:
                 self._forests_dict[node['thread']].append(children_call_trees)
             return []
@@ -352,32 +371,50 @@ class RelevantCallForests:
         return bool(node.get('notes')) and any(note['level'] < 2 for note in node['notes'])
 
 
+class RawTraceExtractor:
+    def __init__(self, error_trace):
+        self.content = ''
+        self.__extract(error_trace)
+
+    def __extract_node_content(self, node):
+        self.content += node.get('source', '') + '\n'
+        if 'children' in node:
+            for child in node['children']:
+                self.__extract_node_content(child)
+
+    def __extract(self, error_trace):
+        if 'global variable declarations' in error_trace:
+            for node in error_trace['global variable declarations']:
+                self.__extract_node_content(node)
+        self.__extract_node_content(error_trace['trace'])
+
+
 class CompareMark:
     def __init__(self, mark):
         self._mark = mark
-        self._mark_cache = set(self._mark.error_trace.trace_cache['forest'])
 
     def __get_reports_cache(self, reports_qs):
         reports_ids = list(r.id for r in reports_qs)
 
         convert_function = COMPARE_FUNCTIONS[self._mark.function]['convert']
         new_cache = []
+
         reports_cache = {}
         for conv in UnsafeConvertionCache.objects\
                 .filter(unsafe_id__in=reports_ids, converted__function=convert_function)\
                 .select_related('converted'):
-            reports_cache[conv.unsafe_id] = set(conv.converted.trace_cache['forest'])
+            reports_cache[conv.unsafe_id] = conv.converted
+
         for report in reports_qs:
             if report.id in reports_cache:
                 continue
             try:
-                error_trace = get_report_trace(report)
-                conv = convert_error_trace(error_trace, convert_function)
+                conv = ErrorTraceConverter(convert_function).convert(get_report_trace(report))
             except Exception as e:
                 logger.exception(e)
                 reports_cache[report.id] = None
             else:
-                reports_cache[report.id] = set(conv.trace_cache['forest'])
+                reports_cache[report.id] = conv
                 new_cache.append(UnsafeConvertionCache(unsafe_id=report.id, converted_id=conv.id))
         if new_cache:
             UnsafeConvertionCache.objects.bulk_create(new_cache)
@@ -386,74 +423,116 @@ class CompareMark:
     def compare(self, reports_qs):
         results = {}
         reports_cache = self.__get_reports_cache(reports_qs)
+
+        mark_forests = None
+        if self._mark.function == 'regexp_match':
+            pass
+        elif self._mark.error_trace:
+            mark_forests = set(self._mark.error_trace.trace_cache['forest'])
+        else:
+            raise ValueError("The mark does not have an error trace")
+
         for report_id in reports_cache:
             if reports_cache[report_id] is None:
                 results[report_id] = {
-                    'type': ASSOCIATION_TYPE[0][0], 'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
+                    'type': ASSOCIATION_TYPE[0][0],
+                    'result': 0,
+                    'error': str(UNKNOWN_ERROR),
+                    'associated': False
                 }
+                continue
+
+            if mark_forests is None:
+                with open(reports_cache[report_id].file.path, mode='r', encoding='utf-8') as fp:
+                    # Return converted error trace
+                    raw_trace = fp.read()
+                res = regexp_match(raw_trace, self._mark.regexp)
             else:
-                res = jaccard(self._mark_cache, reports_cache[report_id])
-                is_associated = bool(res > 0 and res >= self._mark.threshold)
-                results[report_id] = {
-                    'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
-                    'result': res, 'error': None, 'associated': is_associated
-                }
+                res = jaccard(mark_forests, set(reports_cache[report_id].trace_cache['forest']))
+
+            is_associated = bool(res > 0 and res >= self._mark.threshold)
+            results[report_id] = {
+                'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
+                'result': res, 'error': None, 'associated': is_associated
+            }
         return results
 
 
 class CompareReport:
     def __init__(self, report):
         self._report = report
-        self._report_cache = {}
-        self.__clear_old_cache()
+        self._new_converted_cache = []
+        self._raw_trace_cache = {}
+        self._trace_forests_cache = {}
 
-    def __clear_old_cache(self):
-        UnsafeConvertionCache.objects.filter(unsafe=self._report).delete()
+    @cached_property
+    def _error_trace(self):
+        return get_report_trace(self._report)
 
-    def __get_report_cache(self):
-        reports_cache = {}
-        new_cache = []
-        error_trace = get_report_trace(self._report)
-        for convert_function in CONVERT_FUNCTIONS:
+    def __get_raw_trace(self, convert_function):
+        if convert_function not in self._raw_trace_cache:
             try:
-                conv = convert_error_trace(error_trace, convert_function)
+                conv = ErrorTraceConverter(convert_function).convert(self._error_trace)
             except Exception as e:
                 logger.exception(e)
-                reports_cache[convert_function] = None
+                self._raw_trace_cache[convert_function] = None
             else:
-                reports_cache[convert_function] = set(conv.trace_cache['forest'])
-                new_cache.append(UnsafeConvertionCache(unsafe=self._report, converted_id=conv.id))
-        UnsafeConvertionCache.objects.bulk_create(new_cache)
-        return reports_cache
+                self._new_converted_cache.append(UnsafeConvertionCache(unsafe=self._report, converted_id=conv.id))
+                with open(conv.file.path, mode='r', encoding='utf-8') as fp:
+                    self._raw_trace_cache[convert_function] = fp.read()
+        return self._raw_trace_cache[convert_function]
 
-    def __get_marks_cache(self, marks_qs):
-        marks_cache = {}
-        # WARNING: ensure there is select_related('error_trace') for marks queryset
-        for mark in marks_qs:
-            marks_cache[mark.id] = {
-                'function': COMPARE_FUNCTIONS[mark.function]['convert'],
-                'threshold': mark.threshold,
-                'cache': set(mark.error_trace.trace_cache['forest'])
-            }
-        return marks_cache
+    def __get_trace_forests(self, convert_function):
+        if convert_function not in self._trace_forests_cache:
+            try:
+                conv = ErrorTraceConverter(convert_function).convert(self._error_trace)
+            except Exception as e:
+                logger.exception(e)
+                self._trace_forests_cache[convert_function] = None
+            else:
+                self._new_converted_cache.append(UnsafeConvertionCache(unsafe=self._report, converted_id=conv.id))
+                self._trace_forests_cache[convert_function] = set(conv.trace_cache['forest'])
+        return self._trace_forests_cache[convert_function]
 
     def compare(self, marks_qs):
+        # WARNING: ensure there is select_related('error_trace') for marks queryset
+
         results = {}
-        report_cache = self.__get_report_cache()
-        marks_cache = self.__get_marks_cache(marks_qs)
-        for mark_id in marks_cache:
-            rep_cache_set = report_cache[marks_cache[mark_id]['function']]
-            if rep_cache_set is None:
-                results[mark_id] = {
-                    'type': ASSOCIATION_TYPE[0][0], 'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
-                }
+        for mark in marks_qs:
+            res = None
+            convert_func = COMPARE_FUNCTIONS[mark.function]['convert']
+            if mark.function == 'regexp_match':
+                raw_trace = self.__get_raw_trace(convert_func)
+                if raw_trace is not None:
+                    res = regexp_match(raw_trace, mark.regexp)
+            elif mark.error_trace:
+                report_forests = self.__get_trace_forests(convert_func)
+                if report_forests is not None:
+                    res = jaccard(set(mark.error_trace.trace_cache['forest']), report_forests)
             else:
-                res = jaccard(marks_cache[mark_id]['cache'], rep_cache_set)
-                is_associated = bool(res > 0 and res >= marks_cache[mark_id]['threshold'])
-                results[mark_id] = {
-                    'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
-                    'result': res, 'error': None, 'associated': is_associated
+                # Ignore non-regexp marks without error trace
+                continue
+
+            if res is None:
+                results[mark.id] = {
+                    'type': ASSOCIATION_TYPE[0][0],
+                    'result': 0,
+                    'error': str(UNKNOWN_ERROR),
+                    'associated': False
                 }
+                continue
+
+            is_associated = bool(res > 0 and res >= mark.threshold)
+            results[mark.id] = {
+                'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
+                'result': res, 'error': None, 'associated': is_associated
+            }
+
+        # Save convertion cache
+        UnsafeConvertionCache.objects.filter(unsafe=self._report).delete()
+        if self._new_converted_cache:
+            UnsafeConvertionCache.objects.bulk_create(self._new_converted_cache)
+
         return results
 
 

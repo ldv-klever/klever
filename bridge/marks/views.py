@@ -113,8 +113,11 @@ class UnsafeMarkPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
     def get_context_data(self, **kwargs):
         mark_version = MarkUnsafeHistory.objects.select_related('mark', 'author')\
             .get(mark=self.object, version=F('mark__version'))
-        with self.object.error_trace.file.file as fp:
-            error_trace = fp.read().decode('utf-8')
+
+        error_trace = None
+        if self.object.error_trace:
+            with self.object.error_trace.file.file as fp:
+                error_trace = fp.read().decode('utf-8')
 
         context = {
             'mark': self.object, 'mark_version': mark_version,

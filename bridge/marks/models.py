@@ -40,7 +40,7 @@ MAX_TAG_LEN = 32
 class ConvertedTrace(WithFilesMixin, models.Model):
     hash_sum = models.CharField(max_length=255, db_index=True)
     file = models.FileField(upload_to=CONVERTED_DIR, null=False)
-    function = models.CharField(max_length=30, db_index=True)
+    function = models.CharField(max_length=30, db_index=True, verbose_name=_('Convert trace function'))
     trace_cache = models.JSONField()
 
     class Meta:
@@ -131,8 +131,9 @@ class SafeAssociationLike(models.Model):
 
 # Unsafes tables
 class MarkUnsafe(Mark):
-    function = models.CharField(max_length=30, db_index=True)
-    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    function = models.CharField(max_length=30, db_index=True, verbose_name=_('Compare trace function'))
+    regexp = models.TextField(default="")
+    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
     cache_tags = ArrayField(models.CharField(max_length=1024), default=list)
@@ -149,10 +150,10 @@ class MarkUnsafe(Mark):
 
 class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='versions')
-    function = models.CharField(max_length=30, db_index=True)
+    regexp = models.TextField(default="")
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
-    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE, null=True)
     threshold = models.FloatField(default=0)
 
     @property

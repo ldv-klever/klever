@@ -130,7 +130,7 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
         serializer = self.get_serializer(
-            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function', 'regexp')
         )
         serializer.is_valid(raise_exception=True)
         mark, cache_id = perform_unsafe_mark_create(self.request.user, report, serializer)
@@ -144,7 +144,7 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
             raise exceptions.PermissionDenied(_("You don't have an access to edit this mark"))
 
         serializer = self.get_serializer(
-            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'error_trace', 'regexp')
         )
         serializer.is_valid(raise_exception=True)
         cache_id = perform_unsafe_mark_update(self.request.user, serializer)
@@ -485,7 +485,7 @@ class InlineEditForm(LoggedCallMixin, TemplateAPIRetrieveView):
             model = MarkUnknownHistory
         else:
             raise RuntimeError('Wrong view usage')
-        return model.objects.filter(version=F('mark__version'))
+        return model.objects.select_related('mark').filter(version=F('mark__version'))
 
     def get_context_data(self, instance, **kwargs):
         context = super().get_context_data(instance, **kwargs)

@@ -121,12 +121,21 @@
                     <h5>{{ convert_func.name }}</h5>
                     <p class="func-description">{{ convert_func.desc }}</p>
                 </div>
-                <div class="ui styled accordion fluid">
-                    <div class="title"><i class="file outline icon"></i>{% trans 'Converted error trace' %}</div>
-                    <div class="content">
-                        <div class="filecontent" style="max-height:40vh;">{{ error_trace }}</div>
+                {% if error_trace %}
+                    <div class="ui styled accordion fluid">
+                        <div class="title"><i class="file outline icon"></i>{% trans 'Converted error trace' %}</div>
+                        <div class="content">
+                            <div class="filecontent" style="max-height:40vh;">{{ error_trace }}</div>
+                        </div>
                     </div>
-                </div>
+                {% else %}
+                    <div class="ui styled accordion fluid">
+                        <div class="title"><i class="file outline icon"></i>{% trans 'Regular expression' %}</div>
+                        <div class="content">
+                            <div class="filecontent" style="max-height:40vh;">{{ mark.regexp }}</div>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
 
             {# Attributes #}

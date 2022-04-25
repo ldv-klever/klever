@@ -307,7 +307,7 @@ class UpdateUnsafeCachesOnMarkChange:
             verdict_old = self._old_data[report_id]['verdict']
             verdict_new = self._new_data[report_id].get('verdict', verdict_old)
             status_old = self._old_data[report_id]['status']
-            status_new = self._new_data[report_id].get('status', verdict_old)
+            status_new = self._new_data[report_id].get('status', status_old)
             tags_old = self._old_data[report_id]['tags']
             tags_new = self._new_data[report_id].get('tags', tags_old)
             changes_objects.append(UnsafeMarkAssociationChanges(

@@ -88,7 +88,7 @@ class MarkVersionFormData:
         if self.type == 'safe':
             return None
         if self.object:
-            return self.object.function
+            return self.object.mark.function
         return DEFAULT_COMPARE if self.type == 'unsafe' else ''
 
     @cached_property
@@ -101,13 +101,17 @@ class MarkVersionFormData:
                 'convert': {
                     'name': COMPARE_FUNCTIONS[name]['convert'],
                     'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[name]['convert']]
-                }
+                },
+                'is_regexp': name == 'regexp_match'
             })
         return functions_data
 
     @property
-    def compare_desc(self):
-        return COMPARE_FUNCTIONS[self.function]['desc']
+    def compare_func(self):
+        return {
+            'desc': COMPARE_FUNCTIONS[self.function],
+            'is_regexp': self.function == 'regexp_match'
+        }
 
     @property
     def convert_func(self):
@@ -140,11 +144,17 @@ class MarkVersionFormData:
     def error_trace(self):
         if not self.object or self.type != 'unsafe':
             return
-        with self.object.error_trace.file.file as fp:
+        if not self.object.mark.error_trace:
+            return None
+        with self.object.mark.error_trace.file.file as fp:
             return fp.read().decode('utf-8')
 
     @cached_property
+    def unsafe_regexp(self):
+        if self.type != 'unsafe':
+            return None
+        return self.object.regexp if self.object and not self.object.mark.error_trace else ''
+
+    @cached_property
     def threshold(self):
-        if not self.object or self.type != 'unsafe':
-            return
-        return self.object.threshold_percentage
+        return self.object.threshold_percentage if self.object and self.type == 'unsafe' else None

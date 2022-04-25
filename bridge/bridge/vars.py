@@ -238,9 +238,14 @@ COMPARE_FUNCTIONS = {
     'thread_call_forests': {
         'desc': 'Jaccard index of "thread_call_forests" convertion.',
         'convert': 'thread_call_forests'
+    },
+    'regexp_match': {
+        'desc': 'Compares raw error trace with provided regexp.',
+        'convert': 'raw_text_extraction'
     }
 }
 
+# Do not change it to "regexp" functions as there is no regexp input for inline forms
 DEFAULT_COMPARE = 'thread_call_forests'
 
 CONVERT_FUNCTIONS = {
@@ -258,7 +263,8 @@ relevant action into list. Each call tree root is either a relevant action if it
 or a thread function. All call tree leaves are names of functions which calls or statements are marked
 with the “note” or “warn” attribute. The function returns a list of forests. A forests order corresponds
 to an execution order of first statements of forest threads.
-    """
+    """,
+    "raw_text_extraction": "This function extracts error trace text."
 }
 
 JOB_UPLOAD_STATUS = (

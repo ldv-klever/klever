@@ -23,7 +23,7 @@ from django.conf import settings
 from django.utils.translation import gettext as _
 
 from bridge.vars import MARK_SOURCE
-from bridge.utils import BridgeException
+from bridge.utils import logger, BridgeException
 
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
 
@@ -104,7 +104,7 @@ class PopulateUnsafeMarks:
 
     def __populate(self):
         presets_dir = os.path.join(get_presets_dir(), 'unsafes')
-        serializer_fields = ('is_modifiable', 'verdict', 'mark_version', 'function')
+        serializer_fields = ('is_modifiable', 'verdict', 'mark_version', 'function', 'error_trace', 'regexp')
 
         for mark_filename in os.listdir(presets_dir):
             mark_path = os.path.join(presets_dir, mark_filename)
@@ -128,12 +128,18 @@ class PopulateUnsafeMarks:
                 continue
 
             # For serializer
-            mark_data['error_trace'] = json.dumps(mark_data.pop('error_trace'))
+            error_trace = mark_data.pop('error_trace', None)
+            if error_trace is not None:
+                mark_data['error_trace'] = json.dumps(error_trace)
 
             serializer = UnsafeMarkSerializer(data=mark_data, context={
                 'tags_names': self._tags_names, 'tags_tree': self._tags_tree
             }, fields=serializer_fields)
-            serializer.is_valid(raise_exception=True)
+            try:
+                serializer.is_valid(raise_exception=True)
+            except Exception:
+                logger.error(f'Population of mark "{mark_filename}" failed!')
+                raise
             mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
             res = ConnectUnsafeMark(mark)
             UpdateCachesOnMarkPopulate(mark, res.new_links).update()

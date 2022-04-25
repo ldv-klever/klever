@@ -91,8 +91,6 @@
     </div>
     {% if data.type == 'unsafe' %}
         <input id="compare_function" type="hidden" value="{{ data.function }}">
-    {% endif %}
-    {% if data.type == 'unsafe' %}
         <input id="threshold" type="hidden" value="{% if data.threshold is not None %}{{ data.threshold }}{% else %}{{ user.default_threshold_percentage }}{% endif %}">
     {% endif %}
 
