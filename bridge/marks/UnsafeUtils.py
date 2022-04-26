@@ -115,7 +115,7 @@ def jaccard(forest1: set, forest2: set):
     return similar / res
 
 
-def regexp_match(error_trace_text: str, regexp):
+def regexp_match(error_trace_text: str, regexp: str):
     return int(bool(re.search(re.escape(regexp[1:-1]) if regexp[0] == regexp[-1] == '"'
                               else re.compile(regexp, flags=re.M | re.S), error_trace_text)))
 
@@ -378,6 +378,9 @@ class RawTraceExtractor:
         self.__extract(error_trace)
 
     def __extract_node_content(self, node):
+        note = node.get('note')
+        if note:
+            self.content += note + '\n'
         self.content += node.get('source', '') + '\n'
         if 'children' in node:
             for child in node['children']:
