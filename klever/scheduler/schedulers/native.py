@@ -134,6 +134,38 @@ class Native(runners.Speculative):
         # Check client bin
         self._client_bin = os.path.abspath(os.path.join(os.path.dirname(sys.executable), "klever-scheduler-client"))
 
+    def _binsearch_for_optimal_limits(self, pending_tasks, pending_jobs, lower_bound, upper_bound, target_size):
+        """
+        Get a list of new tasks which can be launched during current scheduler iteration.
+        Trying to find optimal value for resourse limitation to run more tasks.
+        
+        :param pending_tasks: List with all pending tasks.
+        :param pending_jobs: List with all pending jobs.
+        :param lower_bound: Float value of lower bound .
+        :param upper_bound: Float value of upper bound.
+        :param target_size: Amount of jobs we want to run.
+        :return: Optimal value for sigma coeficent.
+        """
+        iterations = 10
+        optimal_value = lower_bound
+
+        for _ in range(iterations):
+
+            x = int((lower_bound + upper_bound)/2)
+
+            x_limit_jobs = self._reestimate_jobs_resource_limitations(
+                jobs=pending_jobs, new_sigma_coef=x)
+
+            _, x_new_jobs_to_run = self._manager.schedule(
+                pending_tasks, x_limit_jobs)
+
+            if len(x_new_jobs_to_run) == target_size:
+                optimal_value = x
+            else:
+                upper_bound = x
+
+        return optimal_value
+
     def schedule(self, pending_tasks, pending_jobs):
         """
         Get a list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
@@ -144,9 +176,30 @@ class Native(runners.Speculative):
         :param pending_jobs: List with all pending jobs.
         :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
-        # Use resource manager to determine which jobs or task we can run t the moment.
-        new_tasks, new_jobs = self._manager.schedule(pending_tasks, pending_jobs)
-        return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
+        # Use resource manager to determine which jobs or task we can run at the moment.
+        new_tasks, new_jobs = self._manager.schedule(
+            pending_tasks, pending_jobs)
+
+        # Speculating
+
+        ll_new_jobs = self.lower_jobs_limit(pending_jobs)
+        ll_new_tasks, ll_new_jobs = self._manager.schedule(
+            pending_tasks, pending_jobs)
+        #Check if it possible to run more jobs
+        if len(ll_new_jobs) == len(new_jobs):
+            # Use of speculation does not give a win
+            return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
+
+        # Try to increase speculative limit
+        speculative_sigma_coeficent = self._binsearch_for_jobs_optimal_limits(
+            pending_jobs, 0.5, 2)
+
+        pending_jobs = self._reestimate_jobs_resource_limitations(
+            pending_jobs, speculative_sigma_coeficent)
+
+        new_tasks, new_jobs = self._manager.schedule(
+            pending_tasks, pending_jobs)
+        return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_tasks]
 
     def terminate(self):
         """

@@ -426,6 +426,8 @@ class SpeculativeSimple(Runner):
         self._problematic = dict()
         # Data about job tasks
         self._jdata = dict()
+        # Speculates enable
+        self.speculative = True
 
     def prepare_task(self, identifier, item):
         """
@@ -823,3 +825,144 @@ class Speculative(SpeculativeSimple):
         self.logger.debug("Current mean RAM: {}GB, current RAM deviation: {}GB".format(
             utils.memory_units_converter(round(newmean), 'GB')[0],
             utils.memory_units_converter(round(memdev), 'GB')[0]))
+
+    def _is_speculative_limit(self, item) -> bool:
+        """
+        :param item: Description of the task.
+        :param identifier: Task identifier.
+        :return: Type of estimation limit.
+        
+    
+        """
+        if "speculative" in item["description"]:
+            return item["description"]["speculative"]
+
+        job_identifier = item["description"]["job id"]
+        attribute = item["description"]["solution class"]
+        job_limitations = item["description"]["resource limits"]
+
+        # First set QoS limit
+        job = self._track_job(job_identifier)
+        qos = job.get("QoS limit")
+        assert qos is not None
+        assert job_limitations is not None
+
+        # Start tracking the element
+        element = self._is_there_or_init(job_identifier, attribute, identifier)
+        limits = dict(job_limitations)
+
+        limits_type = False
+        if limits.get('memory size', 0) <= 0:
+            pass
+        elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
+            pass
+        elif self._is_there(job_identifier, attribute, identifier):
+            pass
+        elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
+            pass
+        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
+            pass
+        else:
+            if limits['memory size'] < qos['memory size']:
+                limits_type = True
+            else:
+                pass
+        return limits_type
+
+    def _estimate_resource_limitations(self, item, identifier, sigma_coeficent=2):
+        """
+        :param item: Description of the task.
+        :param identifier: Task identifier.
+        :param sigma_coeficent: Sigma coeficent for speculative estimation.
+        :return: New resource limitations.
+        """
+        job_identifier = item["description"]["job id"]
+        attribute = item["description"]["solution class"]
+        job_limitations = item["description"]["resource limits"]
+        message = "Set job limit for task {}: ".format(identifier)
+
+        # First set QoS limit
+        job = self._track_job(job_identifier)
+        qos = job.get("QoS limit")
+        assert qos is not None
+        assert job_limitations is not None
+
+        # Start tracking the element
+        element = self._is_there_or_init(job_identifier, attribute, identifier)
+        limits = dict(job_limitations)
+
+        # Check do we have some statistics already
+        speculative = False
+
+        if limits.get('memory size', 0) <= 0:
+            message += 'There is no memory size limitation at solving task {}.'
+        elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
+            message += 'There is no memory size limitation at solving task {}.'
+        elif self._is_there(job_identifier, attribute, identifier):
+            limits = dict(qos)
+            message = 'Set QoS limit for the task {}'.format(identifier)
+        elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
+            message += 'We have not enough solved tasks (5%) to yield speculative limit'
+        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
+            message += 'We have not solved at least 5 tasks to estimate average consumption'
+        else:
+            statistics = job["limits"][attribute]["statistics"]
+            if int(statistics['mean mem']) < 0:
+                raise ValueError('Mean memory is negative: {}'.format(
+                    int(statistics['mean mem'])))
+            if int(statistics['memdev']) < 0:
+                raise ValueError('Memory deviation is negative: {}'.format(
+                    int(statistics['memdev'])))
+            limits['memory size'] = int(
+                statistics['mean mem']) + int(sigma_coeficent * statistics['memdev'])
+            if limits['memory size'] < qos['memory size']:
+                message = "Try running task {} with a speculative limitation {}B".\
+                          format(identifier, limits['memory size'])
+                speculative = True
+            else:
+                message += "Estimation {}B is too high.".format(
+                    limits['memory size'])
+                limits = dict(job_limitations)
+
+        element["limitation"] = limits
+        item["description"]["resource limits"] = limits
+        item["description"]["speculative"] = speculative
+        return message
+
+    def _reestimate_jobs_resource_limitations(self, jobs, new_sigma_coef):
+        """
+        Reestimate resource limits with new sigma coeficent.
+        
+        :param jobs: List with jobs.
+        :param new_sigma_coef: Float value of new sigma coeficent.
+        :return: Jobs with new limitations.
+        """
+        result = []
+
+        for job in jobs:
+            if self._is_speculative_limit(job):
+                self._estimate_resource_limitations(
+                    job['job_id'], job, new_sigma_coef)
+            result.append(job)
+
+        return result
+
+    def lower_jobs_limit(self, jobs):
+        """
+        Trying to reduce resource limits by reducing speculative estimates.
+        
+        :param jobs: List with jobs.
+        :return: Jobs with new limitations.
+        """
+
+        result = []
+        # TODO use configuration for lower_sigma
+        lower_sigma_sigma_coeficent = 0.5
+
+        for job in jobs:
+            if self._is_speculative_limit(job):
+                self._estimate_resource_limitations(
+                    job['job_id'], job, lower_sigma_sigma_coeficent)
+            result.append(job)
+
+        return result
