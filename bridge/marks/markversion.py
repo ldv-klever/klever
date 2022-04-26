@@ -109,7 +109,7 @@ class MarkVersionFormData:
     @property
     def compare_func(self):
         return {
-            'desc': COMPARE_FUNCTIONS[self.function],
+            'desc': COMPARE_FUNCTIONS[self.function]['desc'],
             'is_regexp': self.function == 'regexp_match'
         }
 
