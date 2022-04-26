@@ -116,7 +116,8 @@ def jaccard(forest1: set, forest2: set):
 
 
 def regexp_match(error_trace_text: str, regexp):
-    return int(bool(re.match(re.compile(regexp, flags=re.M | re.S), error_trace_text)))
+    return int(bool(re.search(re.escape(regexp[1:-1]) if regexp[0] == regexp[-1] == '"'
+                              else re.compile(regexp, flags=re.M | re.S), error_trace_text)))
 
 
 def get_report_trace(report):
