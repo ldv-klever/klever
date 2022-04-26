@@ -59,7 +59,10 @@
         },
         {
           "name": "Weaver",
-          "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}
+          "options": {"common headers": [
+            "ldv/common/inline_asm.h",
+            "ldv/verifier/memory.h"
+          ]}
         },
         {
           "name": "FVTP",
@@ -68,7 +71,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:39071"
+              "version": "cbb25c3"
             }
           }
         }

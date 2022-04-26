@@ -85,7 +85,8 @@ class RSG(klever.core.vtg.plugins.Plugin):
         if 'exclude common models' in self.conf:
             self.logger.info('Common models to be excluded:\n{0}'
                              .format('\n'.join(['  {0}'.format(m) for m in self.conf['exclude common models']])))
-            common_models = [m for m in self.conf['common models'] if m not in self.conf['exclude common models']]
+            common_models = [m for m in self.conf['common models']
+                             if get_model_c_file(common_model) not in self.conf['exclude common models']]
         else:
             common_models = self.conf['common models']
 
@@ -274,6 +275,20 @@ class RSG(klever.core.vtg.plugins.Plugin):
                             'plugin': self.name,
                             'aspects': [os.path.relpath(aspect, self.conf['main working directory'])
                                         for aspect in aspects]
+                        }
+                    ]
+                elif model['options'].get('weave in aspects'):
+                    aspects = []
+
+                    for aspect in model['options']['weave in aspects']:
+                        aspect = klever.core.vtg.utils.find_file_or_dir(self.logger,
+                                                                        self.conf['main working directory'], aspect)
+                        aspects.append(os.path.relpath(aspect, self.conf['main working directory']))
+
+                    extra_cc['plugin aspects'] = [
+                        {
+                            'plugin': self.name,
+                            'aspects': aspects
                         }
                     ]
 

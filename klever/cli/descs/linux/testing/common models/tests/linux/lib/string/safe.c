@@ -24,6 +24,8 @@
 static int __init ldv_init(void)
 {
 	const char *s = LDV_STR;
+	const char src[] = {1, 2, 3, 4, 5};
+	char dst[5];
 
 	if (strlen(LDV_STR) != LDV_STR_LEN)
 		ldv_unexpected_memory_safety_error();
@@ -37,31 +39,49 @@ static int __init ldv_init(void)
     if (strcmp(s, "LDV substring") > 0)
 		ldv_unexpected_memory_safety_error();
 
-    if (strcmp(s, "LDV") < 0)
+	if (strcmp(s, "LDV") < 0)
 		ldv_unexpected_memory_safety_error();
 
 	if (strncmp(s, LDV_STR, LDV_STR_LEN))
 		ldv_unexpected_memory_safety_error();
 
-    if (strncmp(s, "LDV substring", 5))
+	if (strncmp(s, "LDV substring", 5))
 		ldv_unexpected_memory_safety_error();
 
-    if (strncmp(s, "LDV substring", 6) > 0)
+	if (strncmp(s, "LDV substring", 6) > 0)
 		ldv_unexpected_memory_safety_error();
 
-    if (strncmp(s, "LDV substring", 7) > 0)
+	if (strncmp(s, "LDV substring", 7) > 0)
 		ldv_unexpected_memory_safety_error();
 
-    if (strncmp(s, "LDV", LDV_STR_LEN) < 0)
+	if (strncmp(s, "LDV", LDV_STR_LEN) < 0)
 		ldv_unexpected_memory_safety_error();
 
-    if (strcmp(strstr(s, "str"), "string"))
+	if (strcmp(strstr(s, "str"), "string"))
 		ldv_unexpected_memory_safety_error();
 
-    if (strstr(s, "Klever"))
+	if (strstr(s, "Klever"))
 		ldv_unexpected_memory_safety_error();
+
+	memset(dst, 1, 5);
+	if (dst[0] != 1 || dst[1] != 1 || dst[2] != 1 || dst[3] != 1 || dst[4] != 1)
+		ldv_unexpected_memory_safety_error();
+
+	/* SMG does not support memcmp() at the moment.
+	if (!memcmp(src, dst, 5))
+		ldv_unexpected_memory_safety_error(); */
+
+	memcpy(dst, src, 5);
+	if (dst[0] != 1 || dst[1] != 2 || dst[2] != 3 || dst[3] != 4 || dst[4] != 5)
+		ldv_unexpected_memory_safety_error();
+
+	/* SMG does not support memcmp() at the moment.
+	if (memcmp(src, dst, 5))
+		ldv_unexpected_memory_safety_error(); */
 
 	return 0;
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

@@ -41,7 +41,7 @@
             {
               "pxa168_eth_set_rx_mode": [
                 {
-                  "memset": []
+                  "Instrumented function 'memset'": []
                 }
               ]
             }

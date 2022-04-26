@@ -7,7 +7,8 @@
     "4.6.7",
     "4.15",
     "4.17",
-    "5.5"
+    "5.5",
+    "5.17"
   ],
   "templates": {
     "loadable kernel modules and kernel subsystems": {
@@ -32,16 +33,32 @@
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
               "common/inline_asm.c",
+              "linux/arch/asm/bitops.c",
               "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/common.c",
-              "linux/drivers/base/dd.c",
+              {
+                "model": "linux/drivers/base/dd.c",
+                "options": {"weave in aspects": ["linux/lib/string.aspect"]}
+              },
               "linux/drivers/base/devres.c",
-              "linux/drivers/base/firmware_loader.c",
-              "linux/drivers/i2c/i2c-core-smbus.c",
+              {
+                "model": "linux/drivers/base/firmware_loader.c",
+                "options": {"weave in aspects": ["linux/lib/string.aspect"]}
+              },
+              {
+                "model": "linux/drivers/i2c/i2c-core-smbus.c",
+                "options": {"weave in aspects": ["linux/lib/string.aspect"]}
+              },
               "linux/drivers/media/v4l2-core/v4l2-i2c.c",
-              "linux/drivers/video/fbdev/core/fbsysfs.c",
-              "linux/drivers/spi.c",
+              {
+                "model": "linux/drivers/video/fbdev/core/fbsysfs.c",
+                "options": {"weave in aspects": ["linux/lib/string.aspect"]}
+              },
+              {
+                "model": "linux/drivers/spi.c",
+                "options": {"weave in aspects": ["linux/lib/string.aspect"]}
+              },
               "linux/err.c",
               "linux/kernel/panic.c",
               "linux/lib/bitmap.c",
@@ -59,7 +76,10 @@
         },
         {
           "name": "Weaver",
-          "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}
+          "options": {"common headers": [
+            "ldv/common/inline_asm.h",
+            "ldv/verifier/memory.h"
+          ]}
         },
         {
           "name": "FVTP",
@@ -68,7 +88,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:39071"
+              "version": "cbb25c3"
             }
           }
         }
@@ -116,7 +136,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:39071"
+              "version": "cbb25c3"
             }
           }
         }
@@ -370,7 +390,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_fixes:39071"
+                            "version": "cbb25c3"
                           }
                         }
                       }
@@ -697,7 +717,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:39071"
+                    "version": "cbb25c3"
                   }
                 }
               }
@@ -725,7 +745,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:39071"
+                    "version": "cbb25c3"
                   }
                 }
               }

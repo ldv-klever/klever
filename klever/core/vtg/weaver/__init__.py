@@ -324,6 +324,9 @@ class WeaverWorker(klever.core.components.Component):
     main = process_extra_cc
 
     def __weave(self, infile, opts, aspect, outfile, cwd, is_model):
+        common_headers = []
+        for common_header in self.conf['common headers']:
+            common_headers.extend(['-include', common_header])
         klever.core.utils.execute(
             self.logger,
             tuple(
@@ -341,7 +344,7 @@ class WeaverWorker(klever.core.components.Component):
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                ['--', '-include', self.conf['LDV inline Assembler header file']] +
+                ['--'] + common_headers +
                 klever.core.vtg.utils.prepare_cif_opts(opts, self.clade, is_model) +
                 ['-I' + self.clade.get_storage_path(p) for p in self.conf['working source trees']]
             ),

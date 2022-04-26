@@ -45,23 +45,26 @@ static struct tty_operations ldv_tty_ops = {
 static int __init ldv_init(void)
 {
 	int res;
+
 	ldv_invoke_test();
-	driver = alloc_tty_driver(lines);
-	if (driver) {
+	driver = tty_alloc_driver(lines, TTY_DRIVER_REAL_RAW);
+	if (!IS_ERR(driver)) {
 		tty_set_operations(driver, &ldv_tty_ops);
 		res = tty_register_driver(driver);
-		if (res) {
-			put_tty_driver(driver);
-		}
+		if (res)
+			tty_driver_kref_put(driver);
 	}
+
 	return res;
 }
 
 static void __exit ldv_exit(void)
 {
 	tty_unregister_driver(driver);
-	put_tty_driver(driver);
+	tty_driver_kref_put(driver);
 }
 
 module_init(ldv_init);
-module_exit(ldv_exit);
+module_exit(ldv_exit)
+
+MODULE_LICENSE("GPL");

@@ -17,6 +17,16 @@
 
 #include <linux/types.h>
 
+void ldv_atomic_set(atomic_t *v, int i)
+{
+	v->counter = i;
+}
+
+int ldv_atomic_read(const atomic_t *v)
+{
+	return v->counter;
+}
+
 void ldv_atomic_add(int i, atomic_t *v)
 {
 	v->counter += i;
@@ -30,9 +40,10 @@ void ldv_atomic_sub(int i, atomic_t *v)
 int ldv_atomic_sub_and_test(int i, atomic_t *v)
 {
 	v->counter -= i;
-	if (v->counter) {
+
+	if (v->counter)
 		return 0;
-	}
+
 	return 1;
 }
 
@@ -49,30 +60,32 @@ void ldv_atomic_dec(atomic_t *v)
 int ldv_atomic_dec_and_test(atomic_t *v)
 {
 	v->counter--;
-	if (v->counter) {
+
+	if (v->counter)
 		return 0;
-	}
+
 	return 1;
 }
 
 int ldv_atomic_inc_and_test(atomic_t *v)
 {
 	v->counter++;
-	if (v->counter) {
+
+	if (v->counter)
 		return 0;
-	}
+
 	return 1;
 }
 
 int ldv_atomic_add_return(int i, atomic_t *v)
 {
-	v->counter+=i;
+	v->counter += i;
 	return v->counter;
 }
 
 int ldv_atomic_add_negative(int i, atomic_t *v)
 {
-	v->counter+=i;
+	v->counter += i;
 	return v->counter < 0;
 }
 

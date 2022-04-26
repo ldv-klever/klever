@@ -536,5 +536,122 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "environment processes": {
+      "rtc_class_scenario": {
+        "actions": {
+          "call": {
+            "comment": "The RTC device is probed.",
+            "process": "[callback].{call[1]} | (deregister)"
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%rtc_device% == $ARG1"
+            ],
+            "parameters": [
+              "%rtc_device%"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%rtc_device%",
+              "%rtc_class_ops%",
+              "%device%"
+            ]
+          }
+        },
+        "comment": "Real Time Clock callbacks invocation scenario.",
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "device": {
+            "interface": [
+              "rtc.device"
+            ],
+            "resource": true
+          },
+          "rtc_class_ops": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_class_ops"
+            ]
+          },
+          "rtc_device": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_device"
+            ]
+          }
+        },
+        "process": "(!register).{call}"
+      }
+    },
+    "functions models": {
+      "__devm_rtc_register_device": {
+        "actions": {
+          "init": {
+            "comment": "Get function parameters.",
+            "statements": [
+              "%rtc_device% = $ARG2;",
+              "%rtc_class_ops% = %rtc_device%->ops;",
+              "%device% = %rtc_device%->dev.parent;"
+            ]
+          },
+          "fail": {
+            "comment": "RTC device registration has failed.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%rtc_device%",
+              "%rtc_class_ops%",
+              "%device%"
+            ]
+          },
+          "success": {
+            "comment": "RTC device has been registered successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register Real Time Clock device.",
+        "labels": {
+          "device": {
+            "interface": [
+              "rtc.device"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "rtc_class_ops": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_class_ops"
+            ],
+            "parameter": true
+          },
+          "rtc_device": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_device"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "<init>.[register].<success> | <fail>",
+        "reference": true
+      }
+    }
   }
 }

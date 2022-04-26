@@ -167,12 +167,13 @@ In case of verification of the Linux kernel rather than vanilla 3.14, you may ne
 #. 4.15
 #. 4.17
 #. 5.5
+#. 5.17
 
 These specification sets correspond to vanilla versions of the Linux kernel.
 You should select such a specifications set that matches your custom version of the Linux kernel better through trial
 and error.
 
-Decision Progress 
+Decision Progress
 ------------------
 
 At the beginning of the decision of the job version Klever indexes each new build base.
@@ -190,7 +191,7 @@ refresh it through web browser means or request Klever to switch it on back
 Before the job version is eventually decided Klever estimates and provides a *decision progress*
 (:numref:`tutorial_progress_decision_job_version_estimating_remaining_time` and
 :numref:`tutorial_progress_decision_job_version_remaining_time_estimated`).
-You should keep in mind that Klever collects statistics for 10% of tasks before it starts predicting an approximate
+You should keep in mind that Klever collects statistics for 5% of tasks before it starts predicting an approximate
 remaining time for their decision.
 After that, it recalculates it on the base of new, accumulated statistics.
 In our example it takes 1 day and 2 hours to decide the job version completely

@@ -17,6 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/netdevice.h>
+#include <linux/ethtool.h>
 #include <ldv/linux/emg/test_model.h>
 #include <ldv/verifier/nondet.h>
 
@@ -56,4 +57,6 @@ static void __exit ldv_exit(void)
 }
 
 module_init(ldv_init);
-module_exit(ldv_exit);
+module_exit(ldv_exit)
+
+MODULE_LICENSE("GPL");

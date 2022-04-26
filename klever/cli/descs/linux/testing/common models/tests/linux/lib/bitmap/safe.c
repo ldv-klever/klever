@@ -26,38 +26,6 @@ static int __init ldv_init(void)
 {
 	unsigned long bit, counter;
 
-	set_bit(1, ldv_bitmap);
-
-	if (!test_bit(1, ldv_bitmap))
-		ldv_unexpected_memory_safety_error();
-
-	set_bit(10, ldv_bitmap);
-
-	if (!test_bit(10, ldv_bitmap))
-		ldv_unexpected_memory_safety_error();
-
-	set_bit(100, ldv_bitmap);
-
-	if (!test_bit(100, ldv_bitmap))
-		ldv_unexpected_memory_safety_error();
-
-	clear_bit(10, ldv_bitmap);
-
-	if (test_bit(10, ldv_bitmap))
-		ldv_unexpected_memory_safety_error();
-
-	counter = 0;
-	for_each_set_bit(bit, ldv_bitmap, LDV_BIT_MAX) {
-		clear_bit(bit, ldv_bitmap);
-		counter++;
-	}
-
-	if (counter != 2)
-		ldv_unexpected_memory_safety_error();
-
-	if (find_next_bit(ldv_bitmap, LDV_BIT_MAX, 0) != LDV_BIT_MAX)
-		ldv_unexpected_memory_safety_error();
-
 	bitmap_set(ldv_bitmap, 0, 10);
 	bitmap_set(ldv_bitmap, 100, 100);
 
@@ -117,3 +85,5 @@ static int __init ldv_init(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

@@ -9,6 +9,7 @@
       "program fragments": [
         "ext-modules/atmdev_ops_v.1/atm_dev_invoke.ko",
         "ext-modules/block_device_operations_v.1/disk_invoke.ko",
+        "ext-modules/block_device_operations_v.2/disk_invoke.ko",
         "ext-modules/class_v.1/class_invoke.ko",
         "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
         "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
@@ -21,6 +22,8 @@
         "ext-modules/filesystem_v.2/fs_invoke.ko",
         "ext-modules/inodes_v.1/inode_invoke.ko",
         "ext-modules/inodes_v.1/alloc_inode_invoke.ko",
+        "ext-modules/inodes_v.2/inode_invoke.ko",
+        "ext-modules/inodes_v.2/alloc_inode_invoke.ko",
         "ext-modules/generic/default_array_invoke.ko",
         "ext-modules/generic/default_invoke.ko",
         "ext-modules/generic/double_invoke.ko",
@@ -53,6 +56,7 @@
         "ext-modules/proto_v.2/proto_invoke.ko",
         "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
         "ext-modules/rtc_class_ops_v.2/rtc_class_ops_invoke.ko",
+        "ext-modules/rtc_class_ops_v.3/rtc_class_ops_invoke.ko",
         "ext-modules/scsi_device_handler_v.1/scsi_device_handler_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
@@ -93,6 +97,8 @@
         "ext-modules/tasklet_v.1/__tasklet_schedule_invoke.ko",
         "ext-modules/tasklet_v.2/__tasklet_hi_schedule_invoke.ko",
         "ext-modules/tasklet_v.2/__tasklet_schedule_invoke.ko",
+        "ext-modules/tasklet_v.3/__tasklet_hi_schedule_invoke.ko",
+        "ext-modules/tasklet_v.3/__tasklet_schedule_invoke.ko",
         "ext-modules/urb_v.1/usb_kill_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_unlink_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_poison_urb_invoke.ko",
@@ -277,7 +283,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -308,7 +314,7 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -339,7 +345,38 @@
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
         "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
+        "ext-modules/tty_v.3",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.2"
+      ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/0efcaac",
+      "specifications set": "5.17",
+      "targets": [
+        "ext-modules/block_device_operations_v.2",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.3",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
+        "ext-modules/hid_driver_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/i2c_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/iio_triggered_buffer_v.1",
+        "ext-modules/irq_v.2",
+        "ext-modules/net_device_ops_v.2",
+        "ext-modules/pci_driver_v.2",
+        "ext-modules/percpu_irq_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.2",
+        "ext-modules/rtc_class_ops_v.3",
+        "ext-modules/scsi_host_template_v.2",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/target_backend_v.1",
+        "ext-modules/tty_v.3",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.2"
       ]
@@ -418,6 +455,19 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1",
         "ext-modules/inodes_v.1"
+      ],
+      "requirement specifications": ["test:EMG with function pointer analysis"]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/0efcaac",
+      "specifications set": "5.17",
+      "targets": [
+        "ext-modules/timer_v.3",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.3",
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.2"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },

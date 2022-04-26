@@ -1,0 +1,56 @@
+[
+    {
+        "build base": "linux/testing/common models/0e6af3",
+        "name": "Linux",
+        "git repository version": "v5.5.19",
+        "external modules": "../tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/atomic",
+            "ext-modules/linux/arch/asm/bitops",
+            "ext-modules/linux/arch/asm/current",
+            "ext-modules/linux/drivers/base/devres",
+            "ext-modules/linux/drivers/base/devres-memory-safety",
+            "ext-modules/linux/drivers/base/firmware_loader",
+            "ext-modules/linux/drivers/i2c/i2c-core-smbus",
+            "ext-modules/linux/drivers/media/v4l2-core/v4l2-i2c",
+            "ext-modules/linux/drivers/spi",
+            "ext-modules/linux/drivers/video/fbdev/core/fbsys",
+            "ext-modules/linux/err",
+            "ext-modules/linux/lib/bitmap",
+            "ext-modules/linux/lib/string",
+            "ext-modules/linux/mm/gfp",
+            "ext-modules/linux/mm/slab",
+            "ext-modules/linux/mm/slab-memory-safety",
+            "ext-modules/linux/mm/util",
+            "ext-modules/linux/mm/vmalloc",
+            "ext-modules/linux/mm/vmalloc-memory-safety"
+        ]
+    },
+    {
+        "build base": "linux/testing/common models/051613",
+        "name": "Linux",
+        "git repository version": "v5.17",
+        "external modules": "../tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/atomic",
+            "ext-modules/linux/arch/asm/bitops",
+            "ext-modules/linux/arch/asm/current",
+            "ext-modules/linux/drivers/base/devres",
+            "ext-modules/linux/drivers/base/devres-memory-safety",
+            "ext-modules/linux/drivers/base/firmware_loader",
+            "ext-modules/linux/drivers/i2c/i2c-core-smbus",
+            "ext-modules/linux/drivers/media/v4l2-core/v4l2-i2c",
+            "ext-modules/linux/drivers/spi",
+            "ext-modules/linux/drivers/video/fbdev/core/fbsys",
+            "ext-modules/linux/err",
+            "ext-modules/linux/lib/bitmap",
+            "ext-modules/linux/lib/string",
+            "ext-modules/linux/mm/gfp",
+            "ext-modules/linux/mm/slab",
+            "ext-modules/linux/mm/slab-memory-safety",
+            "ext-modules/linux/mm/util",
+            "ext-modules/linux/mm/vmalloc-v2",
+            "ext-modules/linux/mm/vmalloc-memory-safety-v2"
+        ]
+    }
+]

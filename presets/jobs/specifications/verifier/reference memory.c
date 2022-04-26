@@ -68,7 +68,7 @@ void *ldv_reference_realloc(void *ptr, size_t size)
 		res = malloc(size);
 		ldv_assume(res != NULL);
 		/* TODO: Maybe a better solution exists. */
-		memcpy(res, ptr, size);
+		__VERIFIER_memcpy(res, ptr, size);
 		free(ptr);
 
 		return res;
@@ -128,7 +128,7 @@ void *ldv_reference_calloc_unknown_size(void)
 	if (ldv_undef_int()) {
     	/* NOTE2 Allocate special memory any usage of which will be considered as correct by verification tools (https://tinyurl.com/cu4ycvbx). */
 		res = external_allocated_data();
-		memset(res, 0, sizeof(res));
+		__VERIFIER_memset(res, 0, sizeof(res));
 		ldv_assume(res != NULL);
 		return res;
 	}
@@ -151,4 +151,3 @@ void *ldv_reference_xmalloc_unknown_size(size_t size)
 
 	return res;
 }
-

@@ -792,5 +792,256 @@
         "reference": true
       }
     }
+  },
+  "5.17": {
+    "environment processes": {
+      "scsi_LLDd_scenario": {
+        "actions": {
+          "call": {
+            "comment": "Call mid-layer callbacks",
+            "process": "[callback].{call[1]} | (deregister)"
+          },
+          "callback": {
+            "callback": "%callback%",
+            "comment": "Call any random mid layer SCSI callback.",
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%host% == $ARG1"
+            ],
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "init": {
+            "comment": "Extract Scsi_Host structure.",
+            "statements": [
+              "%scsi_host_template% = %host%->hostt;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%host%"
+            ]
+          }
+        },
+        "comment": "Invoke SCSI mid level callbacks (e.g. model LLD).",
+        "headers": [
+          "linux/blkdev.h",
+          "scsi/scsi_host.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ]
+          },
+          "scsi_host_template": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "(!register).<init>.{call}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "scsi_add_host_with_dma, scsi_add_host": {
+        "actions": {
+          "assign": {
+            "comment": "Get Scsi_Host structure from parameters.",
+            "statements": [
+              "%host% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to perform sysfs registration.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "success": {
+            "comment": "Sysfs registration has been successful.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Perform sysfs registration and set up transport class.",
+        "labels": {
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "scsi_host_alloc": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for a new Scsi_Host structure and initialize it.",
+            "statements": [
+              "%scsi_host_template% = $ARG1;",
+              "%host% = ldv_xzalloc(sizeof(struct Scsi_Host) + $ARG2);",
+              "%host%->hostt= %scsi_host_template%;"
+            ]
+          },
+          "fail": {
+            "comment": "A new Scsi_Host structure allocation has failed.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "success": {
+            "comment": "A new Scsi_Host structure has been allocated successfully.",
+            "statements": [
+              "return %host%;"
+            ]
+          }
+        },
+        "comment": "Allocate a new Scsi_Host and perform basic initialization.",
+        "labels": {
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ],
+            "pointer": true
+          },
+          "scsi_host_template": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>",
+        "reference": true
+      },
+      "scsi_host_put": {
+        "actions": {
+          "free": {
+            "comment": "Free memory of Scsi_Host structure.",
+            "statements": [
+              "%host% = $ARG1;",
+              "$FREE(%host%);"
+            ]
+          }
+        },
+        "comment": "Detach and remove all SCSI devices owned by host.",
+        "labels": {
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<free>",
+        "reference": true
+      },
+      "scsi_register": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for Scsi_Host structure.",
+            "statements": [
+              "%scsi_host_template% = $ARG1;",
+              "%host% = ldv_xzalloc(sizeof(struct Scsi_Host) + $ARG2);",
+              "%host%->hostt= %scsi_host_template%;"
+            ]
+          },
+          "fail": {
+            "comment": "A new Scsi_Host structure allocation has failed.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "success": {
+            "comment": "A new Scsi_Host structure has been allocated successfully.",
+            "statements": [
+              "return %host%;"
+            ]
+          }
+        },
+        "comment": "Create and register a SCSI host adapter instance.",
+        "labels": {
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ],
+            "pointer": true
+          },
+          "scsi_host_template": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<alloc>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "scsi_remove_host, scsi_unregister": {
+        "actions": {
+          "assign": {
+            "comment": "Get Scsi_Host structure from parameters.",
+            "statements": [
+              "%host% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of Scsi_Host structure.",
+            "statements": [
+              "$FREE(%host%);"
+            ]
+          }
+        },
+        "comment": "Detach and remove all SCSI devices owned by host.",
+        "labels": {
+          "host": {
+            "container": true,
+            "interface": [
+              "scsi_host_template.host"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister].<free>",
+        "reference": true
+      }
+    }
   }
 }

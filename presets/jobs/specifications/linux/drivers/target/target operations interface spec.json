@@ -52,7 +52,7 @@
       }
     }
   },
-  "4.15": {
+  "4.6.7": {
     "categories": {
       "target_backend": {
         "callbacks": {
@@ -102,7 +102,7 @@
       }
     }
   },
-  "5.5": {
+  "4.15": {
     "categories": {
       "target_backend": {
         "callbacks": {
@@ -202,7 +202,57 @@
       }
     }
   },
-  "4.6.7": {
+  "5.5": {
+    "categories": {
+      "target_backend": {
+        "callbacks": {
+          "alloc": {
+            "declaration": "%target_backend.se_device% (*alloc)(%target_backend.se_hba%, const char *)"
+          },
+          "attach_hba": {
+            "declaration": "int (*attach_hba)(%target_backend.se_hba%, u32)"
+          },
+          "detach_hba": {
+            "declaration": "void (*detach_hba)(%target_backend.se_hba%)"
+          },
+          "free": {
+            "declaration": "void (*free)(%target_backend.se_device%)"
+          }
+        },
+        "containers": {
+          "target_backend_ops": {
+            "declaration": "struct target_backend_ops ops",
+            "fields": {
+              "alloc_device": "%target_backend.alloc%",
+              "attach_hba": "%target_backend.attach_hba%",
+              "detach_hba": "%target_backend.detach_hba%",
+              "free_device": "%target_backend.free%"
+            },
+            "header": "target/target_core_backend.h"
+          }
+        },
+        "resources": {
+          "se_device": {
+            "declaration": "struct se_device *r"
+          },
+          "se_hba": {
+            "declaration": "struct se_hba *r"
+          }
+        }
+      }
+    },
+    "functions models": {
+      "target_backend_unregister": {
+        "declaration": "void target_backend_unregister(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      },
+      "transport_backend_register": {
+        "declaration": "int transport_backend_register(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      }
+    }
+  },
+  "5.17": {
     "categories": {
       "target_backend": {
         "callbacks": {

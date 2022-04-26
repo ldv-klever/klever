@@ -22,6 +22,8 @@
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
 
+/* This is a private structure that we can define anyhow. For us only field
+   driver_data is important. You can see how it is used below. */
 struct device_private {
 	void *driver_data;
 };

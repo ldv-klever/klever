@@ -1,0 +1,127 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/rapidio/devices/rio_mport_cdev.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "atomic_t (?.counter)"
+    }
+  ],
+  "description": "Models of atomic*() resulted in considering of different memory objects for \"counter\" as the same. Besides, it is not clear why CPALockator treats memory allocated by kzalloc() as shared.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_add_mport": [
+                {
+                  "mport_cdev_add": [
+                    {
+                      "Instrumented function 'mutex_lock'": []
+                    },
+                    {
+                      "Instrumented function 'mutex_unlock'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_remove_mport": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'atomic_set'": [
+                    {
+                      "LDV model 'atomic_set'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_cdev_open": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_cdev_ioctl": [
+                {
+                  "rio_mport_alloc_dma": [
+                    {
+                      "rio_mport_create_dma_mapping": [
+                        {
+                          "kref_init": [
+                            {
+                              "refcount_set": [
+                                {
+                                  "Instrumented function 'atomic_set'": [
+                                    {
+                                      "LDV model 'atomic_set'": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "Verifier",
+    "Verifier - CPALockator - Predicate analysis - Memory model - Different structures",
+    "Verifier - CPALockator - Predicate analysis - Memory model",
+    "Verifier - CPALockator - Predicate analysis",
+    "Verifier - CPALockator"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

@@ -96,7 +96,9 @@
       "add options": [
         {"-smg-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"},
-        {"-setprop": "parser.readLineDirectives=false"}
+        {"-setprop": "parser.readLineDirectives=false"},
+        {"-setprop": "cpa.smg.memcpyFunctions=__VERIFIER_memcpy"},
+        {"-setprop": "cpa.smg.memsetFunctions=__VERIFIER_memset"}
       ]
     },
     "CPAchecker SMG without support of uncertain environment behavior": {
@@ -139,21 +141,21 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "klever_fixes:39071": {"inherit": "CPAchecker BAM reachability"}
+        "cbb25c3": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker BAM reachability FP"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker BAM reachability FP"}}
     },
     "reachability with bit precision": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker BAM reachability bit-precise"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker BAM reachability bit-precise"}}
     },
     "reachability with heap arrays": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker BAM reachability heap arrays"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker BAM reachability heap arrays"}}
     },
     "CPAchecker BAM BusyBox": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker BAM BusyBox"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking base": {
       "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator base"}}
@@ -168,13 +170,13 @@
       "CPAchecker": {"CPALockator-update:39383": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking without uncertainty": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker SMG without support of uncertain environment behavior"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker SMG without support of uncertain environment behavior"}}
     },
     "memory checking without abstraction for lists": {
-      "CPAchecker": {"klever_fixes:39071": {"inherit": "CPAchecker SMG without deducing abstraction for lists"}}
+      "CPAchecker": {"cbb25c3": {"inherit": "CPAchecker SMG without deducing abstraction for lists"}}
     }
   }
 }

@@ -25,7 +25,11 @@
                       "dma_alloc_attrs": []
                     },
                     {
-                      "i7300_idle_ioat_selftest": []
+                      "i7300_idle_ioat_selftest": [
+                        {
+                          "Instrumented function 'memset'": []
+                        }
+                      ]
                     }
                   ]
                 }

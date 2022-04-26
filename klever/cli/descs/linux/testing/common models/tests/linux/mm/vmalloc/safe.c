@@ -16,6 +16,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/vmalloc.h>
 #include <ldv/common/test.h>
 
 static bool is_check_invoked;
@@ -82,3 +83,5 @@ static int __init ldv_init(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

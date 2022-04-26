@@ -18,9 +18,12 @@
 before: file("$this")
 {
 #include <ldv/linux/string.h>
+#include <ldv/verifier/memory.h>
 }
 
-around: call(size_t strlen(const char *s)) || call(__kernel_size_t strlen(const char *s))
+around: call(size_t strlen(const char *s))
+        || call(__kernel_size_t strlen(const char *s))
+        || call(inline size_t strlen(const char *s))
 {
 	return ldv_strlen(s);
 }
@@ -38,4 +41,26 @@ around: call(int strncmp(const char *cs, const char *ct, __kernel_size_t count))
 around: call(char *strstr(const char *s1, const char *s2))
 {
 	return ldv_strstr(s1, s2);
+}
+
+around: define(memset(s, c, n))
+{
+__VERIFIER_memset(s, c, n)
+}
+
+around: define(memcpy(dst, src, len))
+{
+__VERIFIER_memcpy(dst, src, len)
+}
+
+around: call(void *memset(void *s, int c, size_t n))
+        || call(inline void *memset(void *s, int c, size_t n))
+{
+	return __VERIFIER_memset(s, c, n);
+}
+
+around: call(void *memcpy(void *to, const void *from, size_t len))
+        || call(inline void *memcpy(void *to, void const *from, size_t len))
+{
+	return __VERIFIER_memcpy(to, from, len);
 }

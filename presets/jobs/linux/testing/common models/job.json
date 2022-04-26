@@ -1,11 +1,11 @@
 {
   "project": "Linux",
-  "build base": "linux/testing/common models/6e6e1c",
-  "specifications set": "3.14",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
       "program fragments": [
+        "ext-modules/linux/arch/asm/atomic/safe.ko",
+        "ext-modules/linux/arch/asm/bitops/safe.ko",
         "ext-modules/linux/arch/asm/current/safe.ko",
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/base/devres/safe.ko",
@@ -24,7 +24,9 @@
         "ext-modules/linux/mm/slab-memory-safety/safe.ko",
         "ext-modules/linux/mm/util/safe.ko",
         "ext-modules/linux/mm/vmalloc/safe.ko",
+        "ext-modules/linux/mm/vmalloc-v2/safe.ko",
         "ext-modules/linux/mm/vmalloc-memory-safety/safe.ko",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/safe.ko",
         "ext-modules/verifier/common/safe.ko",
         "ext-modules/verifier/gcc/safe.ko",
         "ext-modules/verifier/map/safe.ko",
@@ -41,8 +43,11 @@
   "extra results processing": "testing",
   "sub-jobs": [
     {
+      "build base": "linux/testing/common models/6e6e1c",
+      "specifications set": "3.14",
       "targets": ["**"],
       "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -54,7 +59,10 @@
       "requirement specifications": ["test:common"]
     },
     {
+      "build base": "linux/testing/common models/6e6e1c",
+      "specifications set": "3.14",
       "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -63,6 +71,122 @@
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
         "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
         "ext-modules/verifier/nondet/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/202797",
+      "specifications set": "4.6.7",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/202797",
+      "specifications set": "4.6.7",
+      "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/6f77b5",
+      "specifications set": "4.17",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/6f77b5",
+      "specifications set": "4.17",
+      "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/0e6af3",
+      "specifications set": "5.5",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/0e6af3",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "build base": "linux/testing/common models/051613",
+      "specifications set": "5.17",
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "build base": "linux/testing/common models/051613",
+      "specifications set": "5.17",
+      "targets": [
+        "ext-modules/linux/arch/asm/bitops/*",
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
+        "ext-modules/linux/lib/bitmap/*",
+        "ext-modules/linux/lib/string/*",
+        "ext-modules/linux/mm/slab-memory-safety/*",
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
       ],
       "requirement specifications": ["test:memory safety"]
     }

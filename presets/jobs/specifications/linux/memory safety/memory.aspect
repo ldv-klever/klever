@@ -219,8 +219,3 @@ around: call(int v4l2_device_put(..))
 {
 	$arg1->release($arg1);
 }
-
-around: call(void *__memcpy(void *dest, const void *src, size_t n))
-{
-    return memcpy(dest, src, n);
-}

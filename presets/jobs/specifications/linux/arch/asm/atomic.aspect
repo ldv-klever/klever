@@ -19,6 +19,8 @@ before: file("$this")
 {
 #include <linux/types.h>
 
+void ldv_atomic_set(atomic_t *v, int i);
+int ldv_atomic_read(const atomic_t *v);
 void ldv_atomic_add(int i, atomic_t *v);
 void ldv_atomic_sub(int i, atomic_t *v);
 int ldv_atomic_sub_and_test(int i, atomic_t *v);
@@ -31,42 +33,65 @@ int ldv_atomic_add_negative(int i, atomic_t *v);
 int ldv_atomic_inc_short(short int *v);
 }
 
+around: execution(static inline void atomic_set(atomic_t *v, int i))
+{
+	ldv_atomic_set(v, i);
+}
+
+around: execution(static inline int atomic_read(const atomic_t *v))
+{
+	return ldv_atomic_read(v);
+}
+
 around: execution(static inline void atomic_add(int i, atomic_t *v))
 {
 	ldv_atomic_add(i, v);
 }
+
 around: execution(static inline void atomic_sub(int i, atomic_t *v))
 {
 	ldv_atomic_sub(i, v);
 }
+
 around: execution(static inline int atomic_sub_and_test(int i, atomic_t *v))
+        || execution(static inline bool atomic_sub_and_test(int i, atomic_t *v))
 {
 	return ldv_atomic_sub_and_test(i, v);
 }
+
 around: execution(static inline void atomic_inc(atomic_t *v))
 {
 	ldv_atomic_inc(v);
 }
+
 around: execution(static inline void atomic_dec(atomic_t *v))
 {
 	ldv_atomic_dec(v);
 }
+
 around: execution(static inline int atomic_dec_and_test(atomic_t *v))
+        || execution(static inline bool atomic_dec_and_test(atomic_t *v))
 {
 	return ldv_atomic_dec_and_test(v);
 }
+
 around: execution(static inline int atomic_inc_and_test(atomic_t *v))
+        || execution(static inline bool atomic_inc_and_test(atomic_t *v))
 {
 	return ldv_atomic_inc_and_test(v);
 }
+
 around: execution(static inline int atomic_add_return(int i, atomic_t *v))
 {
 	return ldv_atomic_add_return(i, v);
 }
+
 around: execution(static inline int atomic_add_negative(int i, atomic_t *v))
+        || execution(static inline bool atomic_add_negative(int i, atomic_t *v))
 {
 	return ldv_atomic_add_negative(i, v);
 }
+
 around: execution(static inline short int atomic_inc_short(short int *v))
 {
 	return ldv_atomic_inc_short(v);

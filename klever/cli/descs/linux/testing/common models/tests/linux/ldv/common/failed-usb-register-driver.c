@@ -35,3 +35,5 @@ void ldv_failed_usb_register_driver(void)
 }
 
 module_init(ldv_init);
+
+MODULE_LICENSE("GPL");

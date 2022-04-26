@@ -43,12 +43,16 @@ static const struct tty_port_operations ldv_tty_port_ops = {
 
 static int __init ldv_init(void)
 {
-	int res;
+	int res = 0;
+	struct device *dev;
 
 	ldv_invoke_test();
-	tty_port_init(& port);
-	port.ops = & ldv_tty_port_ops;
-	res = tty_port_register_device(& port, driver, ldv_undef_int(), device);
+	tty_port_init(&port);
+	port.ops = &ldv_tty_port_ops;
+	dev = tty_port_register_device(&port, driver, ldv_undef_int(), device);
+	if (IS_ERR(dev))
+		res = PTR_ERR(dev);
+
 	return res;
 }
 
@@ -58,4 +62,6 @@ static void __exit ldv_exit(void)
 }
 
 module_init(ldv_init);
-module_exit(ldv_exit);
+module_exit(ldv_exit)
+
+MODULE_LICENSE("GPL");
