@@ -378,9 +378,9 @@ class RawTraceExtractor:
         self.__extract(error_trace)
 
     def __extract_node_content(self, node):
-        note = node.get('note')
-        if note:
-            self.content += note + '\n'
+        for note in node.get('notes', []):
+            self.content += note['text'] + '\n'
+
         self.content += node.get('source', '') + '\n'
         if 'children' in node:
             for child in node['children']:
