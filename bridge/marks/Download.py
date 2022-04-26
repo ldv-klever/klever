@@ -138,18 +138,18 @@ class UnsafeMarkGenerator(MarkGeneratorBase):
     def version_data(self, version):
         data = super().version_data(version)
 
-        error_trace = None
-        if version.error_trace:
-            with version.error_trace.file.file as fp:
-                error_trace = fp.read().decode('utf8')
-
         data.update({
             'verdict': version.verdict,
             'status': version.status,
-            'threshold': version.threshold_percentage,
-            'error_trace': error_trace,
-            'regexp': version.regexp if error_trace is None else ""
+            'threshold': version.threshold_percentage
         })
+
+        if version.error_trace:
+            with version.error_trace.file.file as fp:
+                data['error_trace'] = fp.read().decode('utf8')
+        else:
+            data['regexp'] = version.regexp
+
         return data
 
 
