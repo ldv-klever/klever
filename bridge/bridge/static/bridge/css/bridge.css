@@ -172,3 +172,9 @@ input[type=checkbox] {
     color: rgba(126, 126, 126, 0.9);
     font-style: italic;
 }
+
+.comment-text {
+    color: #9d7ac9;
+    font-size: 0.9em;
+    font-style: italic;
+}

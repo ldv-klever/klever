@@ -252,8 +252,11 @@ class UnsafePresetFile(PresetMarkFile):
             'tags': list(MarkUnsafeTag.objects.filter(mark_version=self.last_version)
                          .values_list('tag__name', flat=True))
         })
-        with self.mark.error_trace.file.file as fp:
-            data['error_trace'] = json.loads(fp.read().decode('utf8'))
+        if self.mark.error_trace:
+            with self.mark.error_trace.file.file as fp:
+                data['error_trace'] = json.loads(fp.read().decode('utf8'))
+        else:
+            data['regexp'] = self.mark.regexp
         return data
 
 
