@@ -229,7 +229,7 @@ class CreateDefaultJobView(LoggedCallMixin, CreateAPIView):
 
 class CreateFileView(LoggedCallMixin, CreateAPIView):
     serializer_class = JobFileSerializer
-    permission_classes = (CreateJobPermission,)
+    permission_classes = (IsAuthenticated,)
 
 
 class FileContentView(LoggedCallMixin, RetrieveAPIView):
