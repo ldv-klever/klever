@@ -337,7 +337,8 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
                     'error_trace': _('Wrong error trace is provided')
                 })
         elif convert_func == 'raw_text_extraction':
-            if 'regexp' not in res:
+            if self.instance is None and 'regexp' not in res:
+                # Regexp is required for creating new marks. Do not require it for editing (lightweight mode)
                 raise exceptions.ValidationError(detail={'regexp': 'Required'})
             res['error_trace'] = None
         elif self.instance:

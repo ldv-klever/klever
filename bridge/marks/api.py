@@ -146,7 +146,11 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
         serializer = self.get_serializer(
             instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'error_trace', 'regexp')
         )
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.error(e)
+            raise
         cache_id = perform_unsafe_mark_update(self.request.user, serializer)
 
         if getattr(instance, '_prefetched_objects_cache', None):
