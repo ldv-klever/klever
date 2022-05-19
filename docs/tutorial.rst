@@ -14,8 +14,8 @@ Tutorial
 ========
 
 This tutorial describes a basic workflow of using Klever.
-We assume that you deployed Klever :ref:`locally <local_deploy>` on Debian 11 in the production mode with default settings
-from the latest master.
+We assume that you deployed Klever :ref:`locally <local_deploy>` on Debian 11 in the production mode with default
+settings.
 In addition, we assume that your username is **debian** and your home directory is **/home/debian**\ [1]_.
 
 Preparing Build Bases
@@ -183,8 +183,8 @@ These specification sets correspond to vanilla versions of the Linux kernel.
 You should select such a specifications set that matches your custom version of the Linux kernel better through the
 trial and error method.
 
-Decision Progress 
-------------------
+Decision Progress
+-----------------
 
 At the beginning of the decision of the job version Klever indexes each new build base.
 This can take rather much time before it starts to generate and to decide first *tasks*\ [4]_ for large build bases.

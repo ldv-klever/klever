@@ -49,11 +49,14 @@ Klever deployment is designed to work on:
 
 You can try it for other versions of these distributions, as well as for their derivatives on your own risk.
 
-To deploy Klever one has to clone its Git repository (a path to a directory where it is cloned is referred to as
-:term:`$KLEVER_SRC`)::
+To deploy Klever you should clone its Git repository (a path to a directory where it is cloned is referred to as
+:term:`$KLEVER_SRC`):
 
-    git clone --recursive https://forge.ispras.ru/git/klever.git
+.. parsed-literal::
 
+    git clone --depth 1 --branch v\ |version| https://forge.ispras.ru/git/klever.git
+
+.. note:: You can try the latest version from the master branch as well as other versions at your own risk.
 .. note:: Alternatively one can use https://github.com/ldv-klever/klever.git.
 
 Then you need to install all required dependencies.
