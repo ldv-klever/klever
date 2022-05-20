@@ -34,13 +34,11 @@ You can download the archive of the target build base prepared in advance from
 `here <https://forge.ispras.ru/attachments/download/10035/build-base-linux-5.5.19-x86_64-allmodconfig.tar.xz>`__.
 Let’s assume that you unpack this archive into directory **/home/debian/build-base-linux-5.5.19-x86_64-allmodconfig**
 so that there should be file *meta.json* directly at the top level in that directory.
-Besides, you can use in a similar way build bases prepared for
-`Linux 3.14.79 <https://forge.ispras.ru/attachments/download/9947/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__
-and
-`Linux 5.10.27 <https://forge.ispras.ru/attachments/download/9949/build-base-linux-5.10.27-x86_64-allmodconfig.tar.xz>`__.
+Besides, you can use in a similar way build bases prepared for:
 
-..
-   TODO: 5.10.112, 5.17.6 (currently Clade hangs up on them).
+* `Linux 3.14.79 <https://forge.ispras.ru/attachments/download/9947/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__
+* `Linux 5.10.112 <https://forge.ispras.ru/attachments/download/10088/build-base-linux-5.10.112-x86_64-allmodconfig.tar.xz>`__
+* `Linux 5.17.9 <https://forge.ispras.ru/attachments/download/10087/build-base-linux-5.17.9-x86_64-allmodconfig.tar.xz>`__
 
 If you want to prepare the build base yourself, we recommend to do this on the same machine where you deployed Klever
 since it already contains everything necessary.
