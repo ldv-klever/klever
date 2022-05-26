@@ -262,6 +262,28 @@ Also, you should clone a BusyBox Git repository, e.g.::
 
     $ git clone git://busybox.net/busybox.git
 
+Translating Web User Interface
+------------------------------
+
+Currently the Klever web UI is translated only to Russian.
+To update existing translations, you should run the following commands within :term:`$KLEVER_SRC`::
+
+    $ cd bridge
+    $ ./manage.py makemessages --all --ignore logs --ignore media --ignore run --ignore static --ignore tools/error-traces
+
+Then you will need to carefully examine changed *.po* files and make necessary fixes.
+To (re)generate appropriate binary files to be used at showing translated messages, you should run the following
+commands within :term:`$KLEVER_SRC`::
+
+    $ cd bridge
+    $ ./manage.py compilemessages
+
+.. it does not work, since more various actions are necessary:
+  If you want to translate it to some other language, e.g. to "pt_BR", you should run the following commands within :term:`$KLEVER_SRC`::
+  $ cd bridge
+  $ ./manage.py makemessages --locale pt_BR --ignore logs --ignore media --ignore run --ignore static --ignore tools/error-traces
+  Then you will need to fill in :file:`bridge/locale/pt_BR/LC_MESSAGES/django.po`.
+
 Generating Bare CPAchecker Benchmarks
 -------------------------------------
 
@@ -421,10 +443,10 @@ verify.
 For instance, for common models, requirement specifications and their tests you can specify following directories
 to search for headers as a value of option *C_Cpp.default.includePath* for your local user's settings:
 
-* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/include/
-* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/
-* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/uapi/
-* /abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/generated/
+* abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/include/
+* abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/
+* abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/uapi/
+* abs_path_to_clade_build_base/Storage/src/linux-5.12-rc3/arch/x86/include/generated/
 
 Moreover, to resolve some conflicts you may have to set "CONFIG_SMP" as a value of option *C_Cpp.default.defines*.
 Please, do not include project-specific settings to the common settings of VS Code stored within directory *.vscode*.
