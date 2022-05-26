@@ -177,7 +177,7 @@
                         <tr>
                             <td>{{ image.title }}</td>
                             <td class="right aligned">
-                                <a href="{% url 'reports:download-report-png' image.pk %}" data-tooltip="{% trans 'Download png' %}"><i class="ui download icon"></i></a>
+                                <a href="{% url 'reports:download-report-png' image.pk %}" data-tooltip="{% trans 'Download picture' %}"><i class="ui download icon"></i></a>
                                 <a href="#" class="load-graph-icon" data-url="{% url 'reports:api-get-report-image' image.pk %}" data-tooltip="{% trans 'Load graph' %}"><i class="ui sitemap icon"></i></a>
                             </td>
                         </tr>

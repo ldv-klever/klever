@@ -26,8 +26,8 @@
     <button id="prev_mostcov_btn" class="ui orange button note-popup" data-content="{% trans 'Previous most covered line' %}"><i class="step backward icon"></i></button>
     <button id="next_mostcov_btn" class="ui orange button note-popup" data-content="{% trans 'Next most covered line' %}"><i class="step forward icon"></i></button>
     {% if statistics.most_covered %}
-        <button id="prev_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Previous global most covered line' %}"><i class="fast backward icon"></i></button>
-        <button id="next_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Next global most covered line' %}"><i class="fast forward icon"></i></button>
+        <button id="prev_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Previous globally most covered line' %}"><i class="fast backward icon"></i></button>
+        <button id="next_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Next globally most covered line' %}"><i class="fast forward icon"></i></button>
         <div id="most_global_covered_lines" hidden>
             {% for mc in statistics.most_covered %}
                 <span>{{ mc }}</span>

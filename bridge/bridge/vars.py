@@ -56,6 +56,7 @@ COMPARE_VERDICT = (
     ('0', _('Total safe')),
     ('1', _('Found all unsafes')),
     ('2', _('Found not all unsafes')),
+    # TODO: it would be better to rename it to "Unknowns". This will require new migration.
     ('3', _('Unknown')),
     ('4', _('Unmatched')),
     ('5', _('Broken'))

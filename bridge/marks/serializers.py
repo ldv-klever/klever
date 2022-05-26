@@ -305,7 +305,7 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
 
 class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     default_error_messages = {
-        'error_trace_for_raw_trace': _('Error trace was provided for mark with raw error trace extraction.')
+        'error_trace_for_raw_trace': 'Error trace was provided for mark with raw error trace extraction.'
     }
 
     mark_version = UnsafeMarkVersionSerializer(write_only=True)
