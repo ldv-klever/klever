@@ -173,7 +173,7 @@ class ProcessingListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         if self.request.user.role != USER_ROLES[2][0]:
-            raise PermissionDenied("You don't have an acces to this page")
+            raise PermissionDenied("You don't have an access to this page")
         context = super(ProcessingListView, self).get_context_data(**kwargs)
         context['data'] = ProfileData().processing()
         context['locked'] = LockTable.objects.filter(locked=True)
@@ -249,7 +249,7 @@ class DBLogsStatistics(TemplateView):
         return context
 
 
-class ReportsLogggingView(TemplateView):
+class ReportsLoggingView(TemplateView):
     template_name = 'tools/ReportsLogging.html'
 
 
@@ -273,8 +273,8 @@ class FileLogView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class ErrorTraceAnalizerView(LoginRequiredMixin, TemplateView):
-    template_name = 'tools/ErrorTraceAnalizer.html'
+class ErrorTraceAnalyzerView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/ErrorTraceAnalyzer.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -287,7 +287,7 @@ class ErrorTraceAnalizerView(LoginRequiredMixin, TemplateView):
         context['index'] = et_index
 
         et_dir = os.path.join(settings.BASE_DIR, 'tools', 'error-traces')
-        error_traces = os.listdir(et_dir)
+        error_traces = list(filter(lambda x: x.endswith('.json'), os.listdir(et_dir)))
         context['error_traces'] = list((i, error_traces[i]) for i in range(len(error_traces)))
         if len(error_traces) > et_index:
             with open(os.path.join(et_dir, error_traces[0]), mode='r', encoding='utf-8') as fp:

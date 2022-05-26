@@ -24,9 +24,9 @@ urlpatterns = [
     path('call-logs/', views.CallLogsView.as_view(), name='call-logs'),
     path('processing-list/', views.ProcessingListView.as_view(), name='processing-list'),
     path('db-statistics/', views.DBLogsStatistics.as_view(), name='db-statistics'),
-    path('reports-logging/', views.ReportsLogggingView.as_view(), name='reports-logging'),
+    path('reports-logging/', views.ReportsLoggingView.as_view(), name='reports-logging'),
     path('logs/', views.FileLogView.as_view(), name='logs'),
-    path('error-trace-analizer/', views.ErrorTraceAnalizerView.as_view(), name='error-trace-analizer'),
+    path('error-trace-analizer/', views.ErrorTraceAnalyzerView.as_view(), name='error-trace-analizer'),
     path('secret/', views.SecretPageView.as_view(), name='secret-page'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
