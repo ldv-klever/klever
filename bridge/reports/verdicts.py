@@ -185,7 +185,7 @@ class SafeColumns:
     @cached_property
     def titles(self):
         titles_map = (
-            (SAFE_VERDICTS[0][0], _('Unknown')),
+            (SAFE_VERDICTS[0][0], _('Uncertainties')),
             (SAFE_VERDICTS[1][0], _('Missed target bugs')),
             (SAFE_VERDICTS[2][0], _('Incorrect proof')),
             (SAFE_VERDICTS[3][0], _('Incompatible marks')),
@@ -244,7 +244,7 @@ class UnsafeColumns:
     @cached_property
     def titles(self):
         titles_map = (
-            (UNSAFE_VERDICTS[0][0], _('Unknown')),
+            (UNSAFE_VERDICTS[0][0], _('Uncertainties')),
             (UNSAFE_VERDICTS[1][0], _('Bugs')),
             (UNSAFE_VERDICTS[2][0], _('Target bugs')),
             (UNSAFE_VERDICTS[3][0], _('False positives')),

@@ -100,13 +100,13 @@ MARK_SOURCE = (
 )
 
 MARK_SAFE = (
-    ('0', _('Unknown')),
+    ('0', _('Uncertainty')),
     ('1', _('Incorrect proof')),
     ('2', _('Missed target bug')),
 )
 
 SAFE_VERDICTS = (
-    ('0', _('Unknown')),
+    ('0', _('Uncertainty')),
     ('1', _('Incorrect proof')),
     ('2', _('Missed target bug')),
     ('3', _('Incompatible marks')),
@@ -114,14 +114,14 @@ SAFE_VERDICTS = (
 )
 
 MARK_UNSAFE = (
-    ('0', _('Unknown')),
+    ('0', _('Uncertainty')),
     ('1', _('Bug')),
     ('2', _('Target bug')),
     ('3', _('False positive')),
 )
 
 UNSAFE_VERDICTS = (
-    ('0', _('Unknown')),
+    ('0', _('Uncertainty')),
     ('1', _('Bug')),
     ('2', _('Target bug')),
     ('3', _('False positive')),
