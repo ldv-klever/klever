@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-05-26 16:13+0000\n"
+"POT-Creation-Date: 2022-05-27 11:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -365,11 +365,11 @@ msgstr "Найдены все предупрeждения об ошибках"
 msgid "Found not all unsafes"
 msgstr "Найдены не все предупрeждения об ошибках"
 
-#: bridge/vars.py:60 bridge/vars.py:103 bridge/vars.py:109 bridge/vars.py:117
-#: bridge/vars.py:124 reports/comparison.py:385 reports/verdicts.py:188
-#: reports/verdicts.py:247 tools/templates/tools/ManagerPanel.html:239
+#: bridge/vars.py:60 reports/comparison.py:385
+#: reports/templates/reports/ReportUnknown.html:23
+#: tools/templates/tools/ManagerPanel.html:239
 msgid "Unknown"
-msgstr "Неизвестно"
+msgstr "Проблема в компоненте"
 
 #: bridge/vars.py:61
 msgid "Unmatched"
@@ -461,6 +461,10 @@ msgstr "Предустановленная"
 #: bridge/vars.py:99
 msgid "Uploaded"
 msgstr "Загруженная на сервер"
+
+#: bridge/vars.py:103 bridge/vars.py:109 bridge/vars.py:117 bridge/vars.py:124
+msgid "Uncertainty"
+msgstr "Отсутствие определенности"
 
 #: bridge/vars.py:104 bridge/vars.py:110 reports/verdicts.py:190
 msgid "Incorrect proof"
@@ -2911,10 +2915,6 @@ msgstr "Создать легковесную оценку"
 msgid "Create full-weight mark"
 msgstr "Создать полновесную оценку"
 
-#: reports/templates/reports/ReportUnknown.html:23
-msgid "Unknown report"
-msgstr "Проблема в компоненте"
-
 #: reports/templates/reports/ReportUnsafe.html:92
 msgid ""
 "You can try another level of code coverage details when starting decision to "
@@ -3086,6 +3086,10 @@ msgstr "Выполняется"
 #: reports/utils.py:1334
 msgid "The report doesn't have verifier input files"
 msgstr "У отчета отсутствуют входные файлы верификатора"
+
+#: reports/verdicts.py:188 reports/verdicts.py:247
+msgid "Uncertainties"
+msgstr "Отсутствие определенности"
 
 #: reports/verdicts.py:189
 msgid "Missed target bugs"
