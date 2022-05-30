@@ -27,6 +27,7 @@
         "ext-modules/linux/mm/vmalloc-v2/safe.ko",
         "ext-modules/linux/mm/vmalloc-memory-safety/safe.ko",
         "ext-modules/linux/mm/vmalloc-memory-safety-v2/safe.ko",
+        "ext-modules/linux/overflow/safe.ko",
         "ext-modules/verifier/common/safe.ko",
         "ext-modules/verifier/gcc/safe.ko",
         "ext-modules/verifier/map/safe.ko",
