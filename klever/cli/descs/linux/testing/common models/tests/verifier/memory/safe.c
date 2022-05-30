@@ -45,6 +45,8 @@ static int __init ldv_init(void)
 
 	ldv_free(data);
 
+	ldv_assume(size != SIZE_MAX);
+
 	data = ldv_xmalloc(size);
 
 	if (!data || ldv_is_err(data))

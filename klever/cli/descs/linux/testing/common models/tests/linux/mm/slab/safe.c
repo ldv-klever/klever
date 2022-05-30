@@ -33,6 +33,7 @@ static int __init ldv_init(void)
 	size_t size = ldv_undef_uint();
 	size_t n = ldv_undef_uint();
 	struct kmem_cache *cachep;
+	void *res;
 
 	ldv_flags = ldv_undef_uint();
 
@@ -45,6 +46,26 @@ static int __init ldv_init(void)
 	ldv_assume(cachep != NULL);
 	kmem_cache_alloc(cachep, ldv_flags);
 	kmem_cache_zalloc(cachep, ldv_flags);
+
+	res = kmalloc(SIZE_MAX, ldv_flags);
+	if (res)
+		ldv_unexpected_error();
+	res = kzalloc(SIZE_MAX, ldv_flags);
+	if (res)
+		ldv_unexpected_error();
+	res = kcalloc(n, SIZE_MAX, ldv_flags);
+	if (res)
+		ldv_unexpected_error();
+
+	res = ldv_xmalloc(SIZE_MAX);
+	if (res)
+		ldv_unexpected_error();
+	res = ldv_xzalloc(SIZE_MAX);
+	if (res)
+		ldv_unexpected_error();
+	res = ldv_xcalloc(n, SIZE_MAX);
+	if (res)
+		ldv_unexpected_error();
 
 	return 0;
 }
