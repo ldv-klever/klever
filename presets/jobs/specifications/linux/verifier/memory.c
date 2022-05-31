@@ -19,6 +19,7 @@
 #include <linux/limits.h>
 #include <linux/types.h>
 #include <ldv/linux/err.h>
+#include <ldv/linux/overflow.h>
 
 #include <../verifier/reference memory.c>
 

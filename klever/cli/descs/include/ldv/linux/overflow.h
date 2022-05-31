@@ -20,6 +20,11 @@
 
 #include <linux/types.h>
 
+/* Old versions of the Linux kernel do not define this constant. */
+#ifndef SIZE_MAX
+#define SIZE_MAX	(~(size_t)0)
+#endif
+
 extern size_t ldv_ab_c_size(size_t a, size_t b, size_t c);
 
 #endif /* __LDV_LINUX_OVERFLOW_H */
