@@ -102,7 +102,6 @@ setuptools.setup(
         "pytest"
     ],
     extras_require={
-        "strict": open("requirements.txt", encoding="utf8").read().splitlines(),
         "docs": ["sphinx", "sphinx_rtd_theme"],
         "openstack": [
             "python-novaclient",
