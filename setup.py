@@ -81,7 +81,7 @@ setuptools.setup(
     install_requires=[
         "Django==4.0.3",
         "BenchExec==3.11",
-        "clade>=3.4,<3.5",
+        "clade>=3.5,<3.6",
         "psycopg2-binary",
         "graphviz",
         "celery",
@@ -102,6 +102,7 @@ setuptools.setup(
         "pytest"
     ],
     extras_require={
+        "strict": open("requirements.txt", encoding="utf8").read().splitlines(),
         "docs": ["sphinx", "sphinx_rtd_theme"],
         "openstack": [
             "python-novaclient",
