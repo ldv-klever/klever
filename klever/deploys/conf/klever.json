@@ -47,13 +47,13 @@
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/10031/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/10124/build-base-linux-3.14.79-x86_64-sample.tar.xz"
     },
     "linux/loadable kernel modules sample arm": {
-      "path": "https://forge.ispras.ru/attachments/download/10032/build-base-linux-3.14.79-arm-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/10123/build-base-linux-3.14.79-arm-sample.tar.xz"
     },
     "linux/loadable kernel modules sample arm64": {
-      "path": "https://forge.ispras.ru/attachments/download/10033/build-base-linux-3.14.79-arm64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/10122/build-base-linux-3.14.79-arm64-sample.tar.xz"
     }
   }
 }
