@@ -31,14 +31,13 @@ in this direction.
 Below we consider as an example a build base for verification of kernel loadable modules of Linux 5.5.19 (architecture
 *x86_64*, configuration *allmodconfig*).
 You can download the archive of the target build base prepared in advance from
-`here <https://forge.ispras.ru/attachments/download/10035/build-base-linux-5.5.19-x86_64-allmodconfig.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/10125/build-base-linux-5.5.19-x86_64-allmodconfig.tar.xz>`__.
 Let’s assume that you unpack this archive into directory **/home/debian/build-base-linux-5.5.19-x86_64-allmodconfig**
 so that there should be file *meta.json* directly at the top level in that directory.
 Besides, you can use in a similar way build bases prepared for:
 
-* `Linux 3.14.79 <https://forge.ispras.ru/attachments/download/9947/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__
-* `Linux 5.10.112 <https://forge.ispras.ru/attachments/download/10088/build-base-linux-5.10.112-x86_64-allmodconfig.tar.xz>`__
-* `Linux 5.17.9 <https://forge.ispras.ru/attachments/download/10087/build-base-linux-5.17.9-x86_64-allmodconfig.tar.xz>`__
+* `Linux 5.10.120 <https://forge.ispras.ru/attachments/download/10126/build-base-linux-5.10.120-x86_64-allmodconfig.tar.xz>`__
+* `Linux 5.17.13 <https://forge.ispras.ru/attachments/download/10127/build-base-linux-5.17.13-x86_64-allmodconfig.tar.xz>`__
 
 If you want to prepare the build base yourself, we recommend to do this on the same machine where you deployed Klever
 since it already contains everything necessary.
