@@ -45,6 +45,7 @@ def klever_deploy_openstack(name, action, entity, vcpus='2', ram='8', disk='50',
         '--log-level', 'DEBUG',
         '--mode', mode,
         '--os-network-type', os_network_type,
+        '--non-interactive',
         action,
         entity
     ]

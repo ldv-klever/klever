@@ -66,12 +66,13 @@ class OSKleverInstance:
             instance.add_security_group(self.args.os_sec_group)
 
     def share(self):
-        answer = None
-        while answer != 'y':
-            self.logger.warning(f'You are going to share instance "{self.name}" to the outer world.'
-                                ' Did you change default passwords for users "admin" and "manager"'
-                                ' (default passwords coincide with usernames)? (y)')
-            answer = sys.stdin.readline().rstrip()
+        if not self.args.non_interactive:
+            answer = None
+            while answer != 'y':
+                self.logger.warning(f'You are going to share instance "{self.name}" to the outer world.'
+                                    ' Did you change default passwords for users "admin" and "manager"'
+                                    ' (default passwords coincide with usernames)? (y)')
+                answer = sys.stdin.readline().rstrip()
 
         instance = self.client.get_instance(self.name)
 

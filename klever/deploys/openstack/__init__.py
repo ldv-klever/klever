@@ -87,6 +87,8 @@ def parse_args(args):
                         help='Size of volume in GB (default: "%(default)s").')
     parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
                         help='Set logging level to LEVEL (INFO or DEBUG).')
+    parser.add_argument('--non-interactive', default=False, action='store_true',
+                        help='Operate non-interactively (default: "%(default)s").')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)
