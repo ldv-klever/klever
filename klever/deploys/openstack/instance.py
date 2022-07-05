@@ -221,7 +221,7 @@ class OSKleverInstance:
         ssh.execute_cmd(f'sudo rsync --exclude "postmaster.pid" -a {data_dir}/ {VOLUME_PGSQL_DIR}')
 
         # Change PostgreSQL configuration
-        ssh.execute_cmd(f'sudo sed -i "s#^\\(data_directory\\s*=\\s*\\).*\$#\\1\'{VOLUME_PGSQL_DIR}\'#" {conf_file}')
+        ssh.execute_cmd(f'sudo sed -i "s#^\\(data_directory\\s*=\\s*\\).*\\$#\\1\'{VOLUME_PGSQL_DIR}\'#" {conf_file}')
 
         # Start again
         ssh.execute_cmd('sudo systemctl start postgresql')
