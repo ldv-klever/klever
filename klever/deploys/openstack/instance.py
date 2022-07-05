@@ -61,6 +61,10 @@ class OSKleverInstance:
         ) as ssh:
             ssh.open_shell()
 
+    def add_security_group(self, instance):
+        if not any([sec_group.name == self.args.os_sec_group for sec_group in instance.list_security_group()]):
+            instance.add_security_group(self.args.os_sec_group)
+
     def share(self):
         answer = None
         while answer != 'y':
@@ -75,7 +79,7 @@ class OSKleverInstance:
         self.client.interface_attach(instance, share=True)
         self.client.assign_floating_ip(instance, share=True)
 
-        instance.add_security_group(self.args.os_sec_group)
+        self.add_security_group(instance)
 
         self.logger.info(f'Reboot instance "{self.name}"')
         instance.reboot()
@@ -87,7 +91,7 @@ class OSKleverInstance:
         self.client.interface_attach(instance, share=False)
         self.client.assign_floating_ip(instance, share=False)
 
-        instance.add_security_group(self.args.os_sec_group)
+        self.add_security_group(instance)
 
         self.logger.info(f'Reboot instance "{self.name}"')
         instance.reboot()
