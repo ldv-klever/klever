@@ -209,6 +209,11 @@ class OSKleverInstance:
 
         # Stop PostgreSQL to make required changes
         ssh.execute_cmd('sudo systemctl stop postgresql')
+        # It seems that PostgreSQL continues to operate for a while after stopping the service. For instance, there may
+        # be errors during running rsync below like:
+        #   file has vanished: "/var/lib/postgresql/13/main/pg_logical/replorigin_checkpoint.tmp"
+        # So let's wait a bit prior to proceed to the following commands.
+        time.sleep(5)
 
         # Move the PostgreSQL data directory to volume
         ssh.execute_cmd(f'mkdir {VOLUME_PGSQL_DIR}')
