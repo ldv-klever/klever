@@ -17,6 +17,7 @@ import errno
 import os
 import re
 import sys
+import time
 
 import keystoneauth1.identity
 import keystoneauth1.session
@@ -147,6 +148,8 @@ class OSClient:
                 {"floatingip": {"floating_network_id": network_id}}
             )['floatingip']
 
+        # Here we always expect the only suitable port since detaching should eventually remove all ports while
+        # attaching adds the only one.
         port = self.neutron.list_ports(device_id=instance.id)['ports'][0]
         self.neutron.update_floatingip(floating_ip['id'], {'floatingip': {'port_id': port['id']}})
 
@@ -156,16 +159,21 @@ class OSClient:
         return floating_ip
 
     def interface_detach(self, instance):
-        ports = self.neutron.list_ports(device_id=instance.id)['ports']
+        # Detaching does not work immediately, so wait a bit. Moreover, it can silently fail, so do it infinitely
+        # until it will succeed.
+        while True:
+            ports = self.neutron.list_ports(device_id=instance.id)['ports']
 
-        if len(ports) == 0:
-            self.logger.info(f'Instance "{instance.name}" has no networks attached')
-            return
+            if len(ports) == 0:
+                self.logger.info(f'Instance "{instance.name}" has no networks attached')
+                return
 
-        for port in ports:
-            instance.interface_detach(port['id'])
-            network_name = self.get_network_name(port["network_id"])
-            self.logger.info(f'Network "{network_name}" is detached from instance "{instance.name}"')
+            for port in ports:
+                instance.interface_detach(port['id'])
+                network_name = self.get_network_name(port["network_id"])
+                self.logger.info(f'Network "{network_name}" is detached from instance "{instance.name}"')
+
+            time.sleep(5)
 
     def interface_attach(self, instance, share=False):
         if share:
