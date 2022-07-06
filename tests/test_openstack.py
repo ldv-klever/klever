@@ -64,7 +64,7 @@ def get_instance_floating_ip(instance_name):
 
 def solve_job(preset_job_id, instance_ip):
     # Wait till created/updated instance will be fully functional.
-    time.sleep(10)
+    time.sleep(30)
 
     print(f'Solve {preset_job_id} job')
 
