@@ -51,6 +51,11 @@ class Program:
         # Clade API object
         clade_conf = dict(self._CLADE_CONF)
         clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
+        # Testing and validation build bases are pretty small, so we can request Clade to generate graphs for them.
+        clade_conf.update({
+            'CmdGraph.as_picture': True,
+            'PidGraph.as_picture': True
+        })
         self.clade = Clade(work_dir=self.target_program_desc['build base'],
                            cmds_file=self.cmds_file,
                            conf=clade_conf,
@@ -132,6 +137,10 @@ class Program:
         }])
         self.clade.add_meta_by_key('working source trees', self.work_src_trees)
         self.clade.add_meta_by_key('target program description', self.target_program_desc)
+
+        # Keep file with intercepted build commands within generated build base.
+        if os.path.exists(self.cmds_file):
+            shutil.move(self.cmds_file, self.target_program_desc['build base'])
 
     @staticmethod
     def build_wrapper(build):
