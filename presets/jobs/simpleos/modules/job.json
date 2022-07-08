@@ -1,6 +1,6 @@
 {
   "project": "SimpleOS",
-  "build base": "/home/novikov/work/klever/docs/samples/simple-os/clade",
+  "build base": "simple-os",
   "targets": ["**"],
   "specifications set": "1.0",
   "requirement specifications": [".*"]

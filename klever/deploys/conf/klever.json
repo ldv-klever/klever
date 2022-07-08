@@ -54,6 +54,9 @@
     },
     "linux/loadable kernel modules sample arm64": {
       "path": "https://forge.ispras.ru/attachments/download/10122/build-base-linux-3.14.79-arm64-sample.tar.xz"
+    },
+    "simple-os": {
+      "path": "https://forge.ispras.ru/attachments/download/10439/build-base-simple-os-1.0-x86_64.tar.xz"
     }
   }
 }

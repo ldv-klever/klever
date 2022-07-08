@@ -32,7 +32,7 @@ development mode, especially if you are going to perform extra experiments.
 Preparing Build Base
 --------------------
 
-At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple OS.
+At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple OS\ [1]_.
 For that purpose you should execute the following commands::
 
    $ cd $KLEVER_SRC/docs/samples/simple-os
@@ -264,3 +264,7 @@ Some of these topics are considered in separate sections of the given user docum
 the former in :ref:`dev_env_model_specs`.
 
 If you will encounter any issues and you will have any questions, please, contact us for support.
+
+.. [1]
+   The build base for Simple OS prepared in advanced is deployed together with Klever by default.
+   You can refer to it as *simple-os* in :file:`job.json`, but we advice you to prepare the build base yourself.
