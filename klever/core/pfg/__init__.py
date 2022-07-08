@@ -196,6 +196,12 @@ class PFG(klever.core.components.Component):
         self.logger.info('Import fragmentation strategy {!r}'.format(strategy_name))
         # Remove spaces that are nice for users but can not be used in Python module names.
         module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower().replace(' ', ''))
-        project_package = importlib.import_module(module_path, 'klever.core')
-        cls = getattr(project_package, strategy_name.capitalize().replace(' ', ''))
+        try:
+            project_package = importlib.import_module(module_path, 'klever.core')
+            cls = getattr(project_package, strategy_name.capitalize().replace(' ', ''))
+        except ModuleNotFoundError:
+            # Use default fragmentation strategy if there is no specific one.
+            project_package = importlib.import_module('.pfg.fragmentation.default', 'klever.core')
+            cls = getattr(project_package, 'Default')
+
         return cls
