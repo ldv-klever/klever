@@ -31,6 +31,7 @@ Contents
    dev_req_specs
    dev_env_model_specs
    dev_verifier_profiles
+   verifying_new_program
    dev
    glossary
 

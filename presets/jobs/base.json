@@ -98,6 +98,19 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Simple OS",
+      "uuid": "42963a02-abb4-4bc7-a7d1-cdfa1d16d072",
+      "production": true,
+      "children": [
+        {
+          "uuid": "fa433698-80e9-4076-b95b-2dad8cbe7e6c",
+          "name": "Modules",
+          "directory": "simpleos/modules",
+          "production": true
+        }
+      ]
     }
   ],
   "common directories and files": [

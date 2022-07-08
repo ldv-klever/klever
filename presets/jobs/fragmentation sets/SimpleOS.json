@@ -1,0 +1,31 @@
+{
+  "tactics": {"separate modules": {"reference": true}},
+  "fragmentation sets": {
+    "1.0": {
+      "reference": true,
+      "fragments": {
+        "modules/simple": [
+          "modules/simple/simple.c"
+        ],
+        "modules/simple-double-allocation": [
+          "modules/simple-double-allocation/simple-double-allocation.c"
+        ],
+        "modules/simple-no-check": [
+          "modules/simple-no-check/simple-no-check.c"
+        ],
+        "modules/simple-no-release": [
+          "modules/simple-no-release/simple-no-release.c"
+        ],
+        "modules/complex": [
+          "modules/complex/main.c",
+          "modules/complex/allocate.c",
+          "modules/complex/release.c"
+        ]
+      },
+      "exclude from all fragments": [
+        "kernel/resource.c",
+        "kernel/start.c"
+      ]
+    }
+  }
+}

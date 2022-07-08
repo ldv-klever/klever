@@ -1,2 +1,6 @@
 _build
 
+# Ignore generated stuff.
+samples/simple-os/simple-os
+*.o
+clade/

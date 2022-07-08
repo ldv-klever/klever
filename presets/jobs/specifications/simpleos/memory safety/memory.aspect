@@ -1,0 +1,17 @@
+before: file("$this")
+{
+#include <kernel.h>
+
+extern struct resource *ldv_allocate_resource(int);
+extern void ldv_release_resource(struct resource *);
+}
+
+around: call(struct resource *allocate_resource(int init))
+{
+    return ldv_allocate_resource(init);
+}
+
+around: call(void release_resource(struct resource *r))
+{
+    ldv_release_resource(r);
+}

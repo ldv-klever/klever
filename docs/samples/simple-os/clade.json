@@ -1,0 +1,9 @@
+{
+    "extensions": [
+        "Callgraph",
+        "CrossRef",
+        "Variables"
+    ],
+    "CmdGraph.as_picture": true,
+    "PidGraph.as_picture": true
+}
