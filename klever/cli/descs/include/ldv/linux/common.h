@@ -19,6 +19,7 @@
 #define __LDV_LINUX_COMMON_H
 
 #include <linux/types.h>
+#include <ldv/common/model.h>
 
 /**
  * ldv_switch_to_interrupt_context() - switch to interrupt context.
@@ -48,32 +49,6 @@ extern void ldv_switch_to_process_context(void);
  * Return: True in case of execution in interrupt context and false otherwise.
  */
 extern bool ldv_in_interrupt_context(void);
-
-/**
- * ldv_initialize() - explicitly initialize requirement model states.
- *
- * ldv_initialize() can be defined by requirement models if they use
- * model states and do not either use explicit or rely upon implicit
- * initialization of global variables that are usually used as model states.
- *
- * ldv_initialize() should be always called by generated environment models
- * just before calling all module initialization functions.
- */
-extern void ldv_initialize(void);
-
-/**
- * ldv_check_final_state() - perform some checks of final state specific for
- *                           requirement models.
- *
- * ldv_check_final_state() can be defined by requirement models if they
- * use model states and need to check it at the end.
- *
- * ldv_check_final_state() should be always called by generated environment
- * models just after calling all module exit functions. Nothing should be
- * performed after calling ldv_check_final_state() since this can lead to
- * unexpected false alarms.
- */
-extern void ldv_check_final_state(void);
 
 /**
  * ldv_failed_usb_register_driver() - do specific for requirement actions if
