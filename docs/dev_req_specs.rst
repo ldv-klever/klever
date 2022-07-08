@@ -351,8 +351,8 @@ For item 1 you should consider existing test cases and their descriptions in the
 
 For item 2 you should consider existing test cases and their descriptions in the following places:
 
-* :term:`$KLEVER_SRC`:file:`klever/cli/descs/linux/validation/2014 stable branch bugs/desc.json`
-* :term:`$KLEVER_SRC`:file:`presets/jobs/linux/validation/2014 stable branch bugs`
+* :term:`$KLEVER_SRC`:file:`/klever/cli/descs/linux/validation/2014 stable branch bugs/desc.json`
+* :term:`$KLEVER_SRC`:file:`/presets/jobs/linux/validation/2014 stable branch bugs`
 
 In addition, you should refer :ref:`test_build_bases_generation` to obtain build bases necessary for testing and
 validation.
