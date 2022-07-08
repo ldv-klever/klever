@@ -46,7 +46,6 @@ def prepare_cif_opts(opts, clade, model_opts=False):
     # Keep model options as well as build options when input files were not preprocessed.
     if model_opts or not meta['conf'].get("Compiler.preprocess_cmds", False):
         new_opts = filter_opts(opts, clade.get_storage_path)
-        new_opts = [opt.replace('"', '\\"') for opt in new_opts]
 
     extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', list())
     new_opts.extend(extra_cc_opts)
