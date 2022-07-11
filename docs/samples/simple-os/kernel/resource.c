@@ -16,32 +16,43 @@
  */
 
 #include <kernel.h>
+#include <stdio.h>
 
 static struct resource __r;
 
 struct resource *allocate_resource(int init)
 {
-    /* Resource was already allocated. */
     if (__r.x)
+    {
+        printf("You should not allocate kernel resource twice.\n");
         return NULL;
+    }
 
-    /* Initial value should not be 0. */
     if (!init)
+    {
+        printf("Initial value for kernel resource should not be '0'.\n");
         return NULL;
+    }
 
-    /* Always fail at allocation of resources with odd initial values. */
     if (init % 2)
+    {
+        printf("Allocation of kernel resource with odd initial values always fails.\n");
         return NULL;
+    }
 
-    /* Successfully allocate and initialize resource. */
     __r.x = init;
+    printf("Kernel resource was successfully allocated and initialized.\n");
 
     return &__r;
 }
 
 void release_resource(struct resource *r)
 {
+    if (!__r.x)
+        printf("You should not release non-allocated kernel resource.\n");
+
     __r.x = 0;
+    printf("Kernel resource was successfully released.\n");
 }
 
 int is_resource_free(void)
