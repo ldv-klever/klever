@@ -26,8 +26,8 @@ We will be glad to accept any interesting contribution.
 You should examine common :ref:`tutorial` beforehand since we will not duplicate its content here.
 Besides, it would be great if you will be familiar at least to some extent with other topics like
 :ref:`dev_decomposition_conf`, :ref:`dev_common_api_models` and :ref:`dev_req_specs`.
-Everything below should work well for the production instance of Klever, but we recommend to install Klever in the
-development mode, especially if you are going to perform extra experiments.
+Everything below should work well for the local production instance of Klever, but we recommend to install Klever in the
+development mode locally, especially if you are going to perform extra experiments.
 
 Preparing Build Base
 --------------------
