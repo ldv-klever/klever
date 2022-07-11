@@ -146,7 +146,7 @@ class OSInstance:
             instance = self.instance
 
         if instance:
-            self.logger.info(f'Remove instance "{instance.name}"')
+            self.logger.info(f'Remove instance "{self.name}"')
             instance.delete()
 
         if self.volume:
