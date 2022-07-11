@@ -58,7 +58,7 @@ int main(int argc, const char *argv[])
     if (module_init_exit_code)
     {
         printf("Module initialization fails with '%d' error code.\n", module_init_exit_code);
-        return module_init_exit_code;
+        return -3;
     }
 
     if (!is_resource_free())
