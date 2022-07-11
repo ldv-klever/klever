@@ -15,24 +15,25 @@
 Verifying New Program
 =====================
 
-This tutorial shows how one can add support for verification of a new program with help of Klever.
-As an example we consider Simple OS developed for the sake of the given tutorial.
-Simple OS is an artificial operating system including a kernel and a set of modules.
+This tutorial shows how one can verify a new program with help of Klever.
+As an example we consider Simple\ OS developed for the sake of the given tutorial.
+Simple\ OS is an artificial operating system including a kernel and a set of modules that are compiled and linked
+together into executable file :file:`simple-os`.
 Their source code is located at directory :term:`$KLEVER_SRC`:file:`/docs/samples/simple-os`.
-You are able to modify any source files and scripts as well as to add new ones if you want to check something in
-addition.
+You are able to modify any existing source files and scripts as well as to add new ones if you want to check something
+in addition.
 We will be glad to accept any interesting contribution.
 
 You should examine common :ref:`tutorial` beforehand since we will not duplicate its content here.
 Besides, it would be great if you will be familiar at least to some extent with other topics like
 :ref:`dev_decomposition_conf`, :ref:`dev_common_api_models` and :ref:`dev_req_specs`.
-Everything below should work well for the local production instance of Klever, but we recommend to install Klever in the
+Everything below should work well for the local production instance of Klever, but we recommend installing Klever in the
 development mode locally, especially if you are going to perform extra experiments.
 
 Preparing Build Base
 --------------------
 
-At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple OS\ [1]_.
+At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple\ OS\ [1]_.
 For that purpose you should execute the following commands::
 
    $ cd $KLEVER_SRC/docs/samples/simple-os
@@ -44,34 +45,85 @@ launching Clade::
 
    $ make clean && rm -rf clade
 
-After successful preparation of the build base that includes the normal build process, you can run Simple OS, e.g.::
-
-   $ ./simple-os 0 2
-   $ ./simple-os 0 3
-   $ ./simple-os 0 10
-   $ ./simple-os 0 0
-   $ ./simple-os 1 2
-   $ ./simple-os 1 3
-   $ ./simple-os 2 2
-   $ ./simple-os 2 3
-   $ ./simple-os 3 2
-   $ ./simple-os 3 3
-   $ ./simple-os 3 10
-   $ ./simple-os 4 2
-   $ ./simple-os 4 3
-
+After successful preparation of the build base that includes the normal build process, you can run Simple\ OS.
 The first command-line argument specifies a module to be launched:
 
 * *0* is *simple*.
-* *1* is *simple_double_allocation* (there is a specially introduced bug).
-* *2* is *simple_no_check* (there is a bug).
-* *3* is *simple_no_release* (there is a bug).
+* *1* is *simple-double-allocation* (there is a specially introduced bug).
+* *2* is *simple-no-check* (there is a bug).
+* *3* is *simple-no-release* (there is a bug).
 * *4* is *complex*.
 
 The second command-line argument provides the only integer argument to a module initialization function.
 
+Here are several examples of launching modules::
+
+   # Module "simple" properly handles all invalid inputs and follows rules of correct usage of the kernel API.
+   $ ./simple-os 0 2; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Kernel resource was successfully released.
+   Kernel exit code is '0'
+   $ ./simple-os 0 3; echo "Kernel exit code is '$?'"
+   Allocation of kernel resource with odd initial values always fails.
+   Module initialization fails with '-100' error code.
+   Kernel exit code is '156'
+   $ ./simple-os 0 10; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Kernel resource was successfully released.
+   Kernel exit code is '0'
+   $ ./simple-os 0 0; echo "Kernel exit code is '$?'"
+   Initial value for kernel resource should not be '0'.
+   Module initialization fails with '-100' error code.
+   Kernel exit code is '156'
+
+   # Module "simple-double-allocation" performs invalid double allocation of kernel resource.
+   $ ./simple-os 1 2; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   You should not allocate kernel resource twice.
+   Kernel resource was successfully released.
+   Module initialization fails with '-101' error code.
+   Kernel exit code is '155'
+   $ ./simple-os 1 3; echo "Kernel exit code is '$?'"
+   Allocation of kernel resource with odd initial values always fails.
+   Module initialization fails with '-100' error code.
+   Kernel exit code is '156'
+
+   # Module "simple-no-check" does not check for status of kernel resource allocation.
+   $ ./simple-os 2 2; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Kernel resource was successfully released.
+   Kernel exit code is '0'
+   $ ./simple-os 2 3; echo "Kernel exit code is '$?'"
+   Allocation of kernel resource with odd initial values always fails.
+   Segmentation fault (core dumped)
+   Kernel exit code is '139'
+
+   # Module "simple-no-release" forgets to release allocated kernel resource in some cases.
+   $ ./simple-os 3 2; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Kernel resource was successfully released.
+   Kernel exit code is '0'
+   $ ./simple-os 3 3; echo "Kernel exit code is '$?'"
+   Allocation of kernel resource with odd initial values always fails.
+   Module initialization fails with '-100' error code.
+   Kernel exit code is '156'
+   $ ./simple-os 3 10; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Module allocated kernel resource, but it did not release it.
+   Kernel exit code is '246'
+
+   # Module "complex" is correct as module "simple", but it consists of several source files.
+   $ ./simple-os 4 2; echo "Kernel exit code is '$?'"
+   Kernel resource was successfully allocated and initialized.
+   Kernel resource was successfully released.
+   Kernel exit code is '0'
+   $ ./simple-os 4 3; echo "Kernel exit code is '$?'"
+   Allocation of kernel resource with odd initial values always fails.
+   Module initialization fails with '-101' error code.
+   Kernel exit code is '155'
+
 Build processes can be very project specific.
-We can only recommend to get a successful standalone build first and then to wrap it with Clade that should also finish
+We can only recommend getting a successful standalone build first and then to wrap it with Clade that should also finish
 successfully.
 You can build the whole project even though you are going to verify only its subset.
 For the rest you should investigate the project documentation, contact developers or be one of them.
@@ -81,13 +133,13 @@ Developing Project Specific Adaptation
 
 Klever should be taught so that it will be aware what parts of your project should be verified and what should be
 checked for them.
-The appropriate stuff in general is referred as a *project specific adaptation*.
-This section will demonstrate the project specific adaptation for Simple OS.
-It is worth noting, that we are going to verify only separate modules of Simple OS.
+The appropriate stuff in general is referred to as a *project specific adaptation*.
+This section will demonstrate the project specific adaptation for Simple\ OS.
+It is worth noting, that we are going to verify only separate modules of Simple\ OS.
 
-We include the project specific adaptation for Simple OS into the repository to simplify the tutorial.
-Nevertheless, you can track that it corresponds to the following description and even recreate it from scratch in a
-similar way but with slightly different names and identifiers.
+We include the project specific adaptation for Simple\ OS into the repository to simplify the tutorial.
+Nevertheless, you can track that it corresponds to the following description and even recreate it from scratch similarly
+but with slightly different names and identifiers.
 
 Describing new preset verification job
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -96,7 +148,7 @@ First of all you should describe a new preset verification job.
 For this it is necessary to create directory :term:`$KLEVER_SRC`:file:`/presets/jobs/simpleos/modules` and put files
 :file:`job.json` and :file:`tasks.json` there.
 
-Currently :file:`job.json` looks as follows:
+:file:`job.json` may look as follows:
 
 .. code-block:: json
 
@@ -112,7 +164,7 @@ Currently :file:`job.json` looks as follows:
 
 You can copy :file:`tasks.json` from, say,
 :term:`$KLEVER_SRC`:file:`/presets/jobs/linux/loadable kernel modules sample/tasks.json`.
-The given tutorial does not consider values from that file as well as any modifications of them.
+The given tutorial does not consider attributes from that file as well as any modifications of them.
 
 Then you need to refer to the new preset verification job in the verification job base.
 For that goal you can add the following description at the end of file
@@ -137,7 +189,7 @@ For that goal you can add the following description at the end of file
 Describing program fragments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:numref:`pfg_cmd_graph_with_files` demonstrates the command graph for Simple OS.
+:numref:`pfg_cmd_graph_with_files` demonstrates the command graph for Simple\ OS.
 You can find it also in file
 :term:`$KLEVER_SRC`:file:`/docs/samples/simple-os/clade/CmdGraph/cmd_graph_with_files.dot.pdf` after successful
 preparation of the build base.
@@ -145,7 +197,7 @@ preparation of the build base.
 .. _pfg_cmd_graph_with_files:
 .. figure:: ./media/pfg/cmd_graph_with_files.png
 
-   Command graph for Simple OS
+   Command graph for Simple\ OS
 
 The command graph demonstrates GCC commands (compilation and linkage) that forms final executable file :file:`simple-os`
 from a set of input program source files.
@@ -166,7 +218,7 @@ Describing requirement specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Klever needs custom models and requirement specifications for each new project.
-Their top level description for Simple OS is resided in requirement specifications base
+Their top level description for Simple\ OS is resided in requirement specifications base
 :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/SimpleOS.json`:
 
 .. literalinclude:: ../presets/jobs/specifications/SimpleOS.json
@@ -174,11 +226,11 @@ Their top level description for Simple OS is resided in requirement specificatio
 
 The requirement specifications base refers some common models and headers.
 Besides, most attributes are typical.
-Below we consider models and settings that are specific for Simple OS.
+Below we consider models and settings that are specific for Simple\ OS.
 
 The value for attribute *functions to call* is *["\\w*init"]*.
 It means that generated environment models will contain only calls to module initialization functions.
-In the case of modules of Simple OS it is enough since they have only such entry points.
+In the case of modules of Simple\ OS it is enough since they have only such entry points.
 
 The value for attribute *model compiler input file* is *kernel/start.c*.
 Indeed, you can specify any program source file that is compiled during preparation of the build base and that has
@@ -191,7 +243,7 @@ memory allocation and free:
    :language: c
 
 These models refer corresponding reference models the verification tool familiar with.
-Simple OS does not have any specific restrictions for dealing with the dynamic memory, so models do not do anything
+Simple\ OS does not have any specific restrictions for dealing with the dynamic memory, so models do not do anything
 specific.
 
 The requirement specifications base describes 3 requirement specifications some of which refer certain models:
@@ -201,9 +253,9 @@ The requirement specifications base describes 3 requirement specifications some 
 * *memory safety*
 
 *empty* is intended for getting code coverage, i.e. code reachable with a given environment model.
-It does not reveal any issues in target modules of Simple OS.
+It does not reveal any issues in target modules of Simple\ OS.
 
-*kernel:resource* represents checks for correct usage of kernel resource API.
+*kernel:resource* represents checks for correct usage of the kernel resource API.
 This requirements specification refers model
 :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/simpleos/kernel/resource.c`:
 
@@ -238,12 +290,12 @@ and aspect :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/simpleos/memor
 Running Verification
 --------------------
 
-After you described a new preset verification job, you need to populate related files once.
+After you described the new preset verification job, you need to populate related files once.
 For this you should open *Manager Tools* in the Klever web interface, select *preset jobs* and populate them.
 
 Then you can create any number of verification jobs on the base of the populated preset verification job and start
 their decision.
-Corresponding configuration files, models and specifications will be automatically updated from the repository each
+Corresponding configuration files, models, and specifications will be automatically updated from the repository each
 time if you are using Klever in the development mode.
 This process as well as expert assessment of verification results are considered in details in :ref:`tutorial`.
 
@@ -258,13 +310,13 @@ Further Steps
 -------------
 
 This tutorial does not cover all aspects of using Klever.
-In particular it does not touch complicated environment modelling, development of advanced requirement specifications
+In particular, it does not touch complicated environment modeling, development of advanced requirement specifications
 and some other things.
 Some of these topics are considered in separate sections of the given user documentation, e.g. you can find details for
 the former in :ref:`dev_env_model_specs`.
 
-If you will encounter any issues and you will have any questions, please, contact us for support.
+If you will encounter any issues, and you will have any questions, please, contact us for support.
 
 .. [1]
-   The build base for Simple OS prepared in advanced is deployed together with Klever by default.
-   You can refer to it as *simple-os* in :file:`job.json`, but we advice you to prepare the build base yourself.
+   The build base for Simple\ OS prepared in advanced is deployed together with Klever by default.
+   You can refer to it as *simple-os* in :file:`job.json`, but we advise you to prepare the build base yourself.
