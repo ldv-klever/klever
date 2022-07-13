@@ -27,8 +27,8 @@ We will be glad to accept any interesting contribution.
 You should examine common :ref:`tutorial` beforehand since we will not duplicate its content here.
 Besides, it would be great if you will be familiar at least to some extent with other topics like
 :ref:`dev_decomposition_conf`, :ref:`dev_common_api_models` and :ref:`dev_req_specs`.
-Everything below should work well for the local production instance of Klever, but we recommend installing Klever in the
-development mode locally, especially if you are going to perform extra experiments.
+Everything below should work well for the :ref:`local production instance of Klever <local_deploy>`, but we recommend
+installing Klever in the development mode locally, especially if you are going to perform extra experiments.
 
 Preparing Build Base
 --------------------
@@ -276,7 +276,8 @@ The following requirements are checked by the given requirements specification:
 
 *memory safety* checks for memory safety, i.e. absence of NULL pointer dereferences, buffer overflows, memory leaks,
 etc.
-It is similar to the Linux kernel regarding performed checks, but it refers another model
+Regarding performed checks it is similar to the namesake requirements specification dedicated for the Linux kernel, but
+it refers another model
 :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/simpleos/memory safety/memory.c`:
 
 .. literalinclude:: ../presets/jobs/specifications/simpleos/memory safety/memory.c
@@ -309,7 +310,14 @@ specifications) resulting to 4 unsafes and 11 safes:
 Further Steps
 -------------
 
-This tutorial does not cover all aspects of using Klever.
+You can try to adapt this tutorial to support verification of your program.
+Do not worry, if you will make any mistakes in file names and their contents along the way.
+Klever should report you rather clear error messages in this case, so that you will be able to fix different issues step
+by step.
+For instance, there was about 20 unsuccessful attempts at verification of Simple OS when developing everything necessary
+for this tutorial.
+
+You should keep in mind that this tutorial does not cover all aspects of using Klever.
 In particular, it does not touch complicated environment modeling, development of advanced requirement specifications
 and some other things.
 Some of these topics are considered in separate sections of the given user documentation, e.g. you can find details for
