@@ -16,8 +16,8 @@ Verifying New Program
 =====================
 
 This tutorial shows how one can verify a new program with help of Klever.
-As an example we consider Simple\ OS developed for the sake of the given tutorial.
-Simple\ OS is an artificial operating system including a kernel and a set of modules that are compiled and linked
+As an example we consider Simple OS developed for the sake of the given tutorial.
+Simple OS is an artificial operating system including a kernel and a set of modules that are compiled and linked
 together into executable file :file:`simple-os`.
 Their source code is located at directory :term:`$KLEVER_SRC`:file:`/docs/samples/simple-os`.
 You are able to modify any existing source files and scripts as well as to add new ones if you want to check something
@@ -33,7 +33,7 @@ development mode locally, especially if you are going to perform extra experimen
 Preparing Build Base
 --------------------
 
-At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple\ OS\ [1]_.
+At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple OS\ [1]_.
 For that purpose you should execute the following commands::
 
    $ cd $KLEVER_SRC/docs/samples/simple-os
@@ -45,7 +45,7 @@ launching Clade::
 
    $ make clean && rm -rf clade
 
-After successful preparation of the build base that includes the normal build process, you can run Simple\ OS.
+After successful preparation of the build base that includes the normal build process, you can run Simple OS.
 The first command-line argument specifies a module to be launched:
 
 * *0* is *simple*.
@@ -134,10 +134,10 @@ Developing Project Specific Adaptation
 Klever should be taught so that it will be aware what parts of your project should be verified and what should be
 checked for them.
 The appropriate stuff in general is referred to as a *project specific adaptation*.
-This section will demonstrate the project specific adaptation for Simple\ OS.
-It is worth noting, that we are going to verify only separate modules of Simple\ OS.
+This section will demonstrate the project specific adaptation for Simple OS.
+It is worth noting, that we are going to verify only separate modules of Simple OS.
 
-We include the project specific adaptation for Simple\ OS into the repository to simplify the tutorial.
+We include the project specific adaptation for Simple OS into the repository to simplify the tutorial.
 Nevertheless, you can track that it corresponds to the following description and even recreate it from scratch similarly
 but with slightly different names and identifiers.
 
@@ -189,7 +189,7 @@ For that goal you can add the following description at the end of file
 Describing program fragments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:numref:`pfg_cmd_graph_with_files` demonstrates the command graph for Simple\ OS.
+:numref:`pfg_cmd_graph_with_files` demonstrates the command graph for Simple OS.
 You can find it also in file
 :term:`$KLEVER_SRC`:file:`/docs/samples/simple-os/clade/CmdGraph/cmd_graph_with_files.dot.pdf` after successful
 preparation of the build base.
@@ -197,7 +197,7 @@ preparation of the build base.
 .. _pfg_cmd_graph_with_files:
 .. figure:: ./media/pfg/cmd_graph_with_files.png
 
-   Command graph for Simple\ OS
+   Command graph for Simple OS
 
 The command graph demonstrates GCC commands (compilation and linkage) that forms final executable file :file:`simple-os`
 from a set of input program source files.
@@ -218,7 +218,7 @@ Describing requirement specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Klever needs custom models and requirement specifications for each new project.
-Their top level description for Simple\ OS is resided in requirement specifications base
+Their top level description for Simple OS is resided in requirement specifications base
 :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/SimpleOS.json`:
 
 .. literalinclude:: ../presets/jobs/specifications/SimpleOS.json
@@ -226,11 +226,11 @@ Their top level description for Simple\ OS is resided in requirement specificati
 
 The requirement specifications base refers some common models and headers.
 Besides, most attributes are typical.
-Below we consider models and settings that are specific for Simple\ OS.
+Below we consider models and settings that are specific for Simple OS.
 
 The value for attribute *functions to call* is *["\\w*init"]*.
 It means that generated environment models will contain only calls to module initialization functions.
-In the case of modules of Simple\ OS it is enough since they have only such entry points.
+In the case of modules of Simple OS it is enough since they have only such entry points.
 
 The value for attribute *model compiler input file* is *kernel/start.c*.
 Indeed, you can specify any program source file that is compiled during preparation of the build base and that has
@@ -243,7 +243,7 @@ memory allocation and free:
    :language: c
 
 These models refer corresponding reference models the verification tool familiar with.
-Simple\ OS does not have any specific restrictions for dealing with the dynamic memory, so models do not do anything
+Simple OS does not have any specific restrictions for dealing with the dynamic memory, so models do not do anything
 specific.
 
 The requirement specifications base describes 3 requirement specifications some of which refer certain models:
@@ -253,7 +253,7 @@ The requirement specifications base describes 3 requirement specifications some 
 * *memory safety*
 
 *empty* is intended for getting code coverage, i.e. code reachable with a given environment model.
-It does not reveal any issues in target modules of Simple\ OS.
+It does not reveal any issues in target modules of Simple OS.
 
 *kernel:resource* represents checks for correct usage of the kernel resource API.
 This requirements specification refers model
@@ -318,5 +318,5 @@ the former in :ref:`dev_env_model_specs`.
 If you will encounter any issues, and you will have any questions, please, contact us for support.
 
 .. [1]
-   The build base for Simple\ OS prepared in advanced is deployed together with Klever by default.
+   The build base for Simple OS prepared in advanced is deployed together with Klever by default.
    You can refer to it as *simple-os* in :file:`job.json`, but we advise you to prepare the build base yourself.
