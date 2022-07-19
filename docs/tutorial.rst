@@ -77,6 +77,8 @@ Then you will be automatically redirected to a *job tree* page presented in the 
 
    Signing in
 
+.. _starting_verification:
+
 Starting Verification
 ---------------------
 

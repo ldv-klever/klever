@@ -46,7 +46,10 @@ launching Clade::
    $ make clean && rm -rf clade
 
 After successful preparation of the build base that includes the normal build process, you can run Simple OS.
-The first command-line argument specifies a module to be launched:
+It is not necessary for its verification by means of Klever, but this clarifies its workflow and demonstrates
+possible bugs.
+
+The first command-line argument for :file:`simple-os` specifies a module to be launched:
 
 * *0* is *simple*.
 * *1* is *simple-double-allocation* (there is a specially introduced bug).
@@ -54,9 +57,11 @@ The first command-line argument specifies a module to be launched:
 * *3* is *simple-no-release* (there is a bug).
 * *4* is *complex*.
 
-The second command-line argument provides the only integer argument to a module initialization function.
+The second command-line argument for :file:`simple-os` provides the only integer argument to a module initialization
+function.
 
-Here are several examples of launching modules::
+Here are several examples of launching modules (we encourage you to try more examples, especially if you modify
+anything in the source code of Simple OS)::
 
    # Module "simple" properly handles all invalid inputs and follows rules of correct usage of the kernel API.
    $ ./simple-os 0 2; echo "Kernel exit code is '$?'"
@@ -148,7 +153,8 @@ First of all you should describe a new preset verification job.
 For this it is necessary to create directory :term:`$KLEVER_SRC`:file:`/presets/jobs/simpleos/modules` and put files
 :file:`job.json` and :file:`tasks.json` there.
 
-:file:`job.json` may look as follows:
+:file:`job.json` may look as follows (you can find some details about specified attributes in
+:ref:`starting_verification`):
 
 .. code-block:: json
 
@@ -186,8 +192,34 @@ For that goal you can add the following description at the end of file
     ]
   }
 
+The verification job base represents a set of trees where:
+
+* Roots correspond to different projects.
+* Intermediate nodes can help to arrange a lot of various preset verification jobs, e.g. you can see on a tree for the
+  Linux kernel.
+* Leaves correspond to preset verification jobs themselves.
+  Only leaves can have attribute *directory*, and you can create actual verification jobs only on the base of leaves.
+
+These trees are reflected in the Klever web interface, e.g. :numref:`tutorial_starting_creation_new_job`.
+Attributes in the verification job base have the following meaning:
+
+* *name* - a user-friendly name of a preset verification job, e.g. "Modules" in the example above, or its parents, e.g.
+  "Simple OS".
+* *uuid* - a `universally unique identifier <https://en.wikipedia.org/wiki/Universally_unique_identifier>`__.
+  It should be unique across the verification job base.
+  You can take any existing UUID from the verification job base, modify it slightly and use for new preset verification
+  jobs as well as their parents.
+* *production* - whether a preset verification job and its parents should be populated for the production instance of
+  Klever.
+  We recommend you to use value *true* for this attribute unless you are going to set up any special-purpose preset
+  verification jobs, e.g. verification jobs for testing and validation.
+* *directory* - a path to a directory where you put files :file:`job.json` and :file:`tasks.json`.
+  This path should be relative to directory :term:`$KLEVER_SRC`:file:`/presets/jobs`.
+
 Describing program fragments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note:: You should read :ref:`dev_decomposition_conf` to understand this subsection better.
 
 :numref:`pfg_cmd_graph_with_files` demonstrates the command graph for Simple OS.
 You can find it also in file
@@ -203,7 +235,7 @@ The command graph demonstrates GCC commands (compilation and linkage) that forms
 from a set of input program source files.
 As it was aforementioned, we are focusing on individual modules in the given tutorial.
 That is why we can describe them manually in file
-:term:`$KLEVER_SRC`:file:`/presets/jobs/fragmentation sets/SimpleOS.json`, e.g.:
+:term:`$KLEVER_SRC`:file:`/presets/jobs/fragmentation sets/SimpleOS.json`, for instance:
 
 .. literalinclude:: ../presets/jobs/fragmentation sets/SimpleOS.json
    :language: json
@@ -216,6 +248,9 @@ You can find examples of these scripts in directory :term:`$KLEVER_SRC`:file:`/k
 
 Describing requirement specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note:: We encourage you to read :ref:`dev_common_api_models` and :ref:`dev_req_specs` prior to diving into this
+          subsection.
 
 Klever needs custom models and requirement specifications for each new project.
 Their top level description for Simple OS is resided in requirement specifications base
