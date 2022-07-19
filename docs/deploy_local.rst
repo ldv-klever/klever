@@ -25,9 +25,9 @@ To accomplish local deployment of Klever you need to choose an appropriate mode 
 for development purposes, otherwise, please, choose *production*) and to run the following command within
 :term:`$KLEVER_SRC`:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` install production
+  $ sudo venv/bin/klever-deploy-local --deployment-directory $KLEVER_DEPLOY_DIR install production
 
 .. note:: Absolute path to :file:`klever-deploy-local` is necessary due to environment variables required for the
           Klever Python virtual environment are not passed to sudo commands most likely.
@@ -38,32 +38,38 @@ for development purposes, otherwise, please, choose *production*) and to run the
 After successful installation one is able to *update* Klever multiple times to install new or to update already
 installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
+  $ sudo venv/bin/klever-deploy-local --deployment-directory $KLEVER_DEPLOY_DIR update production
 
 If you need to update Klever Python package itself (e.g. this may be necessary after update of :term:`$KLEVER_SRC`),
-then you should execute one additional command prior to the above one::
+then you should execute one additional command prior to the above one:
 
-    $ pip install --upgrade .
+.. code-block:: console
+
+  $ pip install --upgrade .
 
 This additional command, however, should be skipped if Klever Python package was installed in the *editable* mode (with
 flag -e) unless you need to to upgrade Klever dependencies.
-In the latter case you should execute the following command prior updating Klever::
+In the latter case you should execute the following command prior updating Klever:
 
-    $ pip install --upgrade -e .
+.. code-block:: console
+
+  $ pip install --upgrade -e .
 
 To *uninstall* Klever you need to run:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` uninstall production
+  $ sudo venv/bin/klever-deploy-local --deployment-directory $KLEVER_DEPLOY_DIR uninstall production
 
 A normal sequence of actions for :ref:`local_deploy` is the following:
 :menuselection:`install --> update --> update --> ... --> update --> uninstall`.
-In addition, there are several optional command-line arguments which you can find out by running::
+In addition, there are several optional command-line arguments which you can find out by running:
 
-    $ klever-deploy-local --help
+.. code-block:: console
+
+  $ klever-deploy-local --help
 
 We strongly recommend to configure your file indexing service if you have it enabled so that it will ignore content of
 :term:`$KLEVER_DEPLOY_DIR`.

@@ -21,9 +21,11 @@ OpenStack Deployment
 Additional Software Requirements
 --------------------------------
 
-To install additional packages required only by OpenStack deployment scripts you need to execute the following command::
+To install additional packages required only by OpenStack deployment scripts you need to execute the following command:
 
-    $ pip install -r requirements-openstack.txt ".[openstack]"
+.. code-block:: console
+
+  $ pip install -r requirements-openstack.txt ".[openstack]"
 
 .. note:: If in the previous step you installed Klever package with the `-e` argument, then you should use it here as
           well (i.e. execute `pip install -r requirements-openstack.txt -e ".[openstack]"`).
@@ -42,18 +44,18 @@ Supported Options
 
 Almost all deployment commands require you to specify a path to a private SSH key and your OpenStack username:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ klever-deploy-openstack --os-username :term:`$OS_USERNAME` --ssh-rsa-private-key-file :term:`$SSH_RSA_PRIVATE_KEY_FILE` create instance
+  $ klever-deploy-openstack --os-username $OS_USERNAME --ssh-rsa-private-key-file $SSH_RSA_PRIVATE_KEY_FILE create instance
 
 For brevity they are omitted from the following examples.
 
 In addition to command-line arguments mentioned above and below, there are several optional command-line arguments
 which you can find out by running:
 
-.. code-block:: bash
+.. code-block:: console
 
-   $ klever-deploy-openstack --help
+  $ klever-deploy-openstack --help
 
 .. _klever_base_image:
 
@@ -63,9 +65,9 @@ Klever Base Image
 For :ref:`klever_base_image` you can execute actions *show*, *create* and *remove*.
 The common workflow for :ref:`klever_base_image` is :menuselection:`create --> remove`, e.g.:
 
-.. code-block:: bash
+.. code-block:: console
 
-    $ klever-deploy-openstack create image
+  $ klever-deploy-openstack create image
 
 Unless specified, name *Klever Base vN* (where *N* is 1 plus a maximum of 0 and *vi*) is used for new
 :ref:`klever_base_image`.
@@ -85,15 +87,15 @@ Basically you should perform actions with :ref:`klever_inst` in the following or
 :menuselection:`create --> update/resize --> update/resize --> ... --> update/resize --> remove` like for
 :ref:`local_deploy`, e.g.:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ klever-deploy-openstack create instance
+  $ klever-deploy-openstack create instance
 
 By default Klever is deployed in the production mode, but you can change this with the *\--mode* command-line argument:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ klever-deploy-openstack --mode development create instance
+  $ klever-deploy-openstack --mode development create instance
 
 By using *resize* you can increase/decrease occupied computational resources and, thus, either speed up the verification
 process considerably or do not waste always necessary CPU cores and memory.
@@ -118,6 +120,6 @@ You can also create a specified number of OpenStack instances for performing var
 In this mode you can only execute actions *show*, *create*, *update* and *remove*.
 The normal workflow for :ref:`klever_insts` is the same as for :ref:`klever_inst`, e.g.:
 
-.. parsed-literal::
+.. code-block:: console
 
-    $ klever-deploy-openstack --instances :term:`$INSTANCES` create instance
+  $ klever-deploy-openstack --instances $INSTANCES create instance

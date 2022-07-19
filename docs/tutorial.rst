@@ -47,14 +47,16 @@ You can try to execute similar steps for other versions and configurations of th
 To build other versions of the Linux kernel you may need appropriate versions of GCC as well as other build time
 prerequisites.
 
-To prepare the target build base from scratch you can follow the next steps::
+To prepare the target build base from scratch you can follow the next steps:
 
-   $ wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.19.tar.xz
-   $ tar -xJf linux-5.5.19.tar.xz
-   $ cd linux-5.5.19
-   $ make allmodconfig
-   $ source $KLEVER_SRC/venv/bin/activate
-   $ clade -w ~/build-base-linux-5.5.19-x86_64-allmodconfig -p klever_linux_kernel --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8 modules
+.. code-block:: console
+
+  $ wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.19.tar.xz
+  $ tar -xJf linux-5.5.19.tar.xz
+  $ cd linux-5.5.19
+  $ make allmodconfig
+  $ source $KLEVER_SRC/venv/bin/activate
+  $ clade -w ~/build-base-linux-5.5.19-x86_64-allmodconfig -p klever_linux_kernel --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8 modules
 
 Then you will need to wait for quite a long period of time depending on the performance of your machine (typically
 several hours).

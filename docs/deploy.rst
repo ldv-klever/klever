@@ -54,7 +54,7 @@ To deploy Klever you should clone its Git repository (a path to a directory wher
 
 .. parsed-literal::
 
-    git clone --depth 1 --branch v\ |version| https://forge.ispras.ru/git/klever.git
+  $ git clone --depth 1 --branch v\ |version| https://forge.ispras.ru/git/klever.git
 
 .. note:: You can try the latest version from the master branch as well as other versions at your own risk.
 .. note:: Alternatively one can use https://github.com/ldv-klever/klever.git.
@@ -75,34 +75,46 @@ If your distribution does not have them you can get them from:
 * openSUSE 15.3 - `here <https://forge.ispras.ru/attachments/download/9805/python-opensuse-3.10.2.tar.xz>`__.
 
 To install required Python packages we recommend to create a virtual environment using installed Python.
-For instance, you can run following commands within :term:`$KLEVER_SRC`::
+For instance, you can run following commands within :term:`$KLEVER_SRC`:
 
-    $ /usr/local/python3.10-klever/bin/python3 -m venv venv
-    $ source venv/bin/activate
+.. code-block:: console
 
-To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
+  $ /usr/local/python3.10-klever/bin/python3 -m venv venv
+  $ source venv/bin/activate
 
-    $ pip install --upgrade pip wheel setuptools setuptools_scm
+To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages:
+
+.. code-block:: console
+
+  $ pip install --upgrade pip wheel setuptools setuptools_scm
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 
 Then you need to install Python packages including the Klever one:
 
-* For production use it is necessary to run the following command within :term:`$KLEVER_SRC`::
+* For production use it is necessary to run the following command within :term:`$KLEVER_SRC`:
+
+  .. code-block:: console
 
     $ pip install -r requirements.txt .
 
-  Later to upgrade the Klever Python package you should run::
+  Later to upgrade the Klever Python package you should run:
+
+  .. code-block:: console
 
     $ pip install --upgrade -r requirements.txt .
 
 * If one is going to develop Klever one should install Klever Python package in the *editable* mode (with flag *-e*).
-  To do it, run the following command within :term:`$KLEVER_SRC`::
+  To do it, run the following command within :term:`$KLEVER_SRC`:
+
+  .. code-block:: console
 
     $ pip install -r requirements.txt -e .
 
   In this case the Klever Python package will be updated automatically, but you may still need to upgrade its
-  dependencies by running the following command::
+  dependencies by running the following command:
+
+  .. code-block:: console
 
     $ pip install --upgrade -r requirements.txt -e .
 

@@ -55,17 +55,21 @@ Update
 ^^^^^^
 
 #. Periodically synchronize your local repository with the main development repository (it is available just internally
-   at ISP RAS)::
+   at ISP RAS):
 
-    branch $ git fetch origin
-    branch $ git remote prune origin
+   .. code-block:: console
+
+     branch $ git fetch origin
+     branch $ git remote prune origin
 
    .. note:: This is especially required when you are going to create a new branch or to merge some branch to the master
              branch.
 
-#. Pull changes if so::
+#. Pull changes if so:
 
-    branch $ git pull --rebase origin branch
+   .. code-block:: console
+
+     branch $ git pull --rebase origin branch
 
    .. warning:: Forget about pulling without rebasing!
 
@@ -74,9 +78,11 @@ Update
 Fixing Bugs and Implementing New Features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. One must create a new branch to fix each individual bug or implement a new feature::
+#. One must create a new branch to fix each individual bug or implement a new feature:
 
-    master $ git checkout -b fix-conf
+   .. code-block:: console
+
+     master $ git checkout -b fix-conf
 
    .. warning:: Do not intermix fixes and implementation of completely different bugs and features into one branch.
                 Otherwise other developers will need to wait or to make some tricky things like cherry-picking and
@@ -85,13 +91,18 @@ Fixing Bugs and Implementing New Features
                 of one will merge there a branch based on another non working branch.
 
 #. Push all new branches to the main development repository.
-   As well re-push them at least one time a day if you make some commits::
+   As well re-push them at least one time a day if you make some commits:
 
-    fix-conf $ git push origin fix-conf
+   .. code-block:: console
 
-#. Merge the master branch into your new branches if you need some recent bug fixes or features::
 
-    fix-conf $ git merge master
+     fix-conf $ git push origin fix-conf
+
+#. Merge the master branch into your new branches if you need some recent bug fixes or features:
+
+   .. code-block:: console
+
+     fix-conf $ git merge master
 
    .. note:: Do not forget to update the master branch from the main development repository.
 
@@ -100,9 +111,11 @@ Fixing Bugs and Implementing New Features
 #. Ask senior developers to review and to merge branches to the master branch when corresponding bugs/features are
    fixed/implemented.
 
-#. Delete merged branches::
+#. Delete merged branches:
 
-    master $ git branch -d fix-conf
+   .. code-block:: console
+
+     master $ git branch -d fix-conf
 
 Releases
 --------
@@ -128,25 +141,31 @@ Updating List of Required Python Packages
 
 To update the list of required Python packages first you need to install Klever package from scratch in the newly
 created virtual environment without using the old `requirements.txt` file.
-Run the following commands within :term:`$KLEVER_SRC`::
+Run the following commands within :term:`$KLEVER_SRC`:
 
-    $ python3 -m venv venv
-    $ source venv/bin/activate
-    $ pip install --upgrade pip wheel setuptools setuptools_scm
-    $ pip install .
+.. code-block:: console
+
+  $ python3 -m venv venv
+  $ source venv/bin/activate
+  $ pip install --upgrade pip wheel setuptools setuptools_scm
+  $ pip install .
 
 This will install latest versions of required packages.
-After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`::
+After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`:
 
-    $ python -m pip freeze | grep -v 'klever' > requirements.txt
+.. code-block:: console
+
+  $ python -m pip freeze | grep -v 'klever' > requirements.txt
 
 Updated list of requirements will be saved and should be committed to the repository afterwards.
 
 Besides, you should also update the list of required Python packages for OpenStack deployment.
-For this purpose you need to run the following commands after executing commands above::
+For this purpose you need to run the following commands after executing commands above:
 
-    $ pip install ".[openstack]"
-    $ python -m pip freeze | grep -v 'klever' > requirements-openstack.txt
+.. code-block:: console
+
+  $ pip install ".[openstack]"
+  $ python -m pip freeze | grep -v 'klever' > requirements-openstack.txt
 
 At last you should specify actual versions of Python packages in :file:`docs/requirements.txt`.
 Note, that Sphinx 4.4.0 requires docutils < 0.18.
@@ -169,18 +188,22 @@ To (re)generate build bases for testing Klever you need to do as follows:
    :file:`build bases/busybox` with Git repositories of the Linux kernel stable and BusyBox respectively.
    Symbolic links are not accepted.
 #. Execute following commands within :term:`$KLEVER_SRC` (you may need to run them using *sudo*, the first command can
-   take several hours depending on your hardware)::
+   take several hours depending on your hardware):
 
-   $ docker build -t build-bases -f Dockerfile.build-bases .
-   $ docker create --name dummy build-bases
-   $ docker cp dummy:/usr/src/build-bases.tar.xz build\ bases/
-   $ docker rm dummy
+   .. code-block:: console
+
+     $ docker build -t build-bases -f Dockerfile.build-bases .
+     $ docker create --name dummy build-bases
+     $ docker cp dummy:/usr/src/build-bases.tar.xz build\ bases/
+     $ docker rm dummy
 
 #. Periodically run following commands to clean up useless containers and images, especially after failed builds (this
-   can help to considerably reduce the occupied disk space)::
+   can help to considerably reduce the occupied disk space):
 
-   $ docker ps --filter status=exited -q | xargs docker rm
-   $ docker images -q -f dangling=true | xargs docker rmi
+   .. code-block:: console
+
+     $ docker ps --filter status=exited -q | xargs docker rm
+     $ docker images -q -f dangling=true | xargs docker rmi
 
 After that the archive with generated build bases will be located at :file:`build bases/build-bases.tar.xz`.
 
@@ -194,13 +217,17 @@ Besides, you can follow the following steps:
    the Klever Git repository (this directory is not tracked by the repository).
 #. Make actions described in :ref:`get_sources_for_generating_test_build_bases`.
 #. Make actions described in :ref:`get_gcc_for_generating_test_build_bases`.
-#. Run the following command to find out available descriptions of build bases for testing Klever::
+#. Run the following command to find out available descriptions of build bases for testing Klever:
 
-    $ klever-build -l
+   .. code-block:: console
 
-#. Select appropriate build bases descriptions and run the command like below::
+     $ klever-build -l
 
-    $ klever-build "linux/testing/requirement specifications" "linux/testing/common models"
+#. Select appropriate build bases descriptions and run the command like below:
+
+   .. code-block:: console
+
+     $ klever-build "linux/testing/requirement specifications" "linux/testing/common models"
 
 #. Wait for a while.
    Prepared build bases will be available within directory "build bases".
@@ -228,7 +255,9 @@ That's why you may need to get GCC 4.8 and make it available through PATH.
 Users of some other Linux distributions, e.g. openSUSE 15.1, can leverage the default compiler for building all build
 bases for testing Klever.
 
-The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
+The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands:
+
+.. code-block:: console
 
     $ sudo apt update
     $ sudo apt install gcc-4.8
@@ -249,34 +278,42 @@ Providing sources
 ^^^^^^^^^^^^^^^^^
 
 You should clone a Linux kernel stable Git repository to *linux-stable* (scripts prepare build bases for different
-versions of the Linux kernel for which the Git repository serves best of all), e.g.::
+versions of the Linux kernel for which the Git repository serves best of all), e.g.:
 
-    $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
+.. code-block:: console
+
+  $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
 
 You can use alternative sources of the Git repository, if the above one is not working well and fast enough:
 
    #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
    #. https://github.com/gregkh/linux
 
-Also, you should clone a BusyBox Git repository, e.g.::
+Also, you should clone a BusyBox Git repository, e.g.:
 
-    $ git clone git://busybox.net/busybox.git
+.. code-block:: console
+
+  $ git clone git://busybox.net/busybox.git
 
 Translating Web User Interface
 ------------------------------
 
 Currently the Klever web UI is translated only to Russian.
-To update existing translations, you should run the following commands within :term:`$KLEVER_SRC`::
+To update existing translations, you should run the following commands within :term:`$KLEVER_SRC`:
 
-    $ cd bridge
-    $ ./manage.py makemessages --all --ignore logs --ignore media --ignore run --ignore static --ignore tools/error-traces
+.. code-block:: console
+
+  $ cd bridge
+  $ ./manage.py makemessages --all --ignore logs --ignore media --ignore run --ignore static --ignore tools/error-traces
 
 Then you will need to carefully examine changed *.po* files and make necessary fixes.
 To (re)generate appropriate binary files to be used at showing translated messages, you should run the following
-commands within :term:`$KLEVER_SRC`::
+commands within :term:`$KLEVER_SRC`:
 
-    $ cd bridge
-    $ ./manage.py compilemessages
+.. code-block:: console
+
+  $ cd bridge
+  $ ./manage.py compilemessages
 
 .. it does not work, since more various actions are necessary:
   If you want to translate it to some other language, e.g. to "pt_BR", you should run the following commands within :term:`$KLEVER_SRC`::
@@ -401,16 +438,20 @@ Klever Bridge Testing
 
 #. :menuselection:`Tools --> Run manage.py Task...`::
 
-    manage.py@bridge > test
+     manage.py@bridge > test
 
-.. note:: To start tests from console::
+.. note:: To start tests from console:
 
-    $ cd bridge
-    $ python3 manage.py test
+   .. code-block:: console
 
-.. note:: Another way to start tests from console::
+     $ cd bridge
+     $ python3 manage.py test
 
-    $ python3 path/to/klever/bridge/manage.py test bridge users jobs reports marks service
+.. note:: Another way to start tests from console:
+
+   .. code-block:: console
+
+     $ python3 path/to/klever/bridge/manage.py test bridge users jobs reports marks service
 
 .. note:: The test database is created and deleted automatically.
           If the user will interrupt tests the test database will preserved and the user will be asked for its deletion

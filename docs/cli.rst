@@ -41,9 +41,11 @@ Starting Solution of Verification Jobs
 You can start solution of a verification job based on any preset verification job.
 For this you should find out a corresponding identifier, **preset_job_id**, e.g. using Web UI.
 For instance, Linux loadable kernel modules sample has identifier "c1529fbf-a7db-4507-829e-55f846044309".
-Then you should run something like::
+Then you should run something like:
 
-    klever-start-preset-solution --host $hostname_or_ip:8998 --username manager --password manager $preset_job_id
+.. code-block:: console
+
+  $ klever-start-preset-solution --host $hostname_or_ip:8998 --username manager --password manager $preset_job_id
 
 In the output of this command there are:
 
@@ -73,10 +75,12 @@ There are several command-line arguments that you can use: :option:`--rundata` a
     File **job.json** and archive **loadable kernel modules sample.tar.gz** should be placed into the current working
     directory.
 
-The corresponding Python API calls look as follows::
+The corresponding Python API calls look as follows:
 
-    job_id = cli.create_job(preset_job_id)[1]
-    decision_id = cli.start_job_decision(job_id)[1]
+.. code-block:: python
+
+  job_id = cli.create_job(preset_job_id)[1]
+  decision_id = cli.start_job_decision(job_id)[1]
 
 For *start_job_decision* there are arguments *rundata* and *replacement* corresponding to :option:`--rundata` and
 :option:`--replacement`.
@@ -85,31 +89,39 @@ Waiting for Solution of Verification Job
 ----------------------------------------
 
 Most likely you will need to wait for solution of the verification job whatever it will be successful or not.
-For this purpose you can execute something like::
+For this purpose you can execute something like:
 
-    klever-download-progress --host $hostname_or_ip:8998 --username manager --password manager -o progress.json $decision_id
+.. code-block:: console
+
+  $ klever-download-progress --host $hostname_or_ip:8998 --username manager --password manager -o progress.json $decision_id
 
 until **status** in *progress.json* will be more than 2.
 
-The appropriate invocation of the Python API may look like::
+The appropriate invocation of the Python API may look like:
 
-    while True:
-      time.sleep(5)
-      progress = cli.decision_progress(decision_id)
+.. code-block:: python
 
-      if int(progress['status']) > 2:
-        break
+  while True:
+    time.sleep(5)
+    progress = cli.decision_progress(decision_id)
+
+    if int(progress['status']) > 2:
+      break
 
 Obtaining Verification Results
 ------------------------------
 
-You can get verification results by using such the command::
+You can get verification results by using such the command:
 
-    klever-download-results --host $hostname_or_ip:8998 --username manager --password manager -o results.json $decision_id
+.. code-block:: console
 
-or via the following Python API::
+  $ klever-download-results --host $hostname_or_ip:8998 --username manager --password manager -o results.json $decision_id
 
-    results = cli.decision_results(decision_id)
+or via the following Python API:
+
+.. code-block:: python
+
+  results = cli.decision_results(decision_id)
 
 Then you can inspect file **results.json** or dictionary **results** somehow.
 Though, as it was noted, most likely you will need to analyze these results manually via Web UI.

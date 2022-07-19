@@ -34,16 +34,20 @@ Preparing Build Base
 --------------------
 
 At the first step you need to prepare a :ref:`build base <klever_build_bases>` for Simple OS\ [1]_.
-For that purpose you should execute the following commands::
+For that purpose you should execute the following commands:
 
-   $ cd $KLEVER_SRC/docs/samples/simple-os
-   $ clade -c clade.json --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8
+.. code-block:: console
+
+  $ cd $KLEVER_SRC/docs/samples/simple-os
+  $ clade -c clade.json --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8
 
 The resulting build base will be placed at directory :term:`$KLEVER_SRC`:file:`/docs/samples/simple-os/clade`.
 To regenerate the build base, e.g. after changing program source files, you should run the following commands before
-launching Clade::
+launching Clade:
 
-   $ make clean && rm -rf clade
+.. code-block:: console
+
+  $ make clean && rm -rf clade
 
 After successful preparation of the build base that includes the normal build process, you can run Simple OS.
 It is not necessary for its verification by means of Klever, but this clarifies its workflow and demonstrates
@@ -61,71 +65,73 @@ The second command-line argument for :file:`simple-os` provides the only integer
 function.
 
 Here are several examples of launching modules (we encourage you to try more examples, especially if you modify
-anything in the source code of Simple OS)::
+anything in the source code of Simple OS):
 
-   # Module "simple" properly handles all invalid inputs and follows rules of correct usage of the kernel API.
-   $ ./simple-os 0 2; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Kernel resource was successfully released.
-   Kernel exit code is '0'
-   $ ./simple-os 0 3; echo "Kernel exit code is '$?'"
-   Allocation of kernel resource with odd initial values always fails.
-   Module initialization fails with '-100' error code.
-   Kernel exit code is '156'
-   $ ./simple-os 0 10; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Kernel resource was successfully released.
-   Kernel exit code is '0'
-   $ ./simple-os 0 0; echo "Kernel exit code is '$?'"
-   Initial value for kernel resource should not be '0'.
-   Module initialization fails with '-100' error code.
-   Kernel exit code is '156'
+.. code-block:: console
 
-   # Module "simple-double-allocation" performs invalid double allocation of kernel resource.
-   $ ./simple-os 1 2; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   You should not allocate kernel resource twice.
-   Kernel resource was successfully released.
-   Module initialization fails with '-101' error code.
-   Kernel exit code is '155'
-   $ ./simple-os 1 3; echo "Kernel exit code is '$?'"
-   Allocation of kernel resource with odd initial values always fails.
-   Module initialization fails with '-100' error code.
-   Kernel exit code is '156'
+  # Module "simple" properly handles all invalid inputs and follows rules of correct usage of the kernel API.
+  $ ./simple-os 0 2; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Kernel resource was successfully released.
+  Kernel exit code is '0'
+  $ ./simple-os 0 3; echo "Kernel exit code is '$?'"
+  Allocation of kernel resource with odd initial values always fails.
+  Module initialization fails with '-100' error code.
+  Kernel exit code is '156'
+  $ ./simple-os 0 10; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Kernel resource was successfully released.
+  Kernel exit code is '0'
+  $ ./simple-os 0 0; echo "Kernel exit code is '$?'"
+  Initial value for kernel resource should not be '0'.
+  Module initialization fails with '-100' error code.
+  Kernel exit code is '156'
 
-   # Module "simple-no-check" does not check for status of kernel resource allocation.
-   $ ./simple-os 2 2; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Kernel resource was successfully released.
-   Kernel exit code is '0'
-   $ ./simple-os 2 3; echo "Kernel exit code is '$?'"
-   Allocation of kernel resource with odd initial values always fails.
-   Segmentation fault (core dumped)
-   Kernel exit code is '139'
+  # Module "simple-double-allocation" performs invalid double allocation of kernel resource.
+  $ ./simple-os 1 2; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  You should not allocate kernel resource twice.
+  Kernel resource was successfully released.
+  Module initialization fails with '-101' error code.
+  Kernel exit code is '155'
+  $ ./simple-os 1 3; echo "Kernel exit code is '$?'"
+  Allocation of kernel resource with odd initial values always fails.
+  Module initialization fails with '-100' error code.
+  Kernel exit code is '156'
 
-   # Module "simple-no-release" forgets to release allocated kernel resource in some cases.
-   $ ./simple-os 3 2; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Kernel resource was successfully released.
-   Kernel exit code is '0'
-   $ ./simple-os 3 3; echo "Kernel exit code is '$?'"
-   Allocation of kernel resource with odd initial values always fails.
-   Module initialization fails with '-100' error code.
-   Kernel exit code is '156'
-   $ ./simple-os 3 10; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Module allocated kernel resource, but it did not release it.
-   Kernel exit code is '246'
+  # Module "simple-no-check" does not check for status of kernel resource allocation.
+  $ ./simple-os 2 2; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Kernel resource was successfully released.
+  Kernel exit code is '0'
+  $ ./simple-os 2 3; echo "Kernel exit code is '$?'"
+  Allocation of kernel resource with odd initial values always fails.
+  Segmentation fault (core dumped)
+  Kernel exit code is '139'
 
-   # Module "complex" is correct as module "simple", but it consists of several source files.
-   $ ./simple-os 4 2; echo "Kernel exit code is '$?'"
-   Kernel resource was successfully allocated and initialized.
-   Kernel resource was successfully released.
-   Kernel exit code is '0'
-   $ ./simple-os 4 3; echo "Kernel exit code is '$?'"
-   Allocation of kernel resource with odd initial values always fails.
-   Module initialization fails with '-101' error code.
-   Kernel exit code is '155'
+  # Module "simple-no-release" forgets to release allocated kernel resource in some cases.
+  $ ./simple-os 3 2; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Kernel resource was successfully released.
+  Kernel exit code is '0'
+  $ ./simple-os 3 3; echo "Kernel exit code is '$?'"
+  Allocation of kernel resource with odd initial values always fails.
+  Module initialization fails with '-100' error code.
+  Kernel exit code is '156'
+  $ ./simple-os 3 10; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Module allocated kernel resource, but it did not release it.
+  Kernel exit code is '246'
+
+  # Module "complex" is correct as module "simple", but it consists of several source files.
+  $ ./simple-os 4 2; echo "Kernel exit code is '$?'"
+  Kernel resource was successfully allocated and initialized.
+  Kernel resource was successfully released.
+  Kernel exit code is '0'
+  $ ./simple-os 4 3; echo "Kernel exit code is '$?'"
+  Allocation of kernel resource with odd initial values always fails.
+  Module initialization fails with '-101' error code.
+  Kernel exit code is '155'
 
 Build processes can be very project specific.
 We can only recommend getting a successful standalone build first and then to wrap it with Clade that should also finish
