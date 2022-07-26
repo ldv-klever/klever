@@ -130,6 +130,14 @@
           {
             "name": "of_match_node",
             "description": "Function of_match_node() needs a model"
+          },
+          {
+            "name": "do_map_probe",
+            "description": "Function do_map_probe() needs a model"
+          },
+          {
+            "name": "i2c_match_id",
+            "description": "Function i2c_match_id() needs a model"
           }
         ]
       }
