@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "java.lang.OutOfMemoryError: Java heap space",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "Out of heap memory"
+}
