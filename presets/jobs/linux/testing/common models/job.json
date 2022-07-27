@@ -144,7 +144,8 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/linux/overflow/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -158,7 +159,8 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/linux/overflow/*"
       ],
       "requirement specifications": ["test:memory safety"]
     },
@@ -173,7 +175,8 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
+        "ext-modules/linux/overflow/*"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -187,7 +190,8 @@
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
         "ext-modules/linux/mm/slab-memory-safety/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety-v2/*",
+        "ext-modules/linux/overflow/*"
       ],
       "requirement specifications": ["test:memory safety"]
     }
