@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/overflow/ab_c_size_second_arg_size_max.ko"
+      "value": "ext-modules/linux/overflow/check_sub_overflow_first_arg_undef.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:common"
+      "value": "test:memory safety"
     }
   ],
   "description": "",
@@ -20,9 +20,9 @@
             {
               "LDV model 'init'": [
                 {
-                  "Instrumented function '__ab_c_size'": [
+                  "LDV model 'check_sub_overflow'": [
                     {
-                      "LDV model 'ab_c_size'": []
+                      "LDV model 'check_undef_args'": []
                     }
                   ]
                 }
