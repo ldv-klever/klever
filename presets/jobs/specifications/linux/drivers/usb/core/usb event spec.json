@@ -9,7 +9,7 @@
               "$ALLOC(%resource%);",
               "$ALLOC(%usb_device%);",
               "%resource%->dev.parent = & %usb_device%->dev;",
-              "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 1) : 0;",
+              "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 2) : 0;",
               "%device_id% = & %container%->id_table[%choice%];"
             ]
           },

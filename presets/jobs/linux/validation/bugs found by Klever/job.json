@@ -490,7 +490,10 @@
       "targets": ["drivers/video/fbdev/sm712fb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "The target code is not reachable with the proper environment model that passes pointers to struct pci_device_id matching switch cases rather than switch default."
+      }],
       "data": {"bug identifier": "19e55a87ad62~"}
     },
     {
