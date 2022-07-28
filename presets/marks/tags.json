@@ -116,12 +116,12 @@
             "description": "Function v4l2_device_set_name() needs a model"
           },
           {
-            "name": "of_device_get_match_data",
-            "description": "Function of_device_get_match_data() needs a model"
-          },
-          {
             "name": "dmi_first_match",
             "description": "Function dmi_first_match() needs a model"
+          },
+          {
+            "name": "of_device_get_match_data",
+            "description": "Function of_device_get_match_data() needs a model"
           },
           {
             "name": "of_match_device",
@@ -132,12 +132,24 @@
             "description": "Function of_match_node() needs a model"
           },
           {
+            "name": "of_property_count*",
+            "description": "Functions of_property_count*() need a model"
+          },
+          {
+            "name": "of_get_property",
+            "description": "Function of_get_property() needs a model"
+          },
+          {
             "name": "do_map_probe",
             "description": "Function do_map_probe() needs a model"
           },
           {
             "name": "i2c_match_id",
             "description": "Function i2c_match_id() needs a model"
+          },
+          {
+            "name": "dev_err_probe",
+            "description": "Function dev_err_probe() needs a model"
           }
         ]
       }

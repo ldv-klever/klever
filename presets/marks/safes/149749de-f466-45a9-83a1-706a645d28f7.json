@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:common"
+      "value": "test:memory safety"
     }
   ],
   "description": "",

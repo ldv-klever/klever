@@ -21,8 +21,12 @@
 
 static int __init ldv_init(void)
 {
-	size_t size;
-	size = __ab_c_size(3, 4, SIZE_MAX);
+	size_t a, b = 4, d;
+
+	a = ldv_undef_uint();
+	if (check_add_overflow(a, b, &d))
+		ldv_expected_error();
+
 	return 0;
 }
 

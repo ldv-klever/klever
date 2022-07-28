@@ -19,53 +19,12 @@
 #include <linux/overflow.h>
 #include <ldv/common/test.h>
 
-struct ldv_struct {
-	int field1;
-	int field2[];
-};
-
 static int __init ldv_init(void)
 {
-	size_t a, b, d;
-	struct ldv_struct *p;
+	size_t a = SIZE_MAX, b = 4, d;
 
-	a = 3;
-	b = 4;
-	if (check_add_overflow(a, b, &d))
-		ldv_unexpected_error();
-
-	if (d != 7)
-		ldv_unexpected_error();
-
-	a = 4;
-	b = 3;
-	if (check_sub_overflow(a, b, &d))
-		ldv_unexpected_error();
-
-	if (d != 1)
-		ldv_unexpected_error();
-
-	a = 3;
-	b = 4;
 	if (check_mul_overflow(a, b, &d))
-		ldv_unexpected_error();
-
-	if (d != 12)
-		ldv_unexpected_error();
-
-	if (struct_size(p, field2, 5) != 24)
-		ldv_unexpected_error();
-
-	a = 3;
-	b = 4;
-	if (array_size(a, b) != 12)
-		ldv_unexpected_error();
-
-	a = 3;
-	b = 4;
-	d = 5;
-	if (array3_size(a, b, d) != 60)
-		ldv_unexpected_error();
+		ldv_expected_error();
 
 	return 0;
 }

@@ -23,32 +23,56 @@
 
 
 /*
- * This model is very rough, but it can work pretty well at verification of Linux drivers.
- * First of all it assumes that nobody invokes __ab_c_size() with any of its arguments equal to SIZE_MAX. Nevertheless,
- * this can be the case when one provides nondeterministic values to this function at verification. The model considers
- * such the case as an overflow. Moreover, it results in reporting corresponding unsafes to catch all these cases as
- * early as possible. Otherwise, verification tools can report safes or unknowns (timeouts) hiding lack of deterministic
- * data. BTW, this trick does not work always since verification tools can decide that nondeterministic values are not
- * SIZE_MAX and find some issues later.
- * As for the essence of the given function, this model does not accurately check for overflows since it is pretty hard
- * to do. At least it computes some result rather than the original function that invokes an unknown builtin function.
- * Probably verification tools will detect some issues in case of overflows later.
+ * These models are very rough, but they can work pretty well at verification of Linux drivers.
+ * First of all they assume that nobody invokes the appropriate (macro) functions with any of their arguments equal to
+ * SIZE_MAX. Nevertheless, this can be the case when one provides nondeterministic values to them at verification.
+ * Models consider such the case as an overflow. Moreover, they result in reporting corresponding unsafes to catch all
+ * these cases as early as possible. Otherwise, verification tools can report safes or unknowns (timeouts) hiding lack
+ * of deterministic data. BTW, this trick does not work always since verification tools can decide that nondeterministic
+ * values are not SIZE_MAX and still find some issues later.
+ * As for the essence of the corresponding (macro) functions, these models do not accurately check for overflows since
+ * it is pretty hard to do. At least they compute some result rather than the original code that invokes builtin
+ * functions which the verification tool does not know. Probably verification tools will detect some issues in case of
+ * overflows themselves later.
  */
-size_t ldv_ab_c_size(size_t a, size_t b, size_t c)
-{
-	unsigned long long res;
 
+static void ldv_check_undef_args(size_t a, size_t b)
+{
 	if (a == SIZE_MAX)
-		/* ASSERT First argument of __ab_c_size() is nondeterministic (you may need to add/fix models) */
+		/* ASSERT First argument is likely nondeterministic (you may need to add/fix models) */
 		ldv_assert();
 
 	if (b == SIZE_MAX)
-		/* ASSERT Second argument of __ab_c_size() is nondeterministic (you may need to add/fix models) */
+		/* ASSERT Second argument is likely nondeterministic (you may need to add/fix models) */
 		ldv_assert();
+}
 
-	if (c == SIZE_MAX)
-		/* ASSERT Third argument of __ab_c_size() is nondeterministic (you may need to add/fix models) */
-		ldv_assert();
+int ldv_check_add_overflow(size_t a, size_t b, size_t *d)
+{
+	unsigned long long res;
 
-	return a * b + c;
+	ldv_check_undef_args(a, b);
+	*d = a + b;
+
+	return 0;
+}
+
+int ldv_check_sub_overflow(size_t a, size_t b, size_t *d)
+{
+	unsigned long long res;
+
+	ldv_check_undef_args(a, b);
+	*d = a - b;
+
+	return 0;
+}
+
+int ldv_check_mul_overflow(size_t a, size_t b, size_t *d)
+{
+	unsigned long long res;
+
+	ldv_check_undef_args(a, b);
+	*d = a * b;
+
+	return 0;
 }

@@ -21,10 +21,11 @@
 
 static int __init ldv_init(void)
 {
-	size_t b = ldv_undef_uint();
-	size_t size;
+	size_t a = 3, b, d;
 
-	size = __ab_c_size(3, b, 5);
+	b = ldv_undef_uint();
+	if (check_add_overflow(a, b, &d))
+		ldv_expected_error();
 
 	return 0;
 }
