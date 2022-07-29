@@ -41,8 +41,8 @@ RUN sed -i s/3\.10/3\.7/ setup.py
 RUN sed -i s/Django==4\.0\.3// setup.py
 RUN sed -i s/Django==4\.0\.3// requirements.txt
 RUN /usr/local/python3-klever/bin/python3 -m venv $KLEVER_SRC_DIR/venv
-RUN $KLEVER_SRC_DIR/venv/bin/python -m pip install --upgrade pip wheel setuptools setuptools_scm
-RUN $KLEVER_SRC_DIR/venv/bin/python -m pip install -r requirements.txt -e .
+RUN $KLEVER_SRC_DIR/venv/bin/python -m pip install --upgrade --no-warn-script-location pip wheel setuptools setuptools_scm
+RUN $KLEVER_SRC_DIR/venv/bin/python -m pip install --no-warn-script-location -r requirements.txt -e .
 RUN $KLEVER_SRC_DIR/venv/bin/klever-deploy-local --deployment-directory $KLEVER_DEPLOY_DIR \
     --install-only-klever-addons install development
 
