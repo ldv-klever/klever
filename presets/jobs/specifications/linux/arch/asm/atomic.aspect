@@ -31,6 +31,8 @@ int ldv_atomic_inc_and_test(atomic_t *v);
 int ldv_atomic_add_return(int i, atomic_t *v);
 int ldv_atomic_add_negative(int i, atomic_t *v);
 int ldv_atomic_inc_short(short int *v);
+int ldv_atomic_fetch_add(int i, atomic_t *v);
+int ldv_atomic_fetch_sub(int i, atomic_t *v);
 }
 
 around: execution(static inline void atomic_set(atomic_t *v, int i))
@@ -95,4 +97,20 @@ around: execution(static inline int atomic_add_negative(int i, atomic_t *v))
 around: execution(static inline short int atomic_inc_short(short int *v))
 {
 	return ldv_atomic_inc_short(v);
+}
+
+around: execution(static inline int atomic_fetch_add(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_add_acquire(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_add_release(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_add_relaxed(int i, atomic_t *v))
+{
+	return ldv_atomic_fetch_add(i, v);
+}
+
+around: execution(static inline int atomic_fetch_sub(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_sub_acquire(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_sub_release(int i, atomic_t *v))
+        || execution(static inline int atomic_fetch_sub_relaxed(int i, atomic_t *v))
+{
+	return ldv_atomic_fetch_sub(i, v);
 }
