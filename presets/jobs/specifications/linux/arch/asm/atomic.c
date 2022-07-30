@@ -94,3 +94,23 @@ int ldv_atomic_inc_short(short int *v)
 	*v = *v + 1;
 	return *v;
 }
+
+int ldv_atomic_fetch_add(int i, atomic_t *v)
+{
+	int old;
+
+	old = v->counter;
+	v->counter += i;
+
+	return old;
+}
+
+int ldv_atomic_fetch_sub(int i, atomic_t *v)
+{
+	int old;
+
+	old = v->counter;
+	v->counter -= i;
+
+	return old;
+}

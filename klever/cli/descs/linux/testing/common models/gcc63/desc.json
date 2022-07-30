@@ -6,6 +6,7 @@
         "external modules": "../tests",
         "loadable kernel modules": [
             "ext-modules/linux/arch/asm/atomic",
+            "ext-modules/linux/arch/asm/atomic-fetch",
             "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/devres",
@@ -16,6 +17,7 @@
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
+            "ext-modules/linux/kref",
             "ext-modules/linux/lib/bitmap",
             "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
@@ -34,6 +36,7 @@
         "external modules": "../tests",
         "loadable kernel modules": [
             "ext-modules/linux/arch/asm/atomic",
+            "ext-modules/linux/arch/asm/atomic-fetch",
             "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/devres",
@@ -44,6 +47,7 @@
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
+            "ext-modules/linux/kref",
             "ext-modules/linux/lib/bitmap",
             "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
