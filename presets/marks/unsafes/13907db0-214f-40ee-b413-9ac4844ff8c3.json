@@ -40,9 +40,13 @@
                   ]
                 },
                 {
-                  "platform_set_drvdata": [
+                  "Instrumented function 'v4l2_device_register'": [
                     {
-                      "dev_set_drvdata": []
+                      "LDV model 'v4l2_device_register'": [
+                        {
+                          "dev_set_drvdata": []
+                        }
+                      ]
                     }
                   ]
                 }
