@@ -13,6 +13,7 @@
         "ext-modules/linux/drivers/base/devres-memory-safety/safe.ko",
         "ext-modules/linux/drivers/base/firmware_loader/safe.ko",
         "ext-modules/linux/drivers/i2c/i2c-core-smbus/safe.ko",
+        "ext-modules/linux/drivers/media/v4l2-core/v4l2-device/safe.ko",
         "ext-modules/linux/drivers/media/v4l2-core/v4l2-i2c/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/safe.ko",
