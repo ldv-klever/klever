@@ -37,6 +37,7 @@
               "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/common.c",
+              "linux/drivers/base/core.c",
               {
                 "model": "linux/drivers/base/dd.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
