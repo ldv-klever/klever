@@ -18,6 +18,8 @@
 #ifndef __LDV_LINUX_DEVICE_H
 #define __LDV_LINUX_DEVICE_H
 
+#include <linux/types.h>
+
 struct device;
 
 extern void *ldv_dev_get_drvdata(const struct device *dev);
