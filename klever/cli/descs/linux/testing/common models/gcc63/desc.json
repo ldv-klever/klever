@@ -40,6 +40,7 @@
             "ext-modules/linux/arch/asm/atomic-fetch",
             "ext-modules/linux/arch/asm/bitops",
             "ext-modules/linux/arch/asm/current",
+            "ext-modules/linux/drivers/base/core",
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",
             "ext-modules/linux/drivers/base/firmware_loader",
