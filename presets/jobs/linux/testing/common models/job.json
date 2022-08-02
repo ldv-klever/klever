@@ -8,6 +8,7 @@
         "ext-modules/linux/arch/asm/atomic-fetch/safe.ko",
         "ext-modules/linux/arch/asm/bitops/safe.ko",
         "ext-modules/linux/arch/asm/current/safe.ko",
+        "ext-modules/linux/drivers/base/core/safe.ko",
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/base/devres/safe.ko",
         "ext-modules/linux/drivers/base/devres-memory-safety/safe.ko",
