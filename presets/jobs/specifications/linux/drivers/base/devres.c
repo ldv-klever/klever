@@ -18,6 +18,7 @@
 #include <linux/types.h>
 #include <ldv/common/list.h>
 #include <ldv/linux/common.h>
+#include <ldv/linux/device.h>
 #include <ldv/linux/slab.h>
 #include <ldv/verifier/memory.h>
 

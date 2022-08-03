@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <ldv/common/list.h>
 #include <linux/device.h>
 #include <linux/types.h>
+#include <ldv/common/list.h>
 #include <ldv/linux/device.h>
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>

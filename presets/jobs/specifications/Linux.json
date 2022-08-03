@@ -37,6 +37,7 @@
               "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/common.c",
+              "linux/drivers/base/core.c",
               {
                 "model": "linux/drivers/base/dd.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
@@ -50,6 +51,7 @@
                 "model": "linux/drivers/i2c/i2c-core-smbus.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
               },
+              "linux/drivers/media/v4l2-core/v4l2-device.c",
               "linux/drivers/media/v4l2-core/v4l2-i2c.c",
               {
                 "model": "linux/drivers/video/fbdev/core/fbsysfs.c",

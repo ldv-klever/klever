@@ -272,7 +272,7 @@
       "requirement specifications": ["kernel:module"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "CPAchecker AssertionError."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "ce5d72b6f5a0~"}
     },
@@ -283,7 +283,7 @@
       "requirement specifications": ["kernel:module"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker AssertionError."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "ce5d72b6f5a0~"}
     },
@@ -492,7 +492,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "The target code is not reachable with the proper environment model that passes pointers to struct pci_device_id matching switch cases rather than switch default."
+        "comment": "Timeout. The target code is not reachable with the proper environment model that passes pointers to struct pci_device_id matching switch cases rather than switch default."
       }],
       "data": {"bug identifier": "19e55a87ad62~"}
     },
@@ -501,7 +501,10 @@
       "targets": ["drivers/video/fbdev/sm712fb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Timeout."
+      }],
       "data": {"bug identifier": "19e55a87ad62~"}
     },
     {
@@ -677,7 +680,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found. In addition, there is non-target bug and false alarm due to \"Verifier - CPALockator - Predicate analysis - Memory model - Different structures\"."
+        "comment": "Target bug is found (2 unsafes). In addition, there is non-target bug and false alarm due to \"Verifier - CPALockator - Predicate analysis - Memory model - Different structures\"."
       }],
       "data": {"bug identifier": "44b8fb6eaa7c~"}
     },

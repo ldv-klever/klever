@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +15,13 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_DEVICE_H
-#define __LDV_LINUX_DEVICE_H
+#ifndef __LDV_LINUX_MEDIA_V4L2_DEVICE_H
+#define __LDV_LINUX_MEDIA_V4L2_DEVICE_H
 
-#include <linux/types.h>
+struct dev;
+struct v4l2_device;
 
-struct device;
+extern int ldv_v4l2_device_register(struct device *dev, struct v4l2_device *v4l2_dev);
+extern void ldv_v4l2_device_unregister(struct v4l2_device *v4l2_dev);
 
-extern void *ldv_dev_get_drvdata(const struct device *dev);
-extern int ldv_dev_set_drvdata(struct device *dev, void *data);
-
-extern void *ldv_devm_kmalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kzalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t gfp);
-extern void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t gfp);
-extern void ldv_devm_kfree(const void *p);
-
-extern int ldv_dev_err_probe(int err);
-
-#endif /* __LDV_LINUX_DEVICE_H */
+#endif /* __LDV_LINUX_MEDIA_V4L2_DEVICE_H */

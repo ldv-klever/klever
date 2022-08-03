@@ -7,10 +7,7 @@
       "targets": ["drivers/media/pci/bt8xx/bttv.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Timeout."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "7b817585b730~"}
     },
     {

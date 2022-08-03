@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +15,21 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_DEVICE_H
-#define __LDV_LINUX_DEVICE_H
+#include <linux/module.h>
+#include <linux/device.h>
+#include <ldv/common/test.h>
 
-#include <linux/types.h>
+static int __init ldv_init(void)
+{
+	struct device dev;
 
-struct device;
+	/* It is not probe(), but it does not matter for the given test case. */
+	if (dev_err_probe(&dev, -EINVAL, "Hello world!") != -EINVAL)
+		ldv_unexpected_error();
 
-extern void *ldv_dev_get_drvdata(const struct device *dev);
-extern int ldv_dev_set_drvdata(struct device *dev, void *data);
+	return 0;
+}
 
-extern void *ldv_devm_kmalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kzalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t gfp);
-extern void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t gfp);
-extern void ldv_devm_kfree(const void *p);
+module_init(ldv_init);
 
-extern int ldv_dev_err_probe(int err);
-
-#endif /* __LDV_LINUX_DEVICE_H */
+MODULE_LICENSE("GPL");
