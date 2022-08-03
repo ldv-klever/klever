@@ -21,5 +21,9 @@
 #include <linux/types.h>
 
 extern void ldv_init_list_head(struct list_head *list);
+extern int ldv_list_empty(const struct list_head *head);
+extern void ldv_list_add(struct list_head *new, struct list_head *prev, struct list_head *next);
+extern void ldv_list_del_entry(struct list_head *prev, struct list_head *next);
+extern void ldv_list_del(struct list_head *entry);
 
 #endif /* __LDV_LINUX_LIST_H */
