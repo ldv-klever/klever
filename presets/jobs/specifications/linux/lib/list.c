@@ -15,10 +15,8 @@
  * limitations under the License.
  */
 
-#include <uapi/linux/const.h>
 #include <linux/types.h>
-#include <linux/stddef.h>
-#include <linux/poison.h>
+#include <linux/list.h>
 #include <ldv/linux/list.h>
 
 void ldv_init_list_head(struct list_head *list)

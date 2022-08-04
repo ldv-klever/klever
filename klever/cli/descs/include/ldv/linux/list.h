@@ -19,6 +19,7 @@
 #define __LDV_LINUX_LIST_H
 
 #include <linux/types.h>
+#include <linux/list.h>
 
 extern void ldv_init_list_head(struct list_head *list);
 extern int ldv_list_empty(const struct list_head *head);
