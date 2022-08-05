@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#include <linux/input.h>
 #include <ldv/common/list.h>
 #include <ldv/linux/input.h>
 #include <ldv/verifier/nondet.h>
