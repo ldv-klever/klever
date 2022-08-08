@@ -84,6 +84,7 @@
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",
             "ext-modules/linux/drivers/base/firmware_loader",
+            "ext-modules/linux/drivers/i2c/i2c-core",
             "ext-modules/linux/drivers/i2c/i2c-core-smbus",
             "ext-modules/linux/drivers/input/ff-memless",
             "ext-modules/linux/drivers/media/v4l2-core/v4l2-device",
