@@ -33,8 +33,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "update_klever_fixes:6d42716",
-        "path": "https://forge.ispras.ru/attachments/download/10601/CPAchecker-6d42716.tar.xz",
+        "version": "update_klever_fixes:84d35b8",
+        "path": "https://forge.ispras.ru/attachments/download/10607/CPAchecker-84d35b8.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
