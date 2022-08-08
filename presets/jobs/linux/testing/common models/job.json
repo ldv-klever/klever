@@ -13,6 +13,7 @@
         "ext-modules/linux/drivers/base/devres/safe.ko",
         "ext-modules/linux/drivers/base/devres-memory-safety/safe.ko",
         "ext-modules/linux/drivers/base/firmware_loader/safe.ko",
+        "ext-modules/linux/drivers/i2c/i2c-core/safe.ko",
         "ext-modules/linux/drivers/i2c/i2c-core-smbus/safe.ko",
         "ext-modules/linux/drivers/input/ff-memless/safe.ko",
         "ext-modules/linux/drivers/media/v4l2-core/v4l2-device/safe.ko",
@@ -127,6 +128,7 @@
       "exclude targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -143,6 +145,7 @@
       "targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -160,6 +163,7 @@
       "exclude targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -177,6 +181,7 @@
       "targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/kref/*",
@@ -196,6 +201,7 @@
       "exclude targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
@@ -213,6 +219,7 @@
       "targets": [
         "ext-modules/linux/arch/asm/bitops/*",
         "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/i2c/i2c-core/*",
         "ext-modules/linux/drivers/input/ff-memless/*",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/kref/*",
