@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/rc/rc-core.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

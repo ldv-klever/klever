@@ -20,6 +20,10 @@
 
 #include <linux/types.h>
 
+struct i2c_device_id;
+struct i2c_client;
+
+extern const struct i2c_device_id *ldv_i2c_match_id(const struct i2c_device_id *id, const struct i2c_client *client);
 extern s32 ldv_i2c_smbus_read_block_data(u8 *values);
 
 #endif /* __LDV_LINUX_I2C_H */

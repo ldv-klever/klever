@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,38 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_LIST_H
-#define __LDV_LINUX_LIST_H
-
 #include <linux/types.h>
 #include <linux/list.h>
+#include <ldv/linux/list.h>
 
-extern void ldv_init_list_head(struct list_head *list);
-extern int ldv_list_empty(const struct list_head *head);
-extern void ldv_list_add(struct list_head *new, struct list_head *prev, struct list_head *next);
-extern void ldv_list_del_entry(struct list_head *prev, struct list_head *next);
-extern void ldv_list_del(struct list_head *entry);
+void ldv_init_list_head(struct list_head *list)
+{
+	list->next = list;
+	list->prev = list;
+}
 
-#endif /* __LDV_LINUX_LIST_H */
+int ldv_list_empty(const struct list_head *head)
+{
+	return head->next == head;
+}
+
+void ldv_list_add(struct list_head *new, struct list_head *prev, struct list_head *next)
+{
+	next->prev = new;
+	new->next = next;
+	new->prev = prev;
+	prev->next = new;
+}
+
+void ldv_list_del_entry(struct list_head *prev, struct list_head *next)
+{
+	next->prev = prev;
+	prev->next = next;
+}
+
+void ldv_list_del(struct list_head *entry)
+{
+	ldv_list_del_entry(entry->prev, entry->next);
+	entry->next = LIST_POISON1;
+	entry->prev = LIST_POISON2;
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,12 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_LIST_H
-#define __LDV_LINUX_LIST_H
+before: file("$this")
+{
+#include <ldv/linux/input.h>
+}
 
-#include <linux/types.h>
-#include <linux/list.h>
-
-extern void ldv_init_list_head(struct list_head *list);
-extern int ldv_list_empty(const struct list_head *head);
-extern void ldv_list_add(struct list_head *new, struct list_head *prev, struct list_head *next);
-extern void ldv_list_del_entry(struct list_head *prev, struct list_head *next);
-extern void ldv_list_del(struct list_head *entry);
-
-#endif /* __LDV_LINUX_LIST_H */
+around: call(int input_ff_create_memless(struct input_dev *dev, void *data, int (*play_effect)(struct input_dev *, void *, struct ff_effect *)))
+{
+	return ldv_input_ff_create_memless(dev, data, play_effect);
+}

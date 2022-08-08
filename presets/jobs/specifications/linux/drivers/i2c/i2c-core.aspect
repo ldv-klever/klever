@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,10 @@
 
 before: file("$this")
 {
-#include <ldv/linux/list.h>
+#include <ldv/linux/i2c.h>
 }
 
-around: execution(static inline void INIT_LIST_HEAD(struct list_head *list))
+around: call(const struct i2c_device_id *i2c_match_id(const struct i2c_device_id *id, const struct i2c_client *client))
 {
-	ldv_init_list_head(list);
+	return ldv_i2c_match_id(id, client);
 }

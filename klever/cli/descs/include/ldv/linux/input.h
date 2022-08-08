@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-#include <linux/list.h>
-#include <ldv/linux/list.h>
+#ifndef __LDV_LINUX_INPUT_H
+#define __LDV_LINUX_INPUT_H
 
-void ldv_init_list_head(struct list_head *list)
-{
-	list->next = list;
-	list->prev = list;
-}
+struct input_dev;
+struct ff_effect;
+
+extern int ldv_input_ff_create_memless(struct input_dev *dev, void *data, int (*play_effect)(struct input_dev *, void *, struct ff_effect *));
+
+#endif /* __LDV_LINUX_INPUT_H */

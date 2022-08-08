@@ -47,10 +47,12 @@
                 "model": "linux/drivers/base/firmware_loader.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
               },
+              "linux/drivers/i2c/i2c-core.c",
               {
                 "model": "linux/drivers/i2c/i2c-core-smbus.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
               },
+              "linux/drivers/input/ff-memless.c",
               "linux/drivers/media/v4l2-core/v4l2-device.c",
               "linux/drivers/media/v4l2-core/v4l2-i2c.c",
               {
@@ -65,8 +67,8 @@
               "linux/kernel/panic.c",
               "linux/lib/bitmap.c",
               "linux/lib/find_bit.common.c",
+              "linux/lib/list.c",
               "linux/lib/string.c",
-              "linux/list.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",

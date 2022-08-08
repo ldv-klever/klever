@@ -29,11 +29,11 @@ struct spi_master *ldv_spi_alloc_master(struct device *host, unsigned size)
 	if (!master)
 		return NULL;
 
-    /* In Linux ~3.14 dev_set_drvdata() is external undefined function with model ldv_dev_set_drvdata() called
-       explicitly below since models are not instrumented. In Linux ~4.6 dev_set_drvdata() is static inline function
-       and model has no sense while explicit call to dev_set_drvdata() will do the necessary work. */
-    ldv_dev_set_drvdata(&master->dev, &master[1]);
-    dev_set_drvdata(&master->dev, &master[1]);
+	/* In Linux ~3.14 dev_set_drvdata() is external undefined function with model ldv_dev_set_drvdata() called
+	   explicitly below since models are not instrumented. In Linux ~4.6 dev_set_drvdata() is static inline function
+	   and model has no sense while explicit call to dev_set_drvdata() will do the necessary work. */
+	ldv_dev_set_drvdata(&master->dev, &master[1]);
+	dev_set_drvdata(&master->dev, &master[1]);
 
 	return master;
 }
@@ -52,8 +52,8 @@ struct spi_controller *ldv_spi_alloc_controller(struct device *host, unsigned si
 	if (!controller)
 		return NULL;
 
-    ldv_dev_set_drvdata(&controller->dev, &controller[1]);
-    dev_set_drvdata(&controller->dev, &controller[1]);
+	ldv_dev_set_drvdata(&controller->dev, &controller[1]);
+	dev_set_drvdata(&controller->dev, &controller[1]);
 
 	return controller;
 }

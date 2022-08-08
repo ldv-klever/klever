@@ -607,10 +607,7 @@
       "targets": ["drivers/media/rc/rc-core.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "False alarm due to \"API models - Linux kernel - list*\". New value is not added to list map->list in rc_core_init()->rc_map_register() since list_add_tail() has not a model, but later it is unconditionally \"removed\" by list_del()."
-      }],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "3b4cfc6966ec~"}
     },
     {

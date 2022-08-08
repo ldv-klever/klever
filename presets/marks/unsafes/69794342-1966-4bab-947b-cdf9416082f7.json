@@ -27,11 +27,11 @@
                 {
                   "rc_map_unregister": [
                     {
-                      "list_del": [
+                      "Instrumented function 'list_del'": [
                         {
-                          "__list_del_entry": [
+                          "LDV model 'list_del'": [
                             {
-                              "__list_del": []
+                              "LDV model 'list_del_entry'": []
                             }
                           ]
                         }

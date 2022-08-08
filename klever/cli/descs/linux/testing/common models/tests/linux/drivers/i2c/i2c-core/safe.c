@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,33 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_LIST_H
-#define __LDV_LINUX_LIST_H
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <ldv/common/test.h>
 
-#include <linux/types.h>
-#include <linux/list.h>
+enum ldv_chips { ldv_chip_1, ldv_chip_2, ldv_chip_3 };
 
-extern void ldv_init_list_head(struct list_head *list);
-extern int ldv_list_empty(const struct list_head *head);
-extern void ldv_list_add(struct list_head *new, struct list_head *prev, struct list_head *next);
-extern void ldv_list_del_entry(struct list_head *prev, struct list_head *next);
-extern void ldv_list_del(struct list_head *entry);
+static const struct i2c_device_id ldv_id[] = {
+	{"ldv_chip_1", ldv_chip_1},
+	{"ldv_chip_2", ldv_chip_2},
+	{"ldv_chip_3", ldv_chip_3},
+	{}
+};
 
-#endif /* __LDV_LINUX_LIST_H */
+struct i2c_client ldv_client;
+
+static int __init ldv_init(void)
+{
+	int id;
+
+	id = i2c_match_id(ldv_id, &ldv_client)->driver_data;
+
+	if (id < ldv_chip_1 || id > ldv_chip_3)
+		ldv_unexpected_memory_safety_error();
+
+	return 0;
+}
+
+module_init(ldv_init);
+
+MODULE_LICENSE("GPL");
