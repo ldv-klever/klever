@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2022 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,12 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_I2C_H
-#define __LDV_LINUX_I2C_H
+before: file("$this")
+{
+#include <ldv/linux/i2c.h>
+}
 
-#include <linux/types.h>
-
-struct i2c_device_id;
-struct i2c_client;
-
-extern const struct i2c_device_id *ldv_i2c_match_id(const struct i2c_device_id *id, const struct i2c_client *client);
-extern s32 ldv_i2c_smbus_read_block_data(u8 *values);
-
-#endif /* __LDV_LINUX_I2C_H */
+around: call(const struct i2c_device_id *i2c_match_id(const struct i2c_device_id *id, const struct i2c_client *client))
+{
+	return ldv_i2c_match_id(id, client);
+}

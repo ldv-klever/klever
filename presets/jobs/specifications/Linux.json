@@ -47,6 +47,7 @@
                 "model": "linux/drivers/base/firmware_loader.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
               },
+              "linux/drivers/i2c/i2c-core.c",
               {
                 "model": "linux/drivers/i2c/i2c-core-smbus.c",
                 "options": {"weave in aspects": ["linux/lib/string.aspect"]}
