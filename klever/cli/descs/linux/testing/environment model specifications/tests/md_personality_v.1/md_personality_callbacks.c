@@ -28,8 +28,10 @@ static int ldv_run(struct mddev *mddev)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(mddev);
+	}
 	return res;
 }
 
@@ -37,6 +39,7 @@ static void md_free(struct mddev *mddev, void *priv)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(mddev);
 }
 
 static struct md_personality ldv_personality =

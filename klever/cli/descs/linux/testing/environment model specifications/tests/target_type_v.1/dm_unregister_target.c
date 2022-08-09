@@ -23,12 +23,14 @@
 static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(ti);
 	return 0;
 }
 
 static void ldv_dtr(struct dm_target *ti)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(ti);
 }
 
 static struct target_type ldv_target = {

@@ -28,6 +28,8 @@ int flip_a_coin;
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
 	ldv_invoke_callback();
+	ldv_check_irq(irq_id);
+	ldv_check_resource1(data);
 	return IRQ_HANDLED;
 }
 
@@ -37,6 +39,8 @@ static int __init ldv_init(void)
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
+		ldv_store_irq(irq_id);
+		ldv_store_resource1(data);
 		ret = request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
 		if (ret)
 			ldv_deregister();

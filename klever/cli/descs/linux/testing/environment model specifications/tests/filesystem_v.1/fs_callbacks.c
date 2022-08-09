@@ -27,6 +27,7 @@ static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *d
 	int res;
 
 	ldv_invoke_callback();
+	ldv_check_resource1(fs_type);
 	res = ldv_undef_int();
 	if (!res)
 		ldv_probe_up();
@@ -52,6 +53,7 @@ static int __init ldv_init(void)
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
+		ldv_store_resource1(&ldv_fs);
 		ret = register_filesystem(&ldv_fs);
 		if (ret)
 			ldv_deregister();

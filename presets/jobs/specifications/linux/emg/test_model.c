@@ -17,9 +17,13 @@
 
 #include <ldv/verifier/common.h>
 
-int registered;
-int probed;
-int suppress;
+static int registered;
+static int probed;
+static int suppress;
+static void *resource1;
+static void *resource2;
+static void *resource3;
+static int stored_irq = -1;
 
 void ldv_initialize(void)
 {
@@ -107,5 +111,85 @@ void ldv_check_final_state(void)
 
 	if (registered && !suppress)
 		/* ASSERT At the end of the test all callbacks should be deregistered. */
+		ldv_assert();
+}
+
+void ldv_store_resource1(void *resource)
+{
+	if (resource1)
+		/* ASSERT Resource 1 is already occupied. */
+		ldv_assert();
+
+	resource1 = resource;
+}
+
+void ldv_store_resource2(void *resource)
+{
+	if (resource2)
+		/* ASSERT Resource 2 is already occupied. */
+		ldv_assert();
+
+	resource2 = resource;
+}
+
+void ldv_store_resource3(void *resource)
+{
+	if (resource3)
+		/* ASSERT Resource 3 is already occupied. */
+		ldv_assert();
+
+	resource3 = resource;
+}
+
+void ldv_check_resource1(void *resource)
+{
+	if (!resource1)
+		/* ASSERT Resource 1 was not stored yet. */
+		ldv_assert();
+
+	if (resource != resource1)
+		/* ASSERT Resource 1 differs. */
+		ldv_assert();
+}
+
+void ldv_check_resource2(void *resource)
+{
+	if (!resource2)
+		/* ASSERT Resource 2 was not stored yet. */
+		ldv_assert();
+
+	if (resource != resource2)
+		/* ASSERT Resource 2 differs. */
+		ldv_assert();
+}
+
+void ldv_check_resource3(void *resource)
+{
+	if (!resource3)
+		/* ASSERT Resource 3 was not stored yet. */
+		ldv_assert();
+
+	if (resource != resource2)
+		/* ASSERT Resource 3 differs. */
+		ldv_assert();
+}
+
+void ldv_store_irq(int irq)
+{
+	if (stored_irq != -1)
+		/* ASSERT IRQ is already occupied. */
+		ldv_assert();
+
+	stored_irq = irq;
+}
+
+void ldv_check_irq(int irq)
+{
+	if (stored_irq == -1)
+		/* ASSERT IRQ was not stored yet. */
+		ldv_assert();
+
+	if (irq != stored_irq)
+		/* ASSERT IRQ differs. */
 		ldv_assert();
 }

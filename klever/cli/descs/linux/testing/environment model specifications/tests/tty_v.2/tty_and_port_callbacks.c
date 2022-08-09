@@ -30,12 +30,15 @@ unsigned indx;
 
 int ldv_open(struct tty_struct * tty, struct file * filp)
 {
+	ldv_store_resource1(tty);
+	ldv_store_resource2(filp);
 	return 0;
 }
 
 void ldv_close(struct tty_struct * tty, struct file * filp)
 {
-	/* pass */
+	ldv_check_resource1(tty);
+	ldv_check_resource2(filp);
 }
 
 static struct tty_operations ldv_tty_ops = {
@@ -46,12 +49,15 @@ static struct tty_operations ldv_tty_ops = {
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(tty);
+	ldv_check_resource3(tport);
 	return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
 	ldv_invoke_callback();
+	ldv_check_resource3(tport);
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {
@@ -78,6 +84,7 @@ static int __init ldv_init(void)
 			else {
 				tty_port_init(&port);
 				port.ops = &ldv_tty_port_ops;
+				ldv_store_resource3(&port);
 				dev = tty_port_register_device(&port, driver, ldv_undef_int(), device);
 				if (IS_ERR(dev)) {
 					res = PTR_ERR(dev);

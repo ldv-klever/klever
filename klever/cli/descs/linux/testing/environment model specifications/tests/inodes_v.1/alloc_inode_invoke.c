@@ -37,6 +37,7 @@ const struct inode_operations ldv_dir_inops = {
 static struct inode *ldv_super_alloc_inode(struct super_block *sb)
 {
 	ldv_invoke_reached();
+	ldv_check_resource2(sb);
 	return ldv_undef_ptr();
 }
 
@@ -57,6 +58,8 @@ static int ldv_fill_super(struct super_block *s, void *data, int silent)
 	if (!s->s_root)
 		return -ENOMEM;
 
+	ldv_store_resource2(s);
+
 	return 0;
 }
 
@@ -65,6 +68,7 @@ static struct dentry *ldv_mount(struct file_system_type *fs_type, int flags, con
 	struct dentry *dentry;
 	
 	ldv_invoke_callback();
+	ldv_check_resource1(fs_type);
 	dentry = mount_bdev(fs_type, flags, dev_name, data, ldv_fill_super);
 	if (dentry != 0)
 		ldv_probe_up();
@@ -76,6 +80,7 @@ static void ldv_kill_sb(struct super_block *sb)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource2(sb);
 }
 
 static struct file_system_type ldv_fs = {
@@ -88,6 +93,7 @@ static int __init ldv_init(void)
 	int ret = ldv_undef_int();
 
 	ldv_register();
+	ldv_store_resource1(&ldv_fs);
 	ret = register_filesystem(&ldv_fs);
 	if (ret)
 		ldv_deregister();

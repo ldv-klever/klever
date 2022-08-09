@@ -28,8 +28,10 @@ static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(ti);
+	}
 	return res;
 }
 
@@ -37,6 +39,7 @@ static void ldv_dtr(struct dm_target *ti)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(ti);
 }
 
 static struct target_type ldv_target = {

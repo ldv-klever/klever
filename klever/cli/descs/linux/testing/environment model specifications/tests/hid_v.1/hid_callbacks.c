@@ -25,23 +25,27 @@ int flip_a_coin;
 int ldv_start(struct hid_device *hdev)
 {
 	ldv_probe_up();
+	ldv_store_resource1(hdev);
 	return 0;
 }
 
 void ldv_hid_stop(struct hid_device *hdev)
 {
 	ldv_release_down();
+	ldv_check_resource1(hdev);
 }
 
 int ldv_open(struct hid_device *hdev)
 {
 	ldv_probe_up();
+	ldv_check_resource1(hdev);
 	return 0;
 }
 
 void ldv_close(struct hid_device *hdev)
 {
 	ldv_release_down();
+	ldv_check_resource1(hdev);
 }
 
 struct hid_ll_driver ldv_driver = {

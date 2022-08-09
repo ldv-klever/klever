@@ -27,12 +27,16 @@ void * data;
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
 	ldv_invoke_reached();
+	ldv_check_irq(irq_id);
+	ldv_check_resource1(data);
 	return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
+	ldv_store_irq(irq_id);
+	ldv_store_resource1(data);
 	return request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
 }
 

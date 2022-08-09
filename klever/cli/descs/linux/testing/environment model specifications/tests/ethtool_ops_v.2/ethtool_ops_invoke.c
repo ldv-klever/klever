@@ -26,6 +26,7 @@ struct net_device dev;
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(dev);
 	return 0;
 }
 
@@ -36,6 +37,7 @@ static struct ethtool_ops ops = {
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
+	ldv_store_resource1(&dev);
 	netdev_set_default_ethtool_ops(&dev, &ops);
 	return register_netdev(&dev);
 }

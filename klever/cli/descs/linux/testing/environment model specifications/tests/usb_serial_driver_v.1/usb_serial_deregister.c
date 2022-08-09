@@ -27,12 +27,14 @@ const struct usb_device_id *id_table;
 int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(serial);
 	return 0;
 }
 
 void ldv_release(struct usb_serial *serial)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(serial);
 }
 
 static struct usb_serial_driver ldv_driver = {

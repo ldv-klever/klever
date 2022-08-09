@@ -23,23 +23,27 @@
 
 static int ldvprobe(struct platform_device *op)
 {
+	ldv_store_resource1(op);
 	return 0;
 }
 
 static int ldvremove(struct platform_device *op)
 {
+	ldv_check_resource1(op);
 	return 0;
 }
 
 static int test_suspend(struct device *dev)
 {
 	ldv_invoke_reached();
+	ldv_store_resource2(dev);
 	return 0;
 }
 
 static int test_resume(struct device *dev)
 {
 	ldv_invoke_reached();
+	ldv_check_resource2(dev);
 	return 0;
 }
 

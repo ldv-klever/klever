@@ -29,11 +29,15 @@ struct device *dev;
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
 	ldv_invoke_reached();
+	ldv_check_irq(irq_id);
+	ldv_check_resource1(data);
 	return IRQ_WAKE_THREAD;
 }
 
 static irqreturn_t irq_thread(int irq_id, void * data)
 {
+	ldv_check_irq(irq_id);
+	ldv_check_resource1(data);
 	return IRQ_HANDLED;
 }
 
@@ -42,6 +46,8 @@ static int __init ldv_init(void)
 	ldv_invoke_test();
 	data = ldv_undef_ptr();
 	dev = ldv_undef_ptr();
+	ldv_store_irq(irq_id);
+	ldv_store_resource1(data);
 	return devm_request_threaded_irq(dev, irq_id,irq_handler, irq_thread, irqflags, "ldv interrupt", data);
 }
 

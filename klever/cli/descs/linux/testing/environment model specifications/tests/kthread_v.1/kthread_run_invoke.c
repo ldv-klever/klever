@@ -9,6 +9,7 @@ static struct task_struct *thread;
 static int ldv_handler(void *data)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(data);
 	return 0;
 }
 
@@ -16,6 +17,7 @@ static int __init ldv_init(void)
 {
 	data = ldv_undef_ptr();
 	ldv_invoke_test();
+	ldv_store_resource1(data);
 	thread = kthread_run(ldv_handler, data, "kthread_handler");
 	return 0;
 }

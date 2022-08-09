@@ -27,12 +27,14 @@ struct uart_port *port;
 int ldv_startup(struct uart_port *port)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(port);
 	return 0;
 }
 
 void ldv_shutdown(struct uart_port *port)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(port);
 }
 
 static struct uart_ops ldv_uart_ops = {
@@ -47,6 +49,7 @@ static int __init ldv_init(void)
 	if (flip_a_coin) {
 		port->ops = &ldv_uart_ops;
 		ldv_register();
+		ldv_store_resource1(port);
 		res = uart_add_one_port(driver, port);
 		if (!res) {
 			uart_remove_one_port(driver, port);

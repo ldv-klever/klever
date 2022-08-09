@@ -25,12 +25,14 @@ int flip_a_coin;
 static int ldv_attach(struct scsi_device *sdev)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(sdev);
 	return 0;
 }
 
 static void ldv_detach(struct scsi_device *sdev)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(sdev);
 }
 
 static struct scsi_device_handler ldv_test_struct = {

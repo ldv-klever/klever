@@ -25,12 +25,16 @@ unsigned int major;
 static int ldv_open(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(inode);
+	ldv_store_resource2(filp);
 	return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(inode);
+	ldv_check_resource2(filp);
 	return 0;
 }
 

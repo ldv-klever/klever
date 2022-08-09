@@ -23,12 +23,14 @@
 static int ldv_run(struct mddev *mddev)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(mddev);
 	return 0;
 }
 
 static void md_free(struct mddev *mddev, void *priv)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(mddev);
 }
 
 static struct md_personality ldv_personality =

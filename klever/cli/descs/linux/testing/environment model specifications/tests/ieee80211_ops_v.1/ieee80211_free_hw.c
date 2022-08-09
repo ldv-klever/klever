@@ -25,12 +25,14 @@ struct ieee80211_hw *priv;
 static int ldv_start_callback(struct ieee80211_hw *hw)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(hw);
 	return 0;
 }
 
 static void ldv_stop_callback(struct ieee80211_hw *hw)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(hw);
 }
 
 static const struct ieee80211_ops ldv_ops = {

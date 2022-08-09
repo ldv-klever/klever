@@ -23,12 +23,16 @@
 static int ldv_add_dev(struct device *dev, struct class_interface *intf)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(dev);
+	ldv_store_resource2(intf);
 	return 0;
 }
 
 static void ldv_remove_dev(struct device *dev, struct class_interface *intf)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
+	ldv_check_resource2(intf);
 }
 
 static struct class_interface ldv_driver = {

@@ -24,12 +24,14 @@
 int ldv_probe(struct hid_device *dev, const struct hid_device_id *id)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(dev);
 	return 0;
 }
 
 void ldv_remove(struct hid_device *dev)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(dev);
 }
 
 struct hid_driver ldv_driver = {

@@ -27,12 +27,14 @@ int disc;
 int ldv_open(struct tty_struct * tty)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(tty);
 	return 0;
 }
 
 void ldv_close(struct tty_struct * tty)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(tty);
 }
 
 static struct tty_ldisc_ops ldv_tty_ops = {

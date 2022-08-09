@@ -26,12 +26,14 @@ struct uart_port *port;
 int ldv_startup(struct uart_port *port)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(port);
 	return 0;
 }
 
 void ldv_shutdown(struct uart_port *port)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(port);
 }
 
 static struct uart_ops ldv_uart_ops = {
@@ -43,6 +45,7 @@ static int __init ldv_init(void)
 {
 	ldv_invoke_test();
 	port->ops = &ldv_uart_ops;
+	ldv_store_resource1(port);
 	return uart_add_one_port(driver, port);
 }
 

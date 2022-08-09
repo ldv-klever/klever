@@ -28,12 +28,14 @@ struct device *device;
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(tport);
 	return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(tport);
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {
@@ -50,6 +52,7 @@ static int __init ldv_init(void)
 	tty_port_init(&port);
 	port.ops = &ldv_tty_port_ops;
 	ldv_register();
+	ldv_store_resource1(&port);
 	dev = tty_port_register_device(&port, driver, ldv_undef_int(), device);
 	if (IS_ERR(dev)) {
 		res = PTR_ERR(dev);

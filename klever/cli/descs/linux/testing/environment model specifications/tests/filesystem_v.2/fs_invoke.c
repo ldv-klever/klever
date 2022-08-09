@@ -23,6 +23,7 @@
 static struct dentry *ldv_mount(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(fs_type);
 	return NULL;
 }
 
@@ -39,6 +40,7 @@ static struct file_system_type ldv_fs = {
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
+	ldv_store_resource1(&ldv_fs);
 	return register_filesystem(&ldv_fs);
 }
 

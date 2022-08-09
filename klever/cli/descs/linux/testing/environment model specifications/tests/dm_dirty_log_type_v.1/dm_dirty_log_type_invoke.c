@@ -23,12 +23,14 @@
 static int ldv_ctr(struct dm_dirty_log *log, struct dm_target *ti, unsigned argc, char **argv)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(log);
 	return ldv_undef_int();
 }
 
 static void ldv_dtr(struct dm_dirty_log *log)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(log);
 }
 
 static struct dm_dirty_log_type ldv_type = {

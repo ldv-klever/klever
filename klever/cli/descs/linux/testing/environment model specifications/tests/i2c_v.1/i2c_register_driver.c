@@ -25,12 +25,14 @@ int flip_a_coin;
 int ldv_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(client);
 	return 0;
 }
 
 int ldv_remove(struct i2c_client *client)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(client);
     return 0;
 }
 

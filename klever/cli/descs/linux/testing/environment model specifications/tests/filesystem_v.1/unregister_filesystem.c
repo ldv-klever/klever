@@ -30,18 +30,23 @@ static int ldv_fill_super(struct super_block *s, void *data, int silent)
 	if (!s->s_root) {
 		return -ENOMEM;
 	}
+
+	ldv_store_resource2(s);
+
 	return 0;
 }
 
 static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(fs_type);
 	return get_sb_bdev(fs_type, flags, dev_name, data, ldv_fill_super, mnt);
 }
 
 static void ldv_kill_sb(struct super_block *sb)
 {
 	ldv_invoke_callback();
+	ldv_check_resource2(sb);
 }
 
 static struct file_system_type ldv_fs = {
@@ -56,6 +61,7 @@ static int __init ldv_init(void)
 
 	if (flip_a_coin) {
 		ldv_register();
+		ldv_store_resource1(&ldv_fs);
 		ret = register_filesystem(&ldv_fs);
 		if (!ret) {
 			unregister_filesystem(&ldv_fs);

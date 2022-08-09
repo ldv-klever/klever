@@ -27,6 +27,7 @@ int flip_a_coin;
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
 	return 0;
 }
 
@@ -41,6 +42,7 @@ static int __init ldv_init(void)
 	if (flip_a_coin) {
 		netdev_set_default_ethtool_ops(&dev, &ops);
 		ldv_register();
+		ldv_store_resource1(&dev);
 		ret = register_netdev(&dev);
 		if (ret)
 			ldv_deregister();

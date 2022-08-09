@@ -23,12 +23,14 @@
 int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(intf);
 	return 0;
 }
 
 static void ldv_disconnect(struct usb_interface *intf)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(intf);
 }
 
 static struct usb_driver ldv_driver = {

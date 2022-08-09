@@ -29,8 +29,11 @@ static int ldv_open(struct inode *inode, struct file *filp)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(inode);
+		ldv_store_resource2(filp);
+	}
 	return res;
 }
 
@@ -38,6 +41,8 @@ static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(inode);
+	ldv_check_resource2(filp);
 	return 0;
 }
 

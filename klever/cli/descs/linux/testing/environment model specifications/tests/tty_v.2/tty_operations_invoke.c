@@ -29,12 +29,16 @@ unsigned indx;
 int ldv_open(struct tty_struct * tty, struct file * filp)
 {
 	ldv_invoke_reached();
+	ldv_store_resource1(tty);
+	ldv_store_resource2(filp);
 	return 0;
 }
 
 void ldv_close(struct tty_struct * tty, struct file * filp)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(tty);
+	ldv_check_resource2(filp);
 }
 
 static struct tty_operations ldv_tty_ops = {

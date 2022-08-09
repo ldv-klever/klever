@@ -28,8 +28,10 @@ int ldv_probe(struct ldv_resource *arg)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(arg);
+	}
 	return res;
 }
 
@@ -37,6 +39,7 @@ void ldv_disconnect(struct ldv_resource *arg)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(arg);
 }
 
 static struct ldv_driver ops = {

@@ -8,6 +8,7 @@ static struct urb u;
 static void ldv_handler(struct urb *u)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(u);
 }
 
 static int __init ldv_init(void)
@@ -21,6 +22,7 @@ static int __init ldv_init(void)
 	ldv_invoke_test();
 	usb_fill_int_urb(&u, dev, pipe, transfer_buffer, buffer_length, 
 		(usb_complete_t) ldv_handler, context, interval);
+	ldv_store_resource1(&u);
 	usb_submit_urb(&u, GFP_KERNEL);
 	usb_unlink_urb(&u);
 	return 0;

@@ -26,22 +26,26 @@ unsigned char name_assign_type;
 
 static netdev_tx_t ldv_xmit(struct sk_buff *skb, struct net_device *dev)
 {
+	ldv_check_resource1(dev);
 	return 0;
 }
 
 static int ldv_open(struct net_device *dev)
 {
+	ldv_check_resource1(dev);
 	return 0;
 }
 
 static int ldv_close(struct net_device *dev)
 {
+	ldv_check_resource1(dev);
 	return 0;
 }
 
 static void ldv_setup(struct net_device *dev)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(dev);
 }
 
 static const struct net_device_ops ldv_ops = {
@@ -56,6 +60,7 @@ static int __init ldv_init(void)
 	dev = alloc_netdev(sizeof(struct net_device_ops), "ldv_dev", name_assign_type, ldv_setup);
 	if (dev) {
 		dev->netdev_ops = &ldv_ops;
+		ldv_store_resource1(dev);
 		return register_netdev(dev);
 	}
 	else

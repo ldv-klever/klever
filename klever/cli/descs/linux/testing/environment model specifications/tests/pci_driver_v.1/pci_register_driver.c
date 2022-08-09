@@ -25,12 +25,14 @@ int flip_a_coin;
 static int ldv_probe(struct pci_dev *dev, const struct pci_device_id *id)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(dev);
 	return 0;
 }
 
 static void ldv_remove(struct pci_dev *dev)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
 }
 
 static struct pci_driver ldv_driver = {

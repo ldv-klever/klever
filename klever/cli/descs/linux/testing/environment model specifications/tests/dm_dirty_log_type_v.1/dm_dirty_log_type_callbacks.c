@@ -28,8 +28,10 @@ static int ldv_ctr(struct dm_dirty_log *log, struct dm_target *ti, unsigned argc
 	res = ldv_undef_int();
 
 	ldv_invoke_callback();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(log);
+	}
 
 	return res;
 }
@@ -38,6 +40,7 @@ static void ldv_dtr(struct dm_dirty_log *log)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(log);
 }
 
 static struct dm_dirty_log_type ldv_type = {

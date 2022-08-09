@@ -29,8 +29,10 @@ static int ldvprobe(struct platform_device *op)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(op);
+	}
 	return res;
 }
 
@@ -38,6 +40,7 @@ static int ldvremove(struct platform_device *op)
 {
 	ldv_release_completely();
 	ldv_invoke_callback();
+	ldv_check_resource1(op);
 	return 0;
 }
 
@@ -45,6 +48,7 @@ static int test_suspend(struct device *dev)
 {
 	ldv_probe_up();
 	ldv_invoke_middle_callback();
+	ldv_store_resource2(dev);
 	return 0;
 }
 
@@ -52,6 +56,7 @@ static int test_resume(struct device *dev)
 {
 	ldv_release_down();
 	ldv_invoke_middle_callback();
+	ldv_check_resource2(dev);
 	return 0;
 }
 

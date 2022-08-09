@@ -25,12 +25,14 @@ int flip_a_coin;
 int ldv_probe(struct ldv_resource *arg)
 {
 	ldv_invoke_callback();
+	ldv_store_resource1(arg);
 	return 0;
 }
 
 void ldv_disconnect(struct ldv_resource *arg)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(arg);
 }
 
 static struct ldv_driver ops = {

@@ -27,12 +27,14 @@ struct se_device * ldv_alloc_device(struct se_hba *hba, const char *name)
 	ldv_invoke_callback();
 	res = ldv_undef_ptr();
 	ldv_invoke_reached();
+	ldv_store_resource1(res);
 	return res;
 }
 
 static void ldv_free_device(struct se_device *device)
 {
 	ldv_invoke_reached();
+	ldv_check_resource1(device);
 }
 
 static struct se_subsystem_api ldv_driver = {

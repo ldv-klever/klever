@@ -26,18 +26,21 @@ struct mutex *ldv_envgen;
 static netdev_tx_t ldv_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
 	return 0;
 }
 
 static int ldv_open(struct net_device *dev)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
 	return 0;
 }
 
 static int ldv_close(struct net_device *dev)
 {
 	ldv_invoke_callback();
+	ldv_check_resource1(dev);
 	return 0;
 }
 
@@ -54,6 +57,7 @@ static int __init ldv_init(void)
 	if (flip_a_coin) {
 		dev.netdev_ops = &ldv_ops;
 		ldv_register();
+		ldv_store_resource1(&dev);
 		ret = register_netdev(&dev);
 		if (!ret)
 			unregister_netdev(&dev);

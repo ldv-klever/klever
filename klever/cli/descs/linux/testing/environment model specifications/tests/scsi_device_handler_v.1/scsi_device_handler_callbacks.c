@@ -28,8 +28,10 @@ static int ldv_attach(struct scsi_device *sdev)
 
 	ldv_invoke_callback();
 	res = ldv_undef_int();
-	if (!res)
+	if (!res) {
 		ldv_probe_up();
+		ldv_store_resource1(sdev);
+	}
 	return res;
 }
 
@@ -37,6 +39,7 @@ static void ldv_detach(struct scsi_device *sdev)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
+	ldv_check_resource1(sdev);
 }
 
 static struct scsi_device_handler ldv_test_struct = {

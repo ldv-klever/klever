@@ -29,11 +29,13 @@ int ldv_startup(struct uart_port *port)
 	int res;
 
 	res = ldv_undef_int();
+	ldv_check_resource1(port);
 	return res;
 }
 
 void ldv_shutdown(struct uart_port *port)
 {
+	ldv_check_resource1(port);
 }
 
 void ldv_pm(struct uart_port *port, unsigned int new_state, 
@@ -43,6 +45,7 @@ void ldv_pm(struct uart_port *port, unsigned int new_state,
 	} else if(new_state == 0) {
 	      ldv_probe_up();
 	}
+	ldv_check_resource1(port);
 }
 
 static struct uart_ops ldv_uart_ops = {
@@ -59,6 +62,7 @@ static int __init ldv_init(void)
 	if(flip_a_coin) {
 		port->ops = &ldv_uart_ops;
 		ldv_register();
+		ldv_store_resource1(port);
 		res = uart_add_one_port(driver, port);
 		if (res)
 			ldv_deregister();
