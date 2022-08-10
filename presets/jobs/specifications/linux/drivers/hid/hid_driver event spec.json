@@ -71,7 +71,7 @@
             "callback": "%hid_driver.remove%",
             "comment": "HID device is no more accessible.",
             "parameters": [
-              "%hid_driver%"
+              "%resource%"
             ]
           },
           "skip": {
@@ -188,7 +188,7 @@
             "callback": "%hid_driver.remove%",
             "comment": "HID device is no more accessible.",
             "parameters": [
-              "%hid_driver%"
+              "%resource%"
             ]
           },
           "reset_resume": {
