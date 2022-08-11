@@ -33,8 +33,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "alignment_attribute:f7c116d",
-        "path": "https://forge.ispras.ru/attachments/download/10612/CPAchecker-f7c116d.tar.xz",
+        "version": "alignment_attribute:8d8f6cc",
+        "path": "https://forge.ispras.ru/attachments/download/10613/CPAchecker-8d8f6cc.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
