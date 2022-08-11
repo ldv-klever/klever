@@ -110,6 +110,8 @@
     {
       "targets": ["**"],
       "exclude targets": [
+          "ext-modules/attributes/aligned/*",
+          "ext-modules/attributes/packed/*",
           "ext-modules/dynamic-memory/arrays/*",
           "ext-modules/initializers/*"
       ],
@@ -121,6 +123,8 @@
     },
     {
       "targets": [
+        "ext-modules/attributes/aligned/*",
+        "ext-modules/attributes/packed/*",
         "ext-modules/initializers/*",
         "ext-modules/lists/*"
       ],

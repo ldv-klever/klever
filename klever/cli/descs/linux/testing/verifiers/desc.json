@@ -8,6 +8,8 @@
             "ext-modules/arrays/ten-elements",
             "ext-modules/arrays/two-dimensional",
             "ext-modules/arrays/two-elements",
+            "ext-modules/attributes/aligned",
+            "ext-modules/attributes/packed",
             "ext-modules/bitfields",
             "ext-modules/bitwise-operations/and",
             "ext-modules/bitwise-operations/complement",
