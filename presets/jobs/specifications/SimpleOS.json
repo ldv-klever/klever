@@ -53,7 +53,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "cbb25c3"
+              "version": "alignment_attribute:8d8f6cc"
             }
           }
         }
@@ -95,7 +95,7 @@
               "verifier profile": "memory checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "cbb25c3"
+                "version": "alignment_attribute:8d8f6cc"
               }
             }
           }
