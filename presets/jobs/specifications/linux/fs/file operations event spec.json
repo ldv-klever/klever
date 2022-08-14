@@ -10,7 +10,8 @@
           "callback": {
             "callback": "%callback%",
             "parameters": [
-              "%resource%",
+              "%inode%",
+              "%file%",
               "%size_cnt%"
             ]
           },
@@ -26,14 +27,16 @@
             "comment": "Free memory of file and inode structures.",
             "trace relevant": true,
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%inode%);",
+              "$FREE(%file%);"
             ]
           },
           "init": {
             "comment": "Allocate memory for file and inode structures.",
             "trace relevant": true,
             "statements": [
-              "$ALLOC(%resource%);",
+              "$ALLOC(%inode%);",
+              "$ALLOC(%file%);",
               "%size_cnt% = ldv_undef_int();"
             ]
           },
@@ -46,7 +49,8 @@
             "callback return value": "%ret%",
             "comment": "Open the device file.",
             "parameters": [
-              "%resource%"
+              "%inode%",
+              "%file%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -73,14 +77,15 @@
             "callback": "%container.release%",
             "comment": "File structure is released.",
             "parameters": [
-              "%resource%"
+              "%inode%",
+              "%file%"
             ]
           },
           "write": {
             "callback": "%container.write%",
             "comment": "Write data to the device.",
             "parameters": [
-              "%resource%",
+              "%file%",
               "%size_cnt%"
             ],
             "pre-call": [
@@ -108,7 +113,16 @@
               "file_operations.file_operations"
             ]
           },
-          "resource": {
+          "inode": {
+            "interface": [
+              "file_operations.inode"
+            ],
+            "resource": true
+          },
+          "file": {
+            "interface": [
+              "file_operations.file"
+            ],
             "resource": true
           },
           "ret": {
