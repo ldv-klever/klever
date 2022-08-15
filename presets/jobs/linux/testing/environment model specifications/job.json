@@ -77,6 +77,8 @@
         "ext-modules/tty_v.1/tty_port_operations_invoke.ko",
         "ext-modules/tty_v.2/tty_operations_invoke.ko",
         "ext-modules/tty_v.2/tty_port_operations_invoke.ko",
+        "ext-modules/tty_v.3/tty_operations_invoke.ko",
+        "ext-modules/tty_v.3/tty_port_operations_invoke.ko",
         "ext-modules/usb_driver_v.1/usb_invoke.ko",
         "ext-modules/usb_serial_driver_v.1/usb_serial_invoke.ko",
         "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.ko",
