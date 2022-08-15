@@ -575,12 +575,12 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                 ret = ret_expression()
                 if ret != '':
                     if isinstance(signature.points.return_value, Pointer):
-                        ret += 'ldv_undef_ptr();'
+                        ret += ' ldv_undef_ptr();'
                     else:
-                        ret += 'ldv_undef_int();'
+                        ret += ' ldv_undef_int();'
 
                 code = ["if ({}) ".format(invoke) + "{"] + ['\t' + stm for stm in code] + \
-                       (["} else {", '\t' + ret, "}"] if ret != '' else ['}'])
+                       (["} else {", ret, "}"] if ret != '' else ['}'])
 
             # Insert new action and replace this one
             new = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),
