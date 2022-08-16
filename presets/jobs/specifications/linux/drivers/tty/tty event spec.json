@@ -37,15 +37,17 @@
             ]
           },
           "free": {
-            "comment": "Free memory of file structure.",
+            "comment": "Free memory of file and tty structures.",
             "statements": [
-              "$FREE(%file%);"
+              "$FREE(%file%);",
+              "$FREE(%tty_struct%);"
             ]
           },
           "init": {
-            "comment": "Allocate memory for file structure.",
+            "comment": "Allocate memory for file and tty structures.",
             "statements": [
-              "$ALLOC(%file%);"
+              "$ALLOC(%file%);",
+              "$ALLOC(%tty_struct%);"
             ]
           },
           "install": {
@@ -83,9 +85,21 @@
               "/* Expect that tty_mutex is locked */"
             ]
           },
+          "lookup_failed": {
+            "comment": "Failed to find the tty device.",
+            "condition": [
+              "!%tty_struct%"
+            ]
+          },
+          "lookup_success": {
+            "comment": "Successfully found the tty device.",
+            "condition": [
+              "%tty_struct%"
+            ]
+          },
           "main": {
             "comment": "Install tty or deregister.",
-            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main[1]} | <free>.(deregister)"
+            "process": "[lookup].(<lookup_success>.[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>) | <lookup_failed>).{main[1]} | <free>.(deregister)"
           },
           "open": {
             "callback": "%tty_operations.open%",
@@ -451,15 +465,17 @@
             ]
           },
           "free": {
-            "comment": "Free memory of file structure.",
+            "comment": "Free memory of file and tty structures.",
             "statements": [
-              "$FREE(%file%);"
+              "$FREE(%file%);",
+              "$FREE(%tty_struct%);"
             ]
           },
           "init": {
-            "comment": "Allocate memory for file structure.",
+            "comment": "Allocate memory for file and tty structures.",
             "statements": [
-              "$ALLOC(%file%);"
+              "$ALLOC(%file%);",
+              "$ALLOC(%tty_struct%);"
             ]
           },
           "install": {
@@ -497,9 +513,21 @@
               "/* Expect that tty_mutex is locked */"
             ]
           },
+          "lookup_failed": {
+            "comment": "Failed to find the tty device.",
+            "condition": [
+              "!%tty_struct%"
+            ]
+          },
+          "lookup_success": {
+            "comment": "Successfully found the tty device.",
+            "condition": [
+              "%tty_struct%"
+            ]
+          },
           "main": {
             "comment": "Install tty or deregister.",
-            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main[1]} | <free>.(deregister)"
+            "process": "[lookup].(<lookup_success>.[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>) | <lookup_failed>).{main[1]} | <free>.(deregister)"
           },
           "open": {
             "callback": "%tty_operations.open%",
