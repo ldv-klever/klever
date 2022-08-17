@@ -94,7 +94,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "alignment_attribute:8d8f6cc"
+              "version": "klever_main:3c59e06"
             }
           }
         }
@@ -142,7 +142,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "alignment_attribute:8d8f6cc"
+              "version": "klever_main:3c59e06"
             }
           }
         }
@@ -396,7 +396,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "alignment_attribute:8d8f6cc"
+                            "version": "klever_main:3c59e06"
                           }
                         }
                       }
@@ -723,7 +723,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "alignment_attribute:8d8f6cc"
+                    "version": "klever_main:3c59e06"
                   }
                 }
               }
@@ -751,7 +751,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "alignment_attribute:8d8f6cc"
+                    "version": "klever_main:3c59e06"
                   }
                 }
               }
