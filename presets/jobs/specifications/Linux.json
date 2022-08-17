@@ -66,6 +66,7 @@
               "linux/err.c",
               "linux/kernel/panic.c",
               "linux/lib/bitmap.c",
+              "linux/lib/dynamic_debug.c",
               "linux/lib/find_bit.common.c",
               "linux/lib/list.c",
               "linux/lib/string.c",
