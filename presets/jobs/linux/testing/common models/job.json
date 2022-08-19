@@ -83,6 +83,7 @@
         "ext-modules/linux/mm/slab-memory-safety/*",
         "ext-modules/linux/mm/vmalloc-memory-safety/*",
         "ext-modules/verifier/common/ldv_assert_memory_safety.ko",
+        "ext-modules/verifier/memory/*",
         "ext-modules/verifier/nondet/*"
       ],
       "requirement specifications": ["test:memory safety"]
