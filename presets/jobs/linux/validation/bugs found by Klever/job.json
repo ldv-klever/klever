@@ -117,7 +117,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Non-target bug is found. The overall verdict is unknown (timeout)."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
@@ -128,7 +128,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Non-target bug is found. The overall verdict is unknown (timeout)."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
@@ -341,10 +341,7 @@
       "targets": ["drivers/gpu/drm/bridge/megachips-stdpxxxx-ge-b850v3-fw.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Safe. It is not clear why CPAchecker SMG misses target bug."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "f688a345f0d7~"}
     },
     {
@@ -408,7 +405,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "False alarm due to \"API models - Linux kernel\". v4l2_fwnode_endpoint_parse() initializes its second argument that affects a loop boundary and thus array accesses."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "f45882cfb152~"}
     },
@@ -569,10 +566,7 @@
       "targets": ["drivers/usb/gadget/udc/gr_udc.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "False alarm due to \"Verifier - CPAchecker SMG\". CPAchecker SMG does not catch that \"dev->nepo = ((status >> 24) & 15U) + 1U\" is always less than 17 and overflows array dev->epo that has exactly 16 elements."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "c8f8529e2c41~"}
     },
     {
