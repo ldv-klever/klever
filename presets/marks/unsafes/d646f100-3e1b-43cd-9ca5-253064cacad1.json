@@ -2,6 +2,11 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-7907-g762a3af6faa0"
+    },
+    {
+      "is_compare": true,
       "name": "Program fragment",
       "value": "drivers/rapidio/devices/rio_mport_cdev.ko"
     },
