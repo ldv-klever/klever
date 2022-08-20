@@ -65,8 +65,10 @@ static int __init ldv_init(void)
 	if (!cachep2)
 		return -1;
 	cachep3 = kmem_cache_create("ldv3", sizeof(struct ldv_struct3), 0, 0, NULL);
-	if (!cachep3)
+	if (!cachep3) {
+		kmem_cache_destroy(cachep2);
 		return -1;
+	}
 	res = kmem_cache_alloc(cachep2, ldv_flags);
 	if (res)
 		kmem_cache_free(cachep2, res);
