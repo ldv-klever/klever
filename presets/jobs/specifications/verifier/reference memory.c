@@ -31,17 +31,34 @@ void *ldv_reference_malloc(size_t size)
 	/* Always successful according to SV-COMP definition. */
 	res = malloc(size);
 	ldv_assume(res != NULL);
+
 	return res;
 }
 
 void *ldv_reference_calloc(size_t nmemb, size_t size)
 {
-	return calloc(nmemb, size);
+	void *res;
+
+	if (ldv_is_memory_alloc_failures && ldv_undef_int())
+		return NULL;
+
+	res = calloc(nmemb, size);
+	ldv_assume(res != NULL);
+
+	return res;
 }
 
 void *ldv_reference_zalloc(size_t size)
 {
-	return calloc(1, size);
+	void *res;
+
+	if (ldv_is_memory_alloc_failures && ldv_undef_int())
+		return NULL;
+
+	res = calloc(1, size);
+	ldv_assume(res != NULL);
+
+	return res;
 }
 
 void ldv_reference_free(void *s)

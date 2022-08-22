@@ -572,15 +572,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
             # Note, that it is a bad idea to add condition to the conditions since it might prevent execution of all
             # next code after the translation since we do not know is this action influence branch chose or it does not
             if check:
-                ret = ret_expression()
-                if ret != '':
-                    if isinstance(signature.points.return_value, Pointer):
-                        ret += 'ldv_undef_ptr();'
-                    else:
-                        ret += 'ldv_undef_int();'
-
-                code = ["if ({}) ".format(invoke) + "{"] + ['\t' + stm for stm in code] + \
-                       (["} else {", '\t' + ret, "}"] if ret != '' else ['}'])
+                code = ["if ({}) ".format(invoke) + "{"] + ['\t' + stm for stm in code] + ["}"]
 
             # Insert new action and replace this one
             new = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),

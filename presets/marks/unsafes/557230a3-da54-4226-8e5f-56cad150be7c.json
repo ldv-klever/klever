@@ -16,7 +16,7 @@
       "value": "memory safety"
     }
   ],
-  "description": "CPAchecker SMG does not catch that \"dev-&gt;nepo = ((status &gt;&gt; 24) &amp; 15U) + 1U\" is always less than 17 and overflows array dev-&gt;epo that has exactly 16 elements.",
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=c8f8529e2c41",
   "error_trace": [
     [
       [
@@ -40,23 +40,29 @@
                   ]
                 },
                 {
-                  "platform_set_drvdata": [
+                  "gr_udc_init": [
                     {
-                      "dev_set_drvdata": []
-                    }
-                  ]
-                },
-                {
-                  "gr_remove": [
-                    {
-                      "platform_get_drvdata": [
+                      "gr_ep_init": [
                         {
-                          "dev_get_drvdata": []
+                          "gr_alloc_request": [
+                            {
+                              "Instrumented function 'kzalloc'": [
+                                {
+                                  "LDV model 'kzalloc'": [
+                                    {
+                                      "LDV model 'zalloc'": [
+                                        {
+                                          "LDV model 'reference_zalloc'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
                         }
                       ]
-                    },
-                    {
-                      "gr_ep_remove": []
                     }
                   ]
                 }
@@ -70,10 +76,7 @@
   "function": "thread_call_forests",
   "is_modifiable": false,
   "status": null,
-  "tags": [
-    "Verifier",
-    "Verifier - CPAchecker SMG"
-  ],
+  "tags": [],
   "threshold": 100,
-  "verdict": "3"
+  "verdict": "2"
 }

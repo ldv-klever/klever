@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Project:Version",
-      "value": "v5.7-7907-g762a3af6faa0"
+      "value": "v5.7-7908-ge1c3cdb26ab8"
     },
     {
       "is_compare": true,
@@ -53,9 +53,16 @@
                   "Instrumented function 'mutex_lock'": []
                 },
                 {
-                  "Instrumented function 'atomic_set'": [
+                  "Instrumented function 'mutex_unlock'": []
+                },
+                {
+                  "mport_cdev_remove": [
                     {
-                      "LDV model 'atomic_set'": []
+                      "Instrumented function 'atomic_set'": [
+                        {
+                          "LDV model 'atomic_set'": []
+                        }
+                      ]
                     }
                   ]
                 }
@@ -88,20 +95,17 @@
             {
               "mport_cdev_ioctl": [
                 {
-                  "rio_mport_obw_free": [
+                  "rio_mport_alloc_dma": [
                     {
-                      "Instrumented function 'mutex_lock'": []
-                    },
-                    {
-                      "kref_put": [
+                      "rio_mport_create_dma_mapping": [
                         {
-                          "refcount_dec_and_test": [
+                          "kref_init": [
                             {
-                              "refcount_sub_and_test": [
+                              "refcount_set": [
                                 {
-                                  "Instrumented function 'atomic_fetch_sub'": [
+                                  "Instrumented function 'atomic_set'": [
                                     {
-                                      "LDV model 'atomic_fetch_sub'": []
+                                      "LDV model 'atomic_set'": []
                                     }
                                   ]
                                 }
@@ -125,10 +129,10 @@
   "status": null,
   "tags": [
     "Verifier",
-    "Verifier - CPALockator - Predicate analysis - Memory model - Different structures",
-    "Verifier - CPALockator - Predicate analysis - Memory model",
+    "Verifier - CPALockator",
     "Verifier - CPALockator - Predicate analysis",
-    "Verifier - CPALockator"
+    "Verifier - CPALockator - Predicate analysis - Memory model - Different structures",
+    "Verifier - CPALockator - Predicate analysis - Memory model"
   ],
   "threshold": 100,
   "verdict": "3"
