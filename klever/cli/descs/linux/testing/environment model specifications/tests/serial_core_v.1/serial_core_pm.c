@@ -22,7 +22,7 @@
 
 int flip_a_coin;
 struct uart_driver *driver;
-struct uart_port *port;
+struct uart_port port;
 
 int ldv_startup(struct uart_port *port)
 {
@@ -38,7 +38,7 @@ void ldv_shutdown(struct uart_port *port)
 	ldv_check_resource1(port);
 }
 
-void ldv_pm(struct uart_port *port, unsigned int new_state, 
+void ldv_pm(struct uart_port *port, unsigned int new_state,
 	    unsigned int old_state) {
 	if(new_state == 3) {
 	      ldv_release_down();
@@ -60,21 +60,21 @@ static int __init ldv_init(void)
 
 	flip_a_coin = ldv_undef_int();
 	if(flip_a_coin) {
-		port->ops = &ldv_uart_ops;
+		port.ops = &ldv_uart_ops;
 		ldv_register();
-		ldv_store_resource1(port);
-		res = uart_add_one_port(driver, port);
+		ldv_store_resource1(&port);
+		res = uart_add_one_port(driver, &port);
 		if (res)
 			ldv_deregister();
 	}
-	
+
 	return res;
 }
 
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-		uart_remove_one_port(driver, port);
+		uart_remove_one_port(driver, &port);
 		ldv_deregister();
 	}
 }

@@ -15,7 +15,7 @@ static int ldv_handler(void *data)
 
 static int __init ldv_init(void)
 {
-	data = ldv_undef_ptr();
+	data = ldv_undef_ptr_non_null();
 	ldv_invoke_test();
 	ldv_store_resource1(data);
 	thread = kthread_run(ldv_handler, data, "kthread_handler");

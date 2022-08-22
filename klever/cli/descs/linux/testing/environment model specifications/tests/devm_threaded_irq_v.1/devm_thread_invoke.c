@@ -44,6 +44,8 @@ static irqreturn_t irq_thread(int irq_id, void * data)
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
+	data = ldv_undef_ptr_non_null();
+	dev = ldv_undef_ptr_non_null();
 	ldv_store_irq(irq_id);
 	ldv_store_resource1(data);
 	return devm_request_threaded_irq(dev, irq_id, irq_handler, irq_thread, irqflags, "ldv interrupt", data);

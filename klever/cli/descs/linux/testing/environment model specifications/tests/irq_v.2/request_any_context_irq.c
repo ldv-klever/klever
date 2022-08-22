@@ -37,6 +37,7 @@ static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
 	flip_a_coin = ldv_undef_int();
+	data = ldv_undef_ptr_non_null();
 	if (flip_a_coin) {
 		ldv_register();
 		ldv_store_irq(irq_id);
