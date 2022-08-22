@@ -33,6 +33,7 @@ static irqreturn_t irq_handler(int irq_id, void * data)
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
+	data = ldv_undef_ptr_non_null();
 	return request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
 }
 

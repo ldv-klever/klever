@@ -21,7 +21,7 @@
 #include <ldv/verifier/nondet.h>
 
 struct uart_driver *driver;
-struct uart_port *port;
+struct uart_port port;
 
 int ldv_startup(struct uart_port *port)
 {
@@ -42,13 +42,13 @@ static struct uart_ops ldv_uart_ops = {
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
-	port->ops = &ldv_uart_ops;
-	return uart_add_one_port(driver, port);
+	port.ops = &ldv_uart_ops;
+	return uart_add_one_port(driver, &port);
 }
 
 static void __exit ldv_exit(void)
 {
-	uart_remove_one_port(driver, port);
+	uart_remove_one_port(driver, &port);
 }
 
 module_init(ldv_init);

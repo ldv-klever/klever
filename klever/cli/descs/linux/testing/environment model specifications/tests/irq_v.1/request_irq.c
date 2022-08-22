@@ -35,6 +35,7 @@ static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
 	flip_a_coin = ldv_undef_int();
+	data = ldv_undef_ptr_non_null();
 	if (flip_a_coin) {
 		ldv_register();
 		ret = request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
