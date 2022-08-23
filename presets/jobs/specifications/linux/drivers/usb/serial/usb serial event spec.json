@@ -8,7 +8,7 @@
             "callback return value": "%ret%",
             "comment": "Do any local initialization of the device and private memory structure allocation.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -24,7 +24,7 @@
             "callback": "%driver.close%",
             "comment": "Line discipline is being unplugged from the terminal.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ]
           },
           "deregister": {
@@ -39,26 +39,30 @@
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "disconnect2": {
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "free": {
             "comment": "Free usb_serial memory.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%usb_serial%);",
+              "$FREE(%tty_struct%);",
+              "$FREE(%usb_serial_port%);"
             ]
           },
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "$ALLOC(%resource%);"
+              "$ALLOC(%usb_serial%);",
+              "$ALLOC(%tty_struct%);",
+              "$ALLOC(%usb_serial_port%);"
             ]
           },
           "insert_device": {
@@ -69,7 +73,7 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ],
             "post-call": [
               "ldv_switch_to_process_context();"
@@ -116,7 +120,8 @@
             "callback": "%driver.open%",
             "comment": "Line discipline is attached to the terminal.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           },
           "opened": {
@@ -130,7 +135,7 @@
             "callback return value": "%ret%",
             "comment": "Initialize serial port data.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -146,7 +151,7 @@
             "callback": "%driver.port_remove%",
             "comment": "Free serial port data.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ]
           },
           "probe": {
@@ -154,7 +159,7 @@
             "callback return value": "%ret%",
             "comment": "Device has been inserted in the system.",
             "parameters": [
-              "%resource%",
+              "%usb_serial%",
               "%usb_device_id%"
             ],
             "post-call": [
@@ -180,27 +185,27 @@
             "callback": "%driver.release%",
             "comment": "Data structure usb_serial is about to be destroyed (This should be done after disconnect).",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "rest_line_attached_callbacks": {
             "callback": "%rest_line_attached_callbacks%",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "resume": {
             "callback": "%driver.resume%",
             "comment": "Warn the driver that the device is going to be resumed.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspend": {
             "callback": "%driver.suspend%",
             "comment": "Warn the driver that the device is going to be suspended.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspended": {
@@ -217,7 +222,7 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           }
         },
@@ -234,7 +239,22 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "resource": {
+          "usb_serial": {
+            "interface": [
+              "usb_serial.usb_serial"
+            ],
+            "resource": true
+          },
+          "tty_struct": {
+            "interface": [
+              "usb_serial.tty_struct"
+            ],
+            "resource": true
+          },
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "rest_line_attached_callbacks": {
@@ -268,8 +288,8 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ],
             "post-call": [
               "ldv_switch_to_process_context();"
@@ -282,21 +302,21 @@
             "comment": "Begin USB serial tty layer callbacks invocation scenario.",
             "parameters": [
               "%driver%",
-              "%port%",
-              "%resource%"
+              "%usb_serial_port%",
+              "%tty_struct%"
             ]
           },
           "rest_line_attached_callbacks": {
             "callback": "%rest_line_attached_callbacks%",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "throttle": {
             "callback": "%driver.throttle%",
             "comment": "Notify the tty driver that input buffers for the line discipline are close to full.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "tty_layer": {
@@ -307,15 +327,15 @@
             "callback": "%driver.unthrottle%",
             "comment": "Notify the tty drivers that it should signals that characters can now be sent.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "write": {
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           }
         },
@@ -332,13 +352,16 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "port": {
+          "tty_struct": {
             "interface": [
-              "usb_serial.usb_serial_port"
+              "usb_serial.tty_struct"
             ],
             "resource": true
           },
-          "resource": {
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "rest_line_attached_callbacks": {
@@ -433,8 +456,8 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ],
             "post-call": [
               "ldv_switch_to_process_context();"
@@ -447,14 +470,14 @@
             "comment": "Begin USB serial tty layer callbacks invocation scenario.",
             "parameters": [
               "%driver%",
-              "%port%",
-              "%resource%"
+              "%usb_serial_port%",
+              "%tty_struct%"
             ]
           },
           "rest_line_attached_callbacks": {
             "callback": "%rest_line_attached_callbacks%",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "throttle": {
@@ -479,8 +502,8 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           },
           "read_int_callback": {
@@ -489,7 +512,7 @@
             "parameters": [
               "%urb%"
             ],
-            "pre-call": ["%urb% = %port%->interrupt_in_urb;"]
+            "pre-call": ["%urb% = %usb_serial_port%->interrupt_in_urb;"]
           },
           "write_int_callback": {
             "callback": "%driver.write_int_callback%",
@@ -497,7 +520,7 @@
             "parameters": [
               "%urb%"
             ],
-            "pre-call": ["%urb% = %port%->interrupt_out_urb;"]
+            "pre-call": ["%urb% = %usb_serial_port%->interrupt_out_urb;"]
           },
           "read_bulk_callback": {
             "callback": "%driver.read_bulk_callback%",
@@ -505,7 +528,7 @@
             "parameters": [
               "%urb%"
             ],
-            "pre-call": ["%urb% = %port%->read_urbs[0];"]
+            "pre-call": ["%urb% = %usb_serial_port%->read_urbs[0];"]
           },
           "write_bulk_callback": {
             "callback": "%driver.write_bulk_callback%",
@@ -513,7 +536,7 @@
             "parameters": [
               "%urb%"
             ],
-            "pre-call": ["%urb% = %port%->write_urbs[0];"]
+            "pre-call": ["%urb% = %usb_serial_port%->write_urbs[0];"]
           },
           "process_read_urb": {
             "callback": "%driver.process_read_urb%",
@@ -521,13 +544,13 @@
             "parameters": [
               "%urb%"
             ],
-            "pre-call": ["%urb% = %port%->read_urbs[0];"]
+            "pre-call": ["%urb% = %usb_serial_port%->read_urbs[0];"]
           },
           "init": {
             "comment": "Initialize a new URB.",
             "statements": [
               "%tty_struct% = ldv_xmalloc(sizeof(struct tty_struct));",
-              "%tty_struct%->driver_data = %port%;"
+              "%tty_struct%->driver_data = %usb_serial_port%;"
             ]
           },
           "free": {
@@ -550,25 +573,22 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "port": {
+          "tty_struct": {
             "interface": [
-              "usb_serial.usb_serial_port"
+              "usb_serial.tty_struct"
             ],
             "resource": true
           },
-          "resource": {
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "urb": {
             "resource": true,
             "interface": [
               "usb_serial.urb"
-            ]
-          },
-          "tty_struct": {
-            "resource": true,
-            "interface": [
-              "usb_serial.tty_struct"
             ]
           },
           "rest_line_attached_callbacks": {
@@ -585,7 +605,7 @@
             "callback return value": "%ret%",
             "comment": "Do any local initialization of the device and private memory structure allocation.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -601,7 +621,7 @@
             "callback": "%driver.close%",
             "comment": "Line discipline is being unplugged from the terminal.",
             "parameters": [
-              "%port%"
+              "%usb_serial_port%"
             ]
           },
           "deregister": {
@@ -622,29 +642,31 @@
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "free": {
             "comment": "Free usb_serial memory.",
             "statements": [
-              "$FREE(%resource%);",
-              "$FREE(%port%->write_urbs[0]);",
-              "$FREE(%port%->interrupt_in_urb);",
-              "$FREE(%port%->interrupt_out_urb);",
-              "$FREE(%port%->read_urbs[0]);",
-              "$FREE(%port%);"
+              "$FREE(%usb_serial%);",
+              "$FREE(%tty_struct%);",
+              "$FREE(%usb_serial_port%->write_urbs[0]);",
+              "$FREE(%usb_serial_port%->interrupt_in_urb);",
+              "$FREE(%usb_serial_port%->interrupt_out_urb);",
+              "$FREE(%usb_serial_port%->read_urbs[0]);",
+              "$FREE(%usb_serial_port%);"
             ]
           },
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "$ALLOC(%resource%);",
-              "%port% = ldv_xmalloc(sizeof(struct usb_serial_port));",
-              "%port%->write_urbs[0] = emg_make_urb(%port%);",
-              "%port%->interrupt_in_urb = emg_make_urb(%port%);",
-              "%port%->interrupt_out_urb = emg_make_urb(%port%);",
-              "%port%->read_urbs[0] = emg_make_urb(%port%);"
+              "$ALLOC(%usb_serial%);",
+              "$ALLOC(%tty_struct%);",
+              "%usb_serial_port% = ldv_xmalloc(sizeof(struct usb_serial_port));",
+              "%usb_serial_port%->write_urbs[0] = emg_make_urb(%usb_serial_port%);",
+              "%usb_serial_port%->interrupt_in_urb = emg_make_urb(%usb_serial_port%);",
+              "%usb_serial_port%->interrupt_out_urb = emg_make_urb(%usb_serial_port%);",
+              "%usb_serial_port%->read_urbs[0] = emg_make_urb(%usb_serial_port%);"
             ]
           },
           "insert_device": {
@@ -690,8 +712,8 @@
             "callback return value": "%ret%",
             "comment": "Line discipline is attached to the terminal.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           },
           "opened": {
@@ -705,7 +727,7 @@
             "callback return value": "%ret%",
             "comment": "Initialize serial port data.",
             "parameters": [
-              "%port%"
+              "%usb_serial_port%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -721,7 +743,7 @@
             "callback": "%driver.port_remove%",
             "comment": "Free serial port data.",
             "parameters": [
-              "%port%"
+              "%usb_serial_port%"
             ]
           },
           "probe": {
@@ -729,7 +751,7 @@
             "callback return value": "%ret%",
             "comment": "Device has been inserted in the system.",
             "parameters": [
-              "%resource%",
+              "%usb_serial%",
               "%usb_device_id%"
             ],
             "post-call": [
@@ -755,36 +777,36 @@
             "comment": "Now register tty callbacks.",
             "parameters": [
               "%driver%",
-              "%port%",
-              "%resource%"
+              "%usb_serial_port%",
+              "%tty_struct%"
             ]
           },
           "release": {
             "callback": "%driver.release%",
             "comment": "Data structure usb_serial is about to be destroyed (This should be done after disconnect).",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "reset_resume": {
             "callback": "%driver.reset_resume%",
             "comment": "The device has been resumed and it also has been reset.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "resume": {
             "callback": "%driver.resume%",
             "comment": "Warn the driver that the device is going to be resumed.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspend": {
             "callback": "%driver.suspend%",
             "comment": "Warn the driver that the device is going to be suspended.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspended": {
@@ -807,13 +829,22 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "port": {
+          "usb_serial": {
             "interface": [
-              "usb_serial.usb_serial_port"
+              "usb_serial.usb_serial"
             ],
             "resource": true
           },
-          "resource": {
+          "tty_struct": {
+            "interface": [
+              "usb_serial.tty_struct"
+            ],
+            "resource": true
+          },
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "ret": {
@@ -943,7 +974,7 @@
             "callback return value": "%ret%",
             "comment": "Do any local initialization of the device and private memory structure allocation.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -959,7 +990,7 @@
             "callback": "%driver.close%",
             "comment": "Line discipline is being unplugged from the terminal.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ]
           },
           "deregister": {
@@ -974,25 +1005,29 @@
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },"disconnect2": {
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "free": {
             "comment": "Free usb_serial memory.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%usb_serial%);",
+              "$FREE(%tty_struct%);",
+              "$FREE(%usb_serial_port%);"
             ]
           },
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "$ALLOC(%resource%);"
+              "$ALLOC(%usb_serial%);",
+              "$ALLOC(%tty_struct%);",
+              "$ALLOC(%usb_serial_port%);"
             ]
           },
           "insert_device": {
@@ -1003,7 +1038,7 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ],
             "post-call": [
               "ldv_switch_to_process_context();"
@@ -1050,7 +1085,8 @@
             "callback": "%driver.open%",
             "comment": "Line discipline is attached to the terminal.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           },
           "opened": {
@@ -1064,7 +1100,7 @@
             "callback return value": "%ret%",
             "comment": "Initialize serial port data.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ],
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
@@ -1080,7 +1116,7 @@
             "callback": "%driver.port_remove%",
             "comment": "Free serial port data.",
             "parameters": [
-              "%resource%"
+              "%usb_serial_port%"
             ]
           },
           "probe": {
@@ -1088,7 +1124,7 @@
             "callback return value": "%ret%",
             "comment": "Device has been inserted in the system.",
             "parameters": [
-              "%resource%",
+              "%usb_serial%",
               "%usb_device_id%"
             ],
             "post-call": [
@@ -1114,27 +1150,27 @@
             "callback": "%driver.release%",
             "comment": "Data structure usb_serial is about to be destroyed (This should be done after disconnect).",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "rest_line_attached_callbacks": {
             "callback": "%rest_line_attached_callbacks%",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "resume": {
             "callback": "%driver.resume%",
             "comment": "Warn the driver that the device is going to be resumed.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspend": {
             "callback": "%driver.suspend%",
             "comment": "Warn the driver that the device is going to be suspended.",
             "parameters": [
-              "%resource%"
+              "%usb_serial%"
             ]
           },
           "suspended": {
@@ -1151,7 +1187,7 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           }
         },
@@ -1168,7 +1204,22 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "resource": {
+          "usb_serial": {
+            "interface": [
+              "usb_serial.usb_serial"
+            ],
+            "resource": true
+          },
+          "tty_struct": {
+            "interface": [
+              "usb_serial.tty_struct"
+            ],
+            "resource": true
+          },
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "rest_line_attached_callbacks": {
@@ -1202,8 +1253,8 @@
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ],
             "post-call": [
               "ldv_switch_to_process_context();"
@@ -1216,21 +1267,21 @@
             "comment": "Begin USB serial tty layer callbacks invocation scenario.",
             "parameters": [
               "%driver%",
-              "%port%",
-              "%resource%"
+              "%usb_serial_port%",
+              "%tty_struct%"
             ]
           },
           "rest_line_attached_callbacks": {
             "callback": "%rest_line_attached_callbacks%",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "throttle": {
             "callback": "%driver.throttle%",
             "comment": "Notify the tty driver that input buffers for the line discipline are close to full.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "tty_layer": {
@@ -1241,15 +1292,15 @@
             "callback": "%driver.unthrottle%",
             "comment": "Notify the tty drivers that it should signals that characters can now be sent.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "write": {
             "callback": "%driver.write%",
             "comment": "Write a block of characters to the tty device in atomic context.",
             "parameters": [
-              "%resource%",
-              "%port%"
+              "%tty_struct%",
+              "%usb_serial_port%"
             ]
           }
         },
@@ -1266,13 +1317,16 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "port": {
+          "tty_struct": {
             "interface": [
-              "usb_serial.usb_serial_port"
+              "usb_serial.tty_struct"
             ],
             "resource": true
           },
-          "resource": {
+          "usb_serial_port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
             "resource": true
           },
           "rest_line_attached_callbacks": {
