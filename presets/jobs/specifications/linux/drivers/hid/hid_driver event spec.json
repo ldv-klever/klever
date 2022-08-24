@@ -6,7 +6,7 @@
           "alloc_device": {
             "comment": "Allocate memory and initialize new hid device.",
             "statements": [
-              "$ALLOC(%resource%);",
+              "$ALLOC(%hid_device%);",
               "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 2) : 0;",
               "%hid_id% = & %hid_driver%->id_table[%choice%];"
             ]
@@ -14,7 +14,7 @@
           "callback": {
             "callback": "%callback%",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "deregister": {
@@ -34,7 +34,7 @@
           "free_device": {
             "comment": "Free allocated memory for HID device.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%hid_device%);"
             ]
           },
           "manage_hid": {
@@ -46,7 +46,7 @@
             "callback return value": "%probe_retval%",
             "comment": "Probe the new HID device.",
             "parameters": [
-              "%resource%", "%hid_id%"
+              "%hid_device%", "%hid_id%"
             ],
             "post-call": [
               "%probe_retval% = ldv_post_probe(%probe_retval%);"
@@ -71,7 +71,7 @@
             "callback": "%hid_driver.remove%",
             "comment": "HID device is no more accessible.",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "skip": {
@@ -93,8 +93,10 @@
             "declaration": "int a",
             "value": "ldv_undef_int()"
           },
-          "resource": {
-            "resource": true
+          "hid_device": {
+            "interface": [
+              "hid_driver.hid_device"
+            ]
           },
           "hid_id": {
             "interface": [
@@ -123,7 +125,7 @@
           "alloc_device": {
             "comment": "Allocate memory and initialize new hid device.",
             "statements": [
-              "$ALLOC(%resource%);",
+              "$ALLOC(%hid_device%);",
               "%choice% = $SIZE(%ids%) ? ldv_undef_int_range(0, $SIZE(%ids%) - 2) : 0;",
               "%hid_id% = & %hid_driver%->id_table[%choice%];"
             ]
@@ -131,7 +133,7 @@
           "callback": {
             "callback": "%callback%",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "deregister": {
@@ -151,7 +153,7 @@
           "free_device": {
             "comment": "Free allocated memory for HID device.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%hid_device%);"
             ]
           },
           "manage_hid": {
@@ -163,7 +165,7 @@
             "callback return value": "%probe_retval%",
             "comment": "Probe the new HID device.",
             "parameters": [
-              "%resource%", "%hid_id%"
+              "%hid_device%", "%hid_id%"
             ],
             "post-call": [
               "%probe_retval% = ldv_post_probe(%probe_retval%);"
@@ -188,21 +190,21 @@
             "callback": "%hid_driver.remove%",
             "comment": "HID device is no more accessible.",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "reset_resume": {
             "callback": "%hid_driver.reset_resume%",
             "comment": "The HID device is about to be resumed.",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "resume": {
             "callback": "%hid_driver.resume%",
             "comment": "The HID device is about to be resumed.",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           },
           "skip": {
@@ -212,7 +214,7 @@
             "callback": "%hid_driver.suspend%",
             "comment": "The HID Device is about to be suspended.",
             "parameters": [
-              "%resource%"
+              "%hid_device%"
             ]
           }
         },
@@ -231,8 +233,10 @@
             "declaration": "int a",
             "value": "ldv_undef_int()"
           },
-          "resource": {
-            "resource": true
+          "hid_device": {
+            "interface": [
+              "hid_driver.hid_device"
+            ]
           },
           "hid_id": {
             "interface": [
