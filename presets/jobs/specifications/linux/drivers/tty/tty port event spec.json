@@ -87,12 +87,16 @@
     },
     "functions models": {
       "tty_port_register_device": {
-        "headers": ["linux/device.h"],
+        "headers": [
+          "linux/device.h",
+          "ldv/common/list.h"
+        ],
         "actions": {
           "alloc": {
             "comment": "Allocate memory for device structure and get port and tty driver structures.",
             "statements": [
               "$ALLOC(%device%);",
+              "ldv_save_allocated_memory_to_list(%device%);",
               "%tty_port% = $ARG1;",
               "%tty_port_operations% = %tty_port%->ops;"
             ]
