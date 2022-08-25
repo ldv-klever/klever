@@ -8,7 +8,7 @@ static struct urb u;
 static void ldv_handler(struct urb *u)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(u);
+	ldv_check_resource1(u, 0);
 }
 
 static int __init ldv_init(void)
@@ -20,7 +20,7 @@ static int __init ldv_init(void)
 	void *transfer_buffer = ldv_undef_ptr();
 	struct usb_device *dev = ldv_undef_ptr();
 	ldv_invoke_test();
-	usb_fill_int_urb(&u, dev, pipe, transfer_buffer, buffer_length, 
+	usb_fill_int_urb(&u, dev, pipe, transfer_buffer, buffer_length,
 		(usb_complete_t) ldv_handler, context, interval);
 	ldv_store_resource1(&u);
 	usb_submit_urb(&u, GFP_KERNEL);

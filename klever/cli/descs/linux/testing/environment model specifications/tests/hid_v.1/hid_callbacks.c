@@ -32,20 +32,20 @@ int ldv_start(struct hid_device *hdev)
 void ldv_hid_stop(struct hid_device *hdev)
 {
 	ldv_release_down();
-	ldv_check_resource1(hdev);
+	ldv_check_resource1(hdev, 1);
 }
 
 int ldv_open(struct hid_device *hdev)
 {
 	ldv_probe_up();
-	ldv_check_resource1(hdev);
+	ldv_check_resource1(hdev, 0);
 	return 0;
 }
 
 void ldv_close(struct hid_device *hdev)
 {
 	ldv_release_down();
-	ldv_check_resource1(hdev);
+	ldv_check_resource1(hdev, 0);
 }
 
 struct hid_ll_driver ldv_driver = {

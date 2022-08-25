@@ -32,7 +32,7 @@ static int ldvprobe(struct platform_device *op)
 static int ldvremove(struct platform_device *op)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(op);
+	ldv_check_resource1(op, 1);
 	return 0;
 }
 

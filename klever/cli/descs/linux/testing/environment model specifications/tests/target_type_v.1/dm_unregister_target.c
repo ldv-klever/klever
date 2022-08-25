@@ -30,7 +30,7 @@ static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void ldv_dtr(struct dm_target *ti)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(ti);
+	ldv_check_resource1(ti, 0);
 }
 
 static struct target_type ldv_target = {

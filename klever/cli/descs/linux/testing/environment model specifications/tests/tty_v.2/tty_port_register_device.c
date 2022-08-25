@@ -29,14 +29,14 @@ struct device *device;
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(tport);
+	ldv_check_resource1(tport, 0);
 	return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(tport);
+	ldv_check_resource1(tport, 0);
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {

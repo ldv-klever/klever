@@ -120,6 +120,10 @@ void ldv_store_resource1(void *resource)
 		/* ASSERT Resource 1 is already occupied. */
 		ldv_assert();
 
+	if (!resource)
+		/* ASSERT Stored resource should not be NULL. */
+		ldv_assert();
+
 	resource1 = resource;
 }
 
@@ -127,6 +131,10 @@ void ldv_store_resource2(void *resource)
 {
 	if (resource2)
 		/* ASSERT Resource 2 is already occupied. */
+		ldv_assert();
+
+	if (!resource)
+		/* ASSERT Stored resource should not be NULL. */
 		ldv_assert();
 
 	resource2 = resource;
@@ -138,10 +146,14 @@ void ldv_store_resource3(void *resource)
 		/* ASSERT Resource 3 is already occupied. */
 		ldv_assert();
 
+	if (!resource)
+		/* ASSERT Stored resource should not be NULL. */
+		ldv_assert();
+
 	resource3 = resource;
 }
 
-void ldv_check_resource1(void *resource)
+void ldv_check_resource1(void *resource, int is_free)
 {
 	if (!resource1)
 		/* ASSERT Resource 1 was not stored yet. */
@@ -150,9 +162,12 @@ void ldv_check_resource1(void *resource)
 	if (resource != resource1)
 		/* ASSERT Resource 1 differs. */
 		ldv_assert();
+
+	if (is_free)
+		resource1 = (void *)0;
 }
 
-void ldv_check_resource2(void *resource)
+void ldv_check_resource2(void *resource, int is_free)
 {
 	if (!resource2)
 		/* ASSERT Resource 2 was not stored yet. */
@@ -161,9 +176,12 @@ void ldv_check_resource2(void *resource)
 	if (resource != resource2)
 		/* ASSERT Resource 2 differs. */
 		ldv_assert();
+
+	if (is_free)
+		resource2 = (void *)0;
 }
 
-void ldv_check_resource3(void *resource)
+void ldv_check_resource3(void *resource, int is_free)
 {
 	if (!resource3)
 		/* ASSERT Resource 3 was not stored yet. */
@@ -172,6 +190,9 @@ void ldv_check_resource3(void *resource)
 	if (resource != resource2)
 		/* ASSERT Resource 3 differs. */
 		ldv_assert();
+
+	if (is_free)
+		resource3 = (void *)0;
 }
 
 void ldv_store_irq(int irq)
@@ -183,7 +204,7 @@ void ldv_store_irq(int irq)
 	stored_irq = irq;
 }
 
-void ldv_check_irq(int irq)
+void ldv_check_irq(int irq, int is_free)
 {
 	if (stored_irq == -1)
 		/* ASSERT IRQ was not stored yet. */
@@ -192,4 +213,7 @@ void ldv_check_irq(int irq)
 	if (irq != stored_irq)
 		/* ASSERT IRQ differs. */
 		ldv_assert();
+
+	if (is_free)
+		stored_irq = -1;
 }

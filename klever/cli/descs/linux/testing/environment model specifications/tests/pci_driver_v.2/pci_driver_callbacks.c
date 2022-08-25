@@ -39,14 +39,14 @@ static void ldv_remove(struct pci_dev *dev)
 {
 	ldv_release_completely();
 	ldv_invoke_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 1);
 }
 
 static int ldv_suspend(struct pci_dev *dev, pm_message_t state)
 {
 	ldv_probe_up();
 	ldv_invoke_middle_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 
@@ -54,14 +54,14 @@ static int ldv_resume(struct pci_dev *dev)
 {
 	ldv_release_down();
 	ldv_invoke_middle_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 
 static void ldv_shutdown(struct pci_dev *dev)
 {
 	ldv_invoke_middle_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 }
 
 static struct pci_driver ldv_driver = {

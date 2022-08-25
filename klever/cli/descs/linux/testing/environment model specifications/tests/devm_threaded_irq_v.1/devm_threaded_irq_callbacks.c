@@ -32,8 +32,8 @@ static irqreturn_t irq_handler(int irq_id, void * data)
 	int res;
 
 	ldv_invoke_callback();
-	ldv_check_irq(irq_id);
-	ldv_check_resource1(data);
+	ldv_check_irq(irq_id, 0);
+	ldv_check_resource1(data, 0);
 	res = ldv_undef_int();
 	if (res == IRQ_WAKE_THREAD)
 		ldv_probe_up();
@@ -45,8 +45,8 @@ static irqreturn_t irq_thread(int irq_id, void * data)
 	int res;
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_irq(irq_id);
-	ldv_check_resource1(data);
+	ldv_check_irq(irq_id, 0);
+	ldv_check_resource1(data, 0);
 	res = ldv_undef_int();
 	return res;
 }

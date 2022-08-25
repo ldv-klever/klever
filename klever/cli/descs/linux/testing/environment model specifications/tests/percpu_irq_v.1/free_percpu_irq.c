@@ -26,8 +26,8 @@ void __percpu *percpu_dev_id;
 
 static irqreturn_t irq_handler(int irq_id, void * data){
 	ldv_invoke_callback();
-	ldv_check_irq(irq_id);
-	ldv_check_resource1(data);
+	ldv_check_irq(irq_id, 0);
+	ldv_check_resource1(data, 0);
 	return IRQ_HANDLED;
 }
 

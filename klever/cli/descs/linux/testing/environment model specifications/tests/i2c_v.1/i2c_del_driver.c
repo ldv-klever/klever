@@ -30,7 +30,7 @@ int ldv_probe(struct i2c_client *client, const struct i2c_device_id *id)
 int ldv_remove(struct i2c_client *client)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(client);
+	ldv_check_resource1(client, 1);
 	return 0;
 }
 

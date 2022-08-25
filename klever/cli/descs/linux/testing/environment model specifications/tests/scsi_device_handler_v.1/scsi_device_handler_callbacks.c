@@ -39,7 +39,7 @@ static void ldv_detach(struct scsi_device *sdev)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_resource1(sdev);
+	ldv_check_resource1(sdev, 0);
 }
 
 static struct scsi_device_handler ldv_test_struct = {

@@ -38,8 +38,8 @@ int ldv_open(struct tty_struct * tty, struct file * filp)
 void ldv_close(struct tty_struct * tty, struct file * filp)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(tty);
-	ldv_check_resource2(filp);
+	ldv_check_resource1(tty, 1);
+	ldv_check_resource2(filp, 1);
 }
 
 static struct tty_operations ldv_tty_ops = {
@@ -49,13 +49,13 @@ static struct tty_operations ldv_tty_ops = {
 
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
-	/* pass */
+	ldv_check_resource3(tport, 0);
 	return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
-	/* pass */
+	ldv_check_resource3(tport, 1);
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {

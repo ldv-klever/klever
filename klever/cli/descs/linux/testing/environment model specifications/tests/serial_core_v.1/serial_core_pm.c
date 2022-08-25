@@ -29,13 +29,13 @@ int ldv_startup(struct uart_port *port)
 	int res;
 
 	res = ldv_undef_int();
-	ldv_check_resource1(port);
+	ldv_check_resource1(port, 0);
 	return res;
 }
 
 void ldv_shutdown(struct uart_port *port)
 {
-	ldv_check_resource1(port);
+	ldv_check_resource1(port, 0);
 }
 
 void ldv_pm(struct uart_port *port, unsigned int new_state,
@@ -45,7 +45,7 @@ void ldv_pm(struct uart_port *port, unsigned int new_state,
 	} else if(new_state == 0) {
 	      ldv_probe_up();
 	}
-	ldv_check_resource1(port);
+	ldv_check_resource1(port, 0);
 }
 
 static struct uart_ops ldv_uart_ops = {

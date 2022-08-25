@@ -33,7 +33,7 @@ int ldv_probe(struct hid_device *dev, const struct hid_device_id *id)
 void ldv_remove(struct hid_device *dev)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 1);
 }
 
 struct hid_driver ldv_driver = {

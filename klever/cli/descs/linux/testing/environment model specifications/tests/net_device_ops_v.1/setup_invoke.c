@@ -25,26 +25,26 @@ struct mutex *ldv_envgen;
 
 static netdev_tx_t ldv_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 
 static int ldv_open(struct net_device *dev)
 {
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 
 static int ldv_close(struct net_device *dev)
 {
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 
 static void ldv_setup(struct net_device *dev)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(dev);
+	ldv_store_resource1(dev);
 }
 
 static const struct net_device_ops ldv_ops = {
@@ -60,7 +60,6 @@ static int __init ldv_init(void)
 	if (dev) {
 		dev->netdev_ops = &ldv_ops;
 		ldv_register();
-		ldv_store_resource1(dev);
 		return register_netdev(dev);
 	}
 	else

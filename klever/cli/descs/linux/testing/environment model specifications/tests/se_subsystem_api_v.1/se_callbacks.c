@@ -40,7 +40,7 @@ static void ldv_free_device(struct se_device *device)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_resource1(device);
+	ldv_check_resource1(device, 0);
 }
 
 static struct se_subsystem_api ldv_driver = {

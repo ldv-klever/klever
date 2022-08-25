@@ -34,8 +34,8 @@ static int ldv_open(struct inode *inode, struct file *filp)
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(inode);
-	ldv_check_resource2(filp);
+	ldv_check_resource1(inode, 0);
+	ldv_check_resource2(filp, 0);
 	return 0;
 }
 

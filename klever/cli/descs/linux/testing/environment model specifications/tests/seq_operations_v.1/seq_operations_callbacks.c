@@ -36,7 +36,7 @@ static void ldv_stop_callback(struct seq_file *file, void *iter_ptr)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_resource1(file);
+	ldv_check_resource1(file, 1);
 }
 
 static const struct seq_operations ldv_ops = {

@@ -28,16 +28,16 @@ struct device *dev;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
-	ldv_check_irq(irq_id);
-	ldv_check_resource1(data);
+	ldv_check_irq(irq_id, 0);
+	ldv_check_resource1(data, 0);
 	return IRQ_WAKE_THREAD;
 }
 
 static irqreturn_t irq_thread(int irq_id, void * data)
 {
 	ldv_invoke_reached();
-	ldv_check_irq(irq_id);
-	ldv_check_resource1(data);
+	ldv_check_irq(irq_id, 0);
+	ldv_check_resource1(data, 0);
 	return IRQ_HANDLED;
 }
 

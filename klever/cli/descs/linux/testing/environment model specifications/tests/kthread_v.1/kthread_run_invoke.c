@@ -9,7 +9,7 @@ static struct task_struct *thread;
 static int ldv_handler(void *data)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(data);
+	ldv_check_resource1(data, 0);
 	return 0;
 }
 

@@ -23,7 +23,7 @@
 static struct dentry *ldv_mount(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(fs_type);
+	ldv_check_resource1(fs_type, 0);
 	return NULL;
 }
 

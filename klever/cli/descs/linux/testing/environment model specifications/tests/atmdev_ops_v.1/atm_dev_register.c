@@ -26,7 +26,7 @@ int flip_a_coin;
 static void ldv_close(struct atm_vcc *vcc)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(vcc);
+	ldv_check_resource1(vcc, 0);
 }
 
 

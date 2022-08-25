@@ -25,7 +25,7 @@
 static int ldv_fill_super(struct super_block *s, void *data, int silent)
 {
 	struct inode *inode = ldv_undef_ptr();
-	
+
 	s->s_root = d_make_root(inode);
 	if (!s->s_root) {
 		return -ENOMEM;
@@ -39,14 +39,14 @@ static int ldv_fill_super(struct super_block *s, void *data, int silent)
 static struct dentry *ldv_mount(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(fs_type);
+	ldv_check_resource1(fs_type, 0);
 	return mount_bdev(fs_type, flags, dev_name, data, ldv_fill_super);
 }
 
 static void ldv_kill_sb(struct super_block *sb)
 {
 	ldv_invoke_callback();
-	ldv_check_resource2(sb);
+	ldv_check_resource2(sb, 0);
 }
 
 static struct file_system_type ldv_fs = {

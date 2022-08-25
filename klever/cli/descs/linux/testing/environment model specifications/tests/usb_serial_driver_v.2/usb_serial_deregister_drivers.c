@@ -34,7 +34,7 @@ int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
 void ldv_release(struct usb_serial *serial)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(serial);
+	ldv_check_resource1(serial, 1);
 }
 
 static struct usb_serial_driver ldv_driver = {
@@ -52,7 +52,7 @@ static int __init ldv_init(void)
 	int flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		ret = usb_serial_register_drivers(ldv_drivers, "ldv_driver", id_table); 
+		ret = usb_serial_register_drivers(ldv_drivers, "ldv_driver", id_table);
 		if (!ret)
 			usb_serial_deregister_drivers(ldv_drivers);
 		ldv_deregister();

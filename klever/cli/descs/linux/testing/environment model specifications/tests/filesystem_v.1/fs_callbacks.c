@@ -27,7 +27,7 @@ static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *d
 	int res;
 
 	ldv_invoke_callback();
-	ldv_check_resource1(fs_type);
+	ldv_check_resource1(fs_type, 0);
 	res = ldv_undef_int();
 	if (!res)
 		ldv_probe_up();

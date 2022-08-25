@@ -26,7 +26,7 @@ struct net_device dev;
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 

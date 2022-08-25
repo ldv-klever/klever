@@ -33,7 +33,7 @@ static int ldv_start_callback(struct ieee80211_hw *hw)
 static void ldv_stop_callback(struct ieee80211_hw *hw)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(hw);
+	ldv_check_resource1(hw, 1);
 }
 
 static const struct ieee80211_ops ldv_ops = {

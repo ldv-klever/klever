@@ -23,7 +23,7 @@
 static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(fs_type);
+	ldv_check_resource1(fs_type, 0);
 	return 0;
 }
 

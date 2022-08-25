@@ -31,8 +31,8 @@ static int ldv_add_dev(struct device *dev, struct class_interface *intf)
 static void ldv_remove_dev(struct device *dev, struct class_interface *intf)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(dev);
-	ldv_check_resource2(intf);
+	ldv_check_resource1(dev, 1);
+	ldv_check_resource2(intf, 1);
 }
 
 static struct class_interface ldv_driver = {

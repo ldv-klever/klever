@@ -34,7 +34,7 @@ struct se_device * ldv_alloc_device(struct se_hba *hba, const char *name)
 static void ldv_free_device(struct se_device *device)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(device);
+	ldv_check_resource1(device, 1);
 }
 
 static struct target_backend_ops ldv_driver = {

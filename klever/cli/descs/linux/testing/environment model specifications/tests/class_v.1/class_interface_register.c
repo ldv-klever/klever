@@ -33,8 +33,8 @@ static int ldv_add_dev(struct device *dev, struct class_interface *intf)
 static void ldv_remove_dev(struct device *dev, struct class_interface *intf)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(dev);
-	ldv_check_resource2(intf);
+	ldv_check_resource1(dev, 1);
+	ldv_check_resource2(intf, 1);
 }
 
 static struct class_interface ldv_driver = {
@@ -46,7 +46,7 @@ static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
 	flip_a_coin = ldv_undef_int();
-	
+
 	if (flip_a_coin) {
 		ldv_register();
 		ret = class_interface_register(&ldv_driver);

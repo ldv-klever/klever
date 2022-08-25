@@ -34,7 +34,7 @@ int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
 void ldv_release(struct usb_serial *serial)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(serial);
+	ldv_check_resource1(serial, 1);
 }
 
 static struct usb_serial_driver ldv_driver = {

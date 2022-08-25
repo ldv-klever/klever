@@ -30,7 +30,7 @@ static int ldv_run(struct mddev *mddev)
 static void md_free(struct mddev *mddev, void *priv)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(mddev);
+	ldv_check_resource1(mddev, 0);
 }
 
 static struct md_personality ldv_personality =

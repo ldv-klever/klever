@@ -39,7 +39,7 @@ void ldv_disconnect(struct ldv_resource *arg)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_resource1(arg);
+	ldv_check_resource1(arg, 0);
 }
 
 static struct ldv_driver ops = {

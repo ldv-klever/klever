@@ -27,7 +27,7 @@ int flip_a_coin;
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 

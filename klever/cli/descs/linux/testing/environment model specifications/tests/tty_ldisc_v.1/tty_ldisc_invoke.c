@@ -34,7 +34,7 @@ int ldv_open(struct tty_struct * tty)
 void ldv_close(struct tty_struct * tty)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(tty);
+	ldv_check_resource1(tty, 0);
 }
 
 static struct tty_ldisc_ops ldv_tty_ops = {

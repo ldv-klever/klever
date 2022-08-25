@@ -26,7 +26,7 @@ struct net_device dev;
 int	ldv_get_fecparam(struct net_device *dev, struct ethtool_fecparam *fecparam)
 {
 	ldv_invoke_callback();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 0);
 	return 0;
 }
 

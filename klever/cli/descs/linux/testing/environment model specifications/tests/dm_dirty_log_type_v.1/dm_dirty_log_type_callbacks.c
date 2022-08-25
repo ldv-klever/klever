@@ -40,7 +40,7 @@ static void ldv_dtr(struct dm_dirty_log *log)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
-	ldv_check_resource1(log);
+	ldv_check_resource1(log, 0);
 }
 
 static struct dm_dirty_log_type ldv_type = {
@@ -53,7 +53,7 @@ static struct dm_dirty_log_type ldv_type = {
 static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
-	
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();

@@ -30,7 +30,7 @@ static int ldv_probe(struct pci_dev *dev, const struct pci_device_id *id)
 static void ldv_remove(struct pci_dev *dev)
 {
 	ldv_invoke_reached();
-	ldv_check_resource1(dev);
+	ldv_check_resource1(dev, 1);
 }
 
 static struct pci_driver ldv_driver = {
