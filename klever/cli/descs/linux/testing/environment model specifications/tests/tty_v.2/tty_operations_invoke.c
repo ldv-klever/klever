@@ -44,7 +44,7 @@ static struct tty_operations ldv_tty_ops = {
 
 static int __init ldv_init(void)
 {
-	int res;
+	int res = 0;
 
 	ldv_invoke_test();
 	driver = tty_alloc_driver(lines, TTY_DRIVER_REAL_RAW);
@@ -53,7 +53,8 @@ static int __init ldv_init(void)
 		res = tty_register_driver(driver);
 		if (res)
 			tty_driver_kref_put(driver);
-	}
+	} else
+		res = PTR_ERR(driver);
 
 	return res;
 }
