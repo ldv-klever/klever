@@ -1,3 +1,29 @@
+# Klever 3.7 (2022-08-26)
+
+Following fixes and improvements in Klever 3.7 deserve an attention:
+
+* Adding new environment models for the Linux kernel:
+  * Modeling the *list* API.
+  * Modeling the *kref* API.
+  * Adding model for the *input_ff_create_memless()* function.
+  * Adding models for *check_add_overflow()*, *check_sub_overflow()* and *check_mul_overflow()* macros that fixes the *struct_size()* model for new versions of the Linux kernel.
+  * Modeling *v4l2_device_(un)register()* functions.
+  * Modeling the *i2c_match_id()* function.
+  * Adding model for the *dev_err_probe()* function.
+  * Adding models for the dynamic debug printing API.
+* Fixing existing environment models for the Linux kernel:
+  * Modeling failures for *calloc()* and *zalloc()*.
+  * Fixing the off-by-one error when choosing a device from *MODULE_DEVICE_TABLE*.
+  * Passing the same resource to probe and remove for HID drivers.
+  * Allocating memory for *inode* for *file_operations* callbacks.
+  * Allocating memory for *tty_struct* for *tty_operations* callbacks.
+  * Avoiding using implicit resources in environment model specifications.
+* Adding a new section to the user documentation: [Verifying New Program](https://klever.readthedocs.io/en/latest/verifying_new_program.html).
+* Fixing tests for environment model specifications and Environment Model Generator.
+* Updating CIF which main file was rewritten in C++ and that started to print keyword *static* for local variables.
+* Updating CPAchecker that supports packed/aligned attributes and issues violation witnesses more efficiently.
+* Updating Python dependencies.
+
 # Klever 3.6 (2022-06-26)
 
 Klever 3.6 was released pretty soon after Klever 3.5 since we updated Clade and CIF in the backward incompatible manner.
