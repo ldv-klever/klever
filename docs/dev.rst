@@ -130,6 +130,8 @@ master.
 
 After the merge window just bug fixes can be merged to the master branch.
 During this period we can issue several release candidates, e.g. 1.0-rc1, 1.0-rc2.
+Just before creating a new release it is necessary to bump up the Klever version in :file:`docs/conf.py` and
+:file:`setup.py` appropriately.
 
 New releases should be described in :file:`CHANGELOG.md` according to the used format.
 In addition, after issuing a new release we can decide to support a stable branch.
