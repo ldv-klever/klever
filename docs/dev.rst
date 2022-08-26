@@ -131,6 +131,7 @@ master.
 After the merge window just bug fixes can be merged to the master branch.
 During this period we can issue several release candidates, e.g. 1.0-rc1, 1.0-rc2.
 
+New releases should be described in :file:`CHANGELOG.md` according to the used format.
 In addition, after issuing a new release we can decide to support a stable branch.
 This branch will start from a commit corresponding to the given release.
 It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
