@@ -638,7 +638,26 @@ class Job(klever.core.components.Component):
             if tarfile.is_tarfile(build_base):
                 self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
                 with tarfile.open(build_base) as TarFile:
-                    TarFile.extractall('build base')
+                    def is_within_directory(directory, target):
+                        
+                        abs_directory = os.path.abspath(directory)
+                        abs_target = os.path.abspath(target)
+                    
+                        prefix = os.path.commonprefix([abs_directory, abs_target])
+                        
+                        return prefix == abs_directory
+                    
+                    def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                    
+                        for member in tar.getmembers():
+                            member_path = os.path.join(path, member.name)
+                            if not is_within_directory(path, member_path):
+                                raise Exception("Attempted Path Traversal in Tar File")
+                    
+                        tar.extractall(path, members, numeric_owner=numeric_owner) 
+                        
+                    
+                    safe_extract(TarFile, "build base")
             else:
                 self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
                 with zipfile.ZipFile(build_base) as zfp:
