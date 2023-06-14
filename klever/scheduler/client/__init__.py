@@ -312,8 +312,9 @@ def prepare_job_arguments(logger, conf):
             conf['client']["runexec measure disk"]:
         args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], "MB")[1]])
 
-    if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
+    # TODO: memory limit for job is not working correctly
+    # if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
+    #     args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
 
     # Check container mode
     if "runexec container mode" in conf['client'] and conf['client']["runexec container mode"]:
