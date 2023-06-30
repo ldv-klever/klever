@@ -179,7 +179,8 @@ def launch_workers(logger, workers, monitoring_list=None):
     logger.info('All components finished')
 
 
-def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, monitoring_list=None):
+def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, monitoring_list=None,
+                         sleep_interval=1):
     """
     Blocking function that run given number of workers processing elements of particular queue.
 
@@ -190,6 +191,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
                             them fails then we should also terminate the rest workers.
+    :param sleep_interval: Interval between workers check in seconds.
     :return: 0 if all workers finish successfully and 1 otherwise.
     """
     logger.info("Start children set with {!r} workers".format(number))
@@ -257,7 +259,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                 if not active:
                     break
                 else:
-                    time.sleep(1)
+                    time.sleep(sleep_interval)
     finally:
         for p in components:
             if p.is_alive():
