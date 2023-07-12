@@ -3,7 +3,7 @@
     "collect total code coverage": true,
     "ignore failed sub-jobs": true,
     "ignore other instances": false,
-    "keep intermediate files": true,
+    "keep intermediate files": false,
     "logging": {
         "formatters": [
             {
@@ -33,7 +33,7 @@
             }
         ]
     },
-    "max solving tasks per sub-job": 100,
+    "max solving tasks per sub-job": 1000,
     "parallelism": {
         "Sub-jobs processing": 4,
         "Tasks generation": 1,
@@ -45,12 +45,12 @@
         "CPU model": null,
         "CPU time for executed commands": 450,
         "disk memory size": 50000000000,
-        "memory size": 5000000000,
+        "memory size": 1000000000,
         "memory size for executed commands": 1000000000,
         "number of CPU cores": null
     },
     "task scheduler": "Klever",
-    "upload verifier input files": true,
+    "upload verifier input files": false,
     "upload other intermediate files": false,
-    "weight": "0"
+    "weight": "1"
 }

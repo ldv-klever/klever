@@ -120,7 +120,7 @@
 
     <div class="ui violet segment" style="width: 35%;">
         <h4>{% trans 'Resource limits for Klever Core' %}</h4>
-        <label for="memory" style="margin-right: 20px;">{% trans 'Memory size' %}, {% trans 'GB' %}</label>
+        <label for="memory" style="margin-right: 20px;">{% trans 'Memory size for whole process' %}, {% trans 'GB' %}</label>
         <div>
             <div class="ui input">
                 <input id="memory" type="text" value="{{ data.conf.memory }}">
@@ -164,7 +164,7 @@
             </div>
         </div>
         <br>
-        <label for="cpu_time_exec_cmds" style="margin-right: 20px;">{% trans 'CPU time for executed commands' %}, {% trans 'min' %}</label>
+        <label for="cpu_time_exec_cmds" style="margin-right: 20px;">{% trans 'CPU time for CIL' %}, {% trans 'min' %}</label>
         <div>
             <div class="ui input">
                 <input id="cpu_time_exec_cmds" type="text" value="{{ data.conf.cpu_time_exec_cmds }}">
@@ -175,7 +175,7 @@
             </div>
         </div>
         <br>
-        <label for="memory_exec_cmds" style="margin-right: 20px;">{% trans 'Memory size for executed commands' %}, {% trans 'GB' %}</label>
+        <label for="memory_exec_cmds" style="margin-right: 20px;">{% trans 'Memory size for CIL' %}, {% trans 'GB' %}</label>
         <div>
             <div class="ui input">
                 <input id="memory_exec_cmds" type="text" value="{{ data.conf.memory_exec_cmds }}">

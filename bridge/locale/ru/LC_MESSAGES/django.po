@@ -1021,6 +1021,15 @@ msgstr "Процессорное время"
 
 #: jobs/templates/jobs/DecisionResults.html:223
 #: reports/templates/reports/ReportMain.html:135
+msgid "Memory size for whole process"
+msgstr "Объем оперативной памяти для всего процесса"
+
+msgid "CPU time for CIL"
+msgstr "Процессорное время для компонента CIL"
+
+msgid "Memory size for CIL"
+msgstr "Объем оперативной памяти для компонента CIL"
+
 msgid "Maximum memory size"
 msgstr "Максимальный объем оперативной памяти"
 
