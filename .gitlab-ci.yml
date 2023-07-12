@@ -7,6 +7,9 @@ stages:
   - /opt/usr/local/python3.10-klever/bin/python3 -m venv venv
   - venv/bin/python3 -m pip install --upgrade pip setuptools setuptools_scm wheel
   - venv/bin/python3 -m pip install --upgrade -r requirements.txt .
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_PIPELINE_SOURCE == "schedule"
 
 unit-tests:
   <<: *deps
@@ -34,8 +37,8 @@ unit-tests:
 
 .integration-tests-nightly: &integration-tests-nightly
   <<: *integration-tests
-  only:
-    - schedules
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "schedule"
 
 sample-tests:
   <<: *integration-tests
