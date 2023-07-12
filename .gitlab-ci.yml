@@ -1,0 +1,73 @@
+stages:
+  - checks
+  - tests
+
+.deps: &deps
+  before_script:
+  - /opt/usr/local/python3.10-klever/bin/python3 -m venv venv
+  - venv/bin/python3 -m pip install --upgrade pip setuptools setuptools_scm wheel
+  - venv/bin/python3 -m pip install --upgrade -r requirements.txt .
+
+unit-tests:
+  <<: *deps
+  stage: checks
+  script:
+  - venv/bin/pytest klever
+
+# pylint:
+#   stage: checks
+#   script:
+#   - pylint $(git ls-files '*.py')
+
+.integration-tests: &integration-tests
+  <<: *deps
+  stage: tests
+  interruptible: true
+  script:
+  # build bases are very large and should be prepared separately
+  - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
+  - venv/bin/python3 ci-test-run.py --job_file=$JOB_FILE
+  artifacts:
+    paths:
+    - "job-versions-solution-results.json"
+    when: on_failure
+
+.integration-tests-nightly: &integration-tests-nightly
+  <<: *integration-tests
+  only:
+    - schedules
+
+sample-tests:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-sample.yml
+
+verifier-tests:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-verifiers.yml
+
+stable-branch-bugs:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-bugs.yml
+
+fixed-bugs:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-bugs-3.yml
+
+rule-tests:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-reqs.yml
+
+components-tests:
+  <<: *integration-tests-nightly
+  variables:
+    JOB_FILE: ci-config/job-components.yml
+
+found-bugs:
+  <<: *integration-tests-nightly
+  variables:
+    JOB_FILE: ci-config/job-bugs-2.yml

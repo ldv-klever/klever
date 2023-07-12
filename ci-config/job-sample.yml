@@ -1,0 +1,15 @@
+jobs:
+- id: c1529fbf-a7db-4507-829e-55f846044309
+  name: Loadable kernel modules sample
+- id: 573d4ea2-574b-4f7b-b86c-79182d9e1502
+  name: Loadable kernel modules sample ARM
+- id: 019debae-9991-421c-bfd8-53e3c38b4b37
+  name: Loadable kernel modules sample ARM64
+- id: 08c7a442-83ed-11ea-88e0-879ef40bbdcf
+  name: BusyBox applets
+# disabled
+# - id: 3d1158e6-cfec-4863-b4a6-366a6cb20478
+#   name: Environment model specifications
+# staging
+# - id: 30faa5fc-746c-4942-9a2c-089780e700c4
+#   name: Built-in kernel modules sample

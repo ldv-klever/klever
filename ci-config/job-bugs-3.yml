@@ -1,0 +1,4 @@
+jobs:
+- id: 823a8bf0-1110-4f2c-acf1-7d1e46b7d68f
+  name: Bugs found by Klever but fixed by the Linux kernel developers themselves
+  validation: true

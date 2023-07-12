@@ -1,0 +1,4 @@
+jobs:
+- id: 75b545fc-f92e-4ff9-8fc8-4062ba37ec6e
+  name: Bugs found by Klever
+  validation: true

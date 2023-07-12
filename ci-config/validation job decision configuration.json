@@ -1,0 +1,56 @@
+{
+    "code coverage details": "0",
+    "collect total code coverage": true,
+    "ignore failed sub-jobs": true,
+    "ignore other instances": false,
+    "keep intermediate files": true,
+    "logging": {
+        "formatters": [
+            {
+                "name": "brief",
+                "value": "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+            },
+            {
+                "name": "detailed",
+                "value": "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+            }
+        ],
+        "loggers": [
+            {
+                "handlers": [
+                    {
+                        "formatter": "brief",
+                        "level": "INFO",
+                        "name": "console"
+                    },
+                    {
+                        "formatter": "detailed",
+                        "level": "DEBUG",
+                        "name": "file"
+                    }
+                ],
+                "name": "default"
+            }
+        ]
+    },
+    "max solving tasks per sub-job": 100,
+    "parallelism": {
+        "Sub-jobs processing": 4,
+        "Tasks generation": 1,
+        "Weaving": 2,
+        "Results processing": 1
+    },
+    "priority": "LOW",
+    "resource limits": {
+        "CPU model": null,
+        "CPU time for executed commands": 450,
+        "disk memory size": 50000000000,
+        "memory size": 5000000000,
+        "memory size for executed commands": 1000000000,
+        "number of CPU cores": null
+    },
+    "task scheduler": "Klever",
+    "upload verifier input files": true,
+    "upload other intermediate files": false,
+    "weight": "0"
+}
