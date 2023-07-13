@@ -95,7 +95,12 @@ class ResourceManager:
         cancel_jobs = []
         cancel_tasks = []
         for node in nodes:
-            node_status = json.loads(consul_client.kv_get("states/" + node))
+            response = consul_client.kv_get("states/" + node)
+            if not response:
+                self.__logger.warning(f"Node {node} was not connected yet.")
+                continue
+            else:
+                node_status = json.loads(response)
 
             # Get dictionary and compare it with existing one
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":
