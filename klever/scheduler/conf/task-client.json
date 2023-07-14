@@ -32,7 +32,7 @@
         },
         "info_file_handler": {
           "class": "logging.handlers.RotatingFileHandler",
-          "level": "DEBUG",
+          "level": "INFO",
           "formatter": "detailed",
           "filename": "info.log",
           "maxBytes": 10485760,
@@ -59,7 +59,7 @@
         }
       },
       "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": [
           "console",
           "info_file_handler",

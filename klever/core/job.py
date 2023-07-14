@@ -577,7 +577,8 @@ class Job(klever.core.components.Component):
 
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
-        self.clade = Clade(self.common_components_conf['build base'])
+        clade_conf = {"log_level": "ERROR"}
+        self.clade = Clade(self.common_components_conf['build base'], conf=clade_conf)
         if not self.clade.work_dir_ok():
             raise RuntimeError(f'Build base "{self.common_components_conf["build base"]}" is not OK')
 

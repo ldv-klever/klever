@@ -54,7 +54,8 @@ class FragmentationAlgorythm:
         self.source_paths = self.conf['working source trees']
 
         # Import clade
-        self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET)
+        clade_conf = {"log_level": "ERROR"}
+        self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET, conf=clade_conf)
         if not self.clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
 

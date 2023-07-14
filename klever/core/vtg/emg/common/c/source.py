@@ -36,7 +36,8 @@ def create_source_representation(logger, conf, abstract_task):
     :return: Source object.
     """
     # Initialize Clade client to make requests
-    clade = Clade(conf['build base'])
+    clade_conf = {"log_level": "ERROR"}
+    clade = Clade(conf['build base'], conf=clade_conf)
     if not clade.work_dir_ok():
         raise RuntimeError('Build base is not OK')
 

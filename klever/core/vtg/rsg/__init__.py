@@ -201,7 +201,8 @@ class RSG(klever.core.vtg.plugins.Plugin):
 
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
-        clade = Clade(self.conf['build base'])
+        clade_conf = {"log_level": "ERROR"}
+        clade = Clade(self.conf['build base'], conf=clade_conf)
         if not clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()

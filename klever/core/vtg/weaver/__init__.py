@@ -42,7 +42,8 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
-        clade = Clade(self.conf['build base'])
+        clade_conf = {"log_level": "ERROR"}
+        clade = Clade(self.conf['build base'], conf=clade_conf)
         if not clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
         clade_meta = clade.get_meta()
@@ -340,7 +341,7 @@ class WeaverWorker(klever.core.components.Component):
                     if 'aspect preprocessing options' in self.conf else '',
                     '--out', os.path.realpath(outfile),
                     '--back-end', 'src',
-                    '--debug', 'DEBUG'
+                    '--debug', 'QUIET'
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
@@ -363,6 +364,7 @@ class WeaverWorker(klever.core.components.Component):
         clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), preset=self.conf['Clade']['preset'],
                             conf={
                                 'cpu_count': 4,
+                                "log_level": "ERROR",
                                 'Info.cif': klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'cif')
                             })
         # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.

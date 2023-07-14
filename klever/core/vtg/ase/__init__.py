@@ -68,8 +68,8 @@ class ASE(klever.core.vtg.plugins.Plugin):
 
     def request_arg_signs(self):
         self.logger.info('Request argument signatures')
-
-        clade = Clade(work_dir=self.conf['build base'])
+        clade_conf = {"log_level": "ERROR"}
+        clade = Clade(work_dir=self.conf['build base'], conf=clade_conf)
         if not clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()

@@ -241,7 +241,8 @@ class RP(klever.core.components.Component):
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
         # Obtain file prefixes that can be removed from file paths.
-        self.clade = Clade(self.conf['build base'])
+        clade_conf = {"log_level": "ERROR"}
+        self.clade = Clade(self.conf['build base'], conf=clade_conf)
         if not self.clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
 
