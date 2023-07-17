@@ -120,7 +120,7 @@
     "CPALockator base": {
       "description": "CPAchecker for checking races",
       "inherit": "CPALockator races",
-      "add options": [{"-lockator-linux": ""}]
+      "add options": [{"-lockator-linux-pre-shared-ref": ""}]
     },
     "CPALockator lightweight": {
       "description": "Lightweight CPAchecker for checking races",
