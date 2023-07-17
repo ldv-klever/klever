@@ -23,6 +23,7 @@ import re
 import shutil
 import signal
 import sys
+import time
 
 import klever.scheduler.schedulers as schedulers
 import klever.scheduler.schedulers.runners as runners
@@ -44,6 +45,8 @@ class Native(runners.Speculative):
     _task_processes = dict()
     __cached_tools_data = None
     __cached_nodes_data = None
+    NODE_INIT_MAX_RETRIES = 50
+    NODE_INIT_WAIT_INTERVAL = 1  # in sec
 
     @staticmethod
     def scheduler_type():
@@ -92,14 +95,21 @@ class Native(runners.Speculative):
         self._manager = resource_scheduler.ResourceManager(
             self.logger, max_jobs=self.conf["scheduler"].get("concurrent jobs", 1))
 
-        self.update_nodes(self.conf["scheduler"].get("wait controller initialization", False))
-        nodes = self._manager.active_nodes
-        if len(nodes) != 1:
-            raise ValueError(f'Expect strictly single active connected node but {len(nodes)} given')
-        else:
-            self._node_name = nodes[0]
-            data = self._manager.node_info(self._node_name)
-            self._cpu_cores = data["CPU number"]
+        node_init_retries = 0
+        while True:
+            self.update_nodes(self.conf["scheduler"].get("wait controller initialization", False))
+            nodes = self._manager.active_nodes
+            if len(nodes) == 1:
+                break
+            else:
+                node_init_retries += 1
+                if node_init_retries >= self.NODE_INIT_MAX_RETRIES:
+                    raise ValueError(f'Node was not initialised after {node_init_retries} retries')
+                self.logger.warning(f"Node was not initialized. Wait for {self.NODE_INIT_WAIT_INTERVAL}s")
+                time.sleep(self.NODE_INIT_WAIT_INTERVAL)
+        self._node_name = nodes[0]
+        data = self._manager.node_info(self._node_name)
+        self._cpu_cores = data["CPU number"]
         utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
         # init process pull
