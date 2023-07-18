@@ -198,9 +198,8 @@ def solve_task(logger, conf, srv):
     logger.info("The speculative flag is: {}".format(conf.get('speculative')))
     logger.info("The solution status is: {}".format(decision_results.get('status', True)))
     if conf.get('speculative', False) and \
-            decision_results.get('status', True) in ('OUT OF JAVA MEMORY', 'OUT OF MEMORY', 'TIMEOUT',
-                                                     'SEGMENTATION FAULT', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
-            decision_results["resources"]["memory size"] >= 0.7 * decision_results['resource limits']['memory size']:
+            decision_results.get('status', True) in ('OUT OF JAVA MEMORY', 'OUT OF MEMORY',
+                                                     'TIMEOUT (OUT OF JAVA MEMORY)'):
         logger.info("Do not upload solution since limits are reduced and we got: {!r}".
                     format(decision_results['status']))
         decision_results['uploaded'] = False

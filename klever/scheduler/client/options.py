@@ -34,27 +34,21 @@ def adjust_options(file, conf):
 def cpa_adjustment(file, conf):
     """
     This function adds fixes to configuration.
-        1. Change heap memory size to make it matching real restrictions.
 
     :param file: XML file for BenchExec.
     :param conf: Dictionary with the configuration of the client.
     :return:
     """
+    # Here we can add any changes to CPAchecker config for speculative schedulers.
+    pass
+    '''
     tree = ElementTree.parse(file)
     root = tree.getroot()
     rewrite = False
     for rundefinition in root.findall('rundefinition'):
         for option in rundefinition.findall('option'):
-            if option.attrib.get('name') == '-heap':
-                # First, get coefficient
-                restriction = int(conf['resource limits']['memory size'])
-                # Expect value in MB
-                heap = int(option.text[:-1]) * 1000000
-                if heap >= int(restriction * 0.8):
-                    # Then, recalculate value
-                    new_heap = str(int(restriction * 0.0000008)) + 'm'
-                    option.text = new_heap
-                    rewrite = True
+            pass
 
     if rewrite:
         tree.write(file, encoding='utf-8')
+    '''

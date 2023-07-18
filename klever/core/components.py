@@ -29,7 +29,7 @@ import resource
 import re
 
 import klever.core.utils
-
+from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
@@ -199,6 +199,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     elements = []
     components = []
     ret = 0
+    is_limit_cores_globally = False
     try:
         while True:
             # Fetch all new elements
@@ -214,11 +215,16 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     worker = constructor(element)
                     if isinstance(worker, Component):
                         components.append(worker)
+                        if not is_limit_cores_globally and worker.name == "PLUGINS":
+                            is_limit_cores_globally = True
                         worker.start()
                     else:
                         raise TypeError("Incorrect constructor, expect Component but get {}".
                                         format(type(worker).__name__))
-
+            if is_limit_cores_globally:
+                used_cores = len(components)
+                reserve_workers_cpu_cores(used_cores)
+                logger.debug(f"Reserve {used_cores} cores for tasks preparation")
             # Wait for components termination
             finished = 0
             # Because we use i for deletion we always delete the element near the end to not break order of

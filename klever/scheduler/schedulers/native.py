@@ -31,7 +31,7 @@ import klever.scheduler.schedulers.resource_scheduler as resource_scheduler
 import klever.scheduler.utils as utils
 
 
-class Native(runners.Speculative):
+class Native(runners.TryLessMemoryRunner):
     """
     Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
@@ -93,7 +93,10 @@ class Native(runners.Speculative):
 
         # Check node first time
         self._manager = resource_scheduler.ResourceManager(
-            self.logger, max_jobs=self.conf["scheduler"].get("concurrent jobs", 1))
+            self.logger,
+            max_jobs=self.conf["scheduler"].get("concurrent jobs", 1),
+            is_adjust_pool_size=self.conf["scheduler"].get("limit max tasks based on plugins load", False)
+        )
 
         node_init_retries = 0
         while True:

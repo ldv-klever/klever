@@ -20,6 +20,7 @@ import copy
 import time
 import requests
 
+from klever.scheduler.schedulers.global_config import get_workers_cpu_cores
 from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
 import klever.scheduler.utils.consul as consul
@@ -34,12 +35,12 @@ class ResourceManager:
     any specific actions to prepare, start or cancel jobs or tasks.
     """
 
-    def __init__(self, logger, max_jobs=1, pool_size=1000):
+    def __init__(self, logger, max_jobs=1, pool_size=8, is_adjust_pool_size=False):
         """
         Initialize the manager of resources.
 
         :param max_jobs: The maximum number of running jobs with the same or higher priority.
-        :param pool_size: The total number of running tasks and jobs if it is limited. By default it should be very high.
+        :param pool_size: The total number of running tasks if it is limited.
         """
         self.__logger = logger
         self.__max_running_jobs = max_jobs
@@ -47,10 +48,10 @@ class ResourceManager:
         self.__cached_system_status = None
         self.__jobs_config = {}
         self.__tasks_config = {}
-        self.__pool_size = 1000
+        self.__max_tasks = pool_size
+        self.__is_adjust_pool_size = is_adjust_pool_size
         self.__last_limitation_error = []
 
-        self.set_pool_limit(pool_size)
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
 
     def update_system_status(self, address, wait_controller=False):
@@ -167,8 +168,7 @@ class ResourceManager:
         :param number: int
         :return: None
         """
-        self.__pool_size = number
-        assert self.__max_running_jobs < number
+        self.__max_tasks = number
 
     def submit_status(self, server):
         """
@@ -249,8 +249,6 @@ class ResourceManager:
 
         jobs_to_run = []
         tasks_to_run = []
-        if self.__pool_size == len(self.__processing_tasks) + len(self.__processing_jobs):
-            return [], []
 
         # Prepare copy of current system status
         status = self.__create_system_status(delete_jobs=False, delete_tasks=False)
@@ -270,9 +268,12 @@ class ResourceManager:
         # Schedule all possible tasks
         processing_tasks = self.__processing_tasks
         for task in reversed(pending_tasks):
-            if (self.__pool_size - (len(running_jobs) + len(jobs_to_run))
-                    - (len(processing_tasks) + len(tasks_to_run))) <= 0:
-                self.__logger.debug(f'We cannot run more tasks since the pool limit {self.__pool_size} is exceeded')
+            if self.__is_adjust_pool_size:
+                cur_max_tasks = self.__max_tasks - get_workers_cpu_cores()
+            else:
+                cur_max_tasks = self.__max_tasks
+            if len(processing_tasks) + len(tasks_to_run) >= cur_max_tasks:
+                self.__logger.debug(f'We cannot run more tasks since the pool limit {cur_max_tasks} is exceeded')
                 break
             node = self.__schedule_task(task, status=status)
             if node:

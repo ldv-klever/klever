@@ -16,6 +16,8 @@
 #
 
 import math
+import sys
+
 import klever.scheduler.utils as utils
 from klever.scheduler.schedulers import SchedulerException
 
@@ -413,413 +415,68 @@ class Runner:
         return
 
 
-class SpeculativeSimple(Runner):
-    """This runner collects statistics and adjust memory limits to run more tasks."""
+class TryLessMemoryRunner(Runner):
+    """This runner tries to run task with reduced memory for better parallelism."""
 
-    def init(self):
-        """
-        Initialize scheduler completely. This method should be called both at constructing stage and scheduler
-        reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
-        """
-        super(SpeculativeSimple, self).init()
-        # Timeout tasks
-        self._problematic = dict()
-        # Data about job tasks
-        self._jdata = dict()
+    DEFAULT_REDUCED_MEMORY_LIMIT = 0.5
 
-    def prepare_task(self, identifier, item):
+    def __init__(self, conf, logger, work_dir, server):
+        super().__init__(conf, logger, work_dir, server)
+        self.__reduced_memory_limit = self.conf["scheduler"].\
+            get("try less memory", TryLessMemoryRunner.DEFAULT_REDUCED_MEMORY_LIMIT)
+        if self.__reduced_memory_limit <= 0 or self.__reduced_memory_limit > 1.0:
+            sys.exit("Configuration argument 'try less memory' is incorrect. It should be between 0.0 and 1.0")
+
+    def solve_task(self, identifier, item):
         """
-        Prepare the task before rescheduling. This method is public and cannot raise any unexpected exceptions and can
-        do rescheduling. This method is public and cannot raise any unexpected exceptions and can do
-        rescheduling.
+        Reduce memory limit if it was not done before.
 
         :param identifier: Verification task identifier.
-        :param item: Dictionary with task description.
+        :param item: Verification task description dictionary.
+        :return: true on success.
         """
-        message = None
-        if item["description"]["job id"] in self._jdata:
-            message = self._estimate_resource_limitations(item, identifier)
-        super(SpeculativeSimple, self).prepare_task(identifier, item)
-        return message
-
-    def solve_job(self, identifier, item):
-        """
-        Solve given verification job. This method is public and cannot raise any unexpected exceptions and can do
-        rescheduling.
-
-        :param identifier: Job identifier.
-        :param item: Job description.
-        :return: Bool.
-        """
-        successful = super(SpeculativeSimple, self).solve_job(identifier, item)
-        if successful:
-            jd = self._track_job(identifier)
-            jd["QoS limit"] = dict(item['configuration']['task resource limits'])
-        return successful
+        if self.__reduced_memory_limit < 1.0:
+            if not item["description"].get('speculative', False):
+                limits = item["description"]["resource limits"]
+                mem_limit = limits['memory size']
+                new_mem_limit = int(mem_limit * self.__reduced_memory_limit)
+                self.logger.debug(f"Set mem limit to {new_mem_limit} instead of {mem_limit}")
+                limits['memory size'] = new_mem_limit
+                item["description"]["speculative"] = True
+        return super(TryLessMemoryRunner, self).solve_task(identifier, item)
 
     def process_task_result(self, identifier, item):
         """
-        Process result and send results to the server.
+        If task was not solved with adjusted memory limit, then reschedule its default value.
 
         :param identifier: Task identifier string.
         :param item: Verification task description dictionary.
-        :return: Bool if status of the job has changed.
+        :return: true if task was finished.
         """
         # Get solution in advance before it is cleaned
         if item["future"].done():
-            solution = utils.kv_get_solution(self.logger, self.scheduler_type(), identifier)
-        else:
-            solution = False
-        status = super(SpeculativeSimple, self).process_task_result(identifier, item)
-        if status and solution:
-            solved = self._add_solution(item["description"]["job id"], item["description"]["solution class"],
-                                        identifier, solution)
-            if not solved:
-                # We need to prepare task again to set new resource limitations to configuration files and solve it
-                # once again
+            try:
+                solution = utils.kv_get_solution(self.logger, self.scheduler_type(), identifier)
+                termination_reason = solution.get("status")
+            except RuntimeError as err:
+                self.logger.warning("Cannot get a solution for task {} due to: {}".
+                                    format(identifier, err))
+                # If we cannot get a solution due to external error, then do not rescheduler task.
+                termination_reason = "FAILURE"
+            status = super(TryLessMemoryRunner, self).process_task_result(identifier, item)
+            if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
+                    item["description"].get('speculative', False):
+                limits = item["description"]["resource limits"]
+                mem_limit = limits['memory size']
+                new_mem_limit = int(mem_limit / self.__reduced_memory_limit)
+                self.logger.info(
+                    f"Reschedule task {identifier} since it exceeded the given memory limitation "
+                    f"({mem_limit}B), new value is {new_mem_limit}B"
+                )
+
+                limits['memory size'] = new_mem_limit
                 self.prepare_task(identifier, item)
-                self.logger.info("Reschedule task {} of category {!r} due to underapproximated memory limit".
-                                 format(identifier, item["description"]["solution class"]))
                 item["status"] = "PENDING"
                 item["rescheduled"] = True
-        elif status and not solution:
-            self.logger.info('Missing decision results for task {}:{}'.
-                             format(item["description"]["solution class"], identifier))
-            self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
-        return status
-
-    def process_job_result(self, identifier, item, task_items):
-        """
-        Process future object status and send results to the server.
-
-        :param identifier: Job identifier string.
-        :param item: Verification job description dictionary.
-        :param task_items: Verification tasks description to cancel them if necessary.
-        :return: Bool if status of the job has changed.
-        """
-        status = super(SpeculativeSimple, self).process_job_result(identifier, item, task_items)
-        if status:
-            # Add log and asserts
-            jd = self._track_job(identifier)
-            if sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0:
-                self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
-                                  format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
-                for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics') is not None):
-                    self.logger.info(
-                        '\n\t'.join([
-                            "Task category {!r} statistics:".format(att),
-                            "solved: {}".format(attd["statistics"].get("number", 0)),
-                            "memory consumption deviation: {}GB".format(
-                                utils.memory_units_converter(attd["statistics"].get("mean mem", 0), 'GB')[0]),
-                            "mean memory consumption: {}GB".format(
-                                utils.memory_units_converter(attd["statistics"].get("memdev", 0), 'GB')[0]),
-                            "mean CPU time consumption: {}s".format(
-                                int(attd["statistics"].get("mean time", 0))),
-                            "CPU time consumption deviation: {}s".format(
-                                int(attd["statistics"].get("timedev", 0)))
-                        ])
-                    )
-
-            self.del_job(identifier)
-        return status
-
-    def cancel_job(self, identifier, item, task_items):
-        """
-        Stop the job solution.
-
-        :param identifier: Verification job ID.
-        :param item: Verification job description dictionary.
-        :param task_items: Verification tasks description to cancel them if necessary.
-        """
-        super(SpeculativeSimple, self).cancel_job(identifier, item, task_items)
-        self.del_job(identifier)
-
-    def cancel_task(self, identifier, item):
-        """
-        Stop the task solution.
-
-        :param identifier: Verification task ID.
-        :param item: Task description.
-        """
-        super(SpeculativeSimple, self).cancel_task(identifier, item)
-        if self._is_there(item["description"]["job id"], item["description"]["solution class"], identifier):
-            self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
-
-    def terminate(self):
-        """Abort solution of all running tasks and any other actions before termination."""
-        super(SpeculativeSimple, self).terminate()
-        # Clean data
-        self._problematic = dict()
-        self._jdata = dict()
-
-    def add_job_progress(self, identifier, item, progress):
-        """
-        Save information about the progress if necessary.
-
-        :param identifier: Job identifier string.
-        :param item: Verification job description dictionary.
-        :param progress: Information about the job progress.
-        """
-        super(SpeculativeSimple, self).add_job_progress(identifier, item, progress)
-        if progress.get('total_ts'):
-            jd = self._track_job(identifier)
-            jd['total tasks'] = progress['total_ts']
-
-    def _is_there(self, job_identifier, attribute, identifier):
-        """
-        Check that the task if already tracked as a time or memory limit.
-
-        :param job_identifier: Job identifier.
-        :param attribute: Attribute given to the job to classify it.
-        :param identifier: Identifier of the task.
-        :return: True if it is a known limit task.
-        """
-
-        if job_identifier in self._jdata and attribute in self._jdata[job_identifier]["limits"] and \
-                identifier in self._jdata[job_identifier]["limits"][attribute]["tasks"] and \
-                self._jdata[job_identifier]["limits"][attribute]["tasks"][identifier]["status"] in \
-                ('OUT OF MEMORY', 'TIMEOUT', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)'):
-            return True
+            return status
         return False
-
-    def _is_there_or_init(self, job_identifier, attribute, identifier):
-        """
-        Check that the task if already tracked as a time or memory limit. If not create a new description for the task
-        as it is a limit.
-
-        :param job_identifier: Job identifier.
-        :param attribute: Attribute given to the job to classify it.
-        :param identifier: Identifier of the task.
-        :return: Description of the task.
-        """
-        jd = self._track_job(job_identifier)
-        attd = jd["limits"].setdefault(attribute,
-                                       {
-                                           "tasks": dict(),
-                                           "statistics": None
-                                       })
-        task = attd["tasks"].setdefault(identifier, {"limitation": dict(), "status": None})
-        return task
-
-    def _del_task(self, job_identifier, attribute, identifier):
-        """
-        Delete task. This means that it is either solved or failed.
-
-        :param job_identifier: Job identifier.
-        :param attribute: Attribute given to the job to classify it.
-        :param identifier: Identifier of the task.
-        :return: None
-        """
-        job = self._track_job(job_identifier)
-        if attribute in job["limits"]:
-            del job["limits"][attribute]["tasks"][identifier]
-
-    def _track_job(self, job_identifier):
-        """
-        Start tracking the job.
-
-        :param job_identifier: Job identifier.
-        :return: Job solutions description.
-        """
-        return self._jdata.setdefault(job_identifier,
-                                      {
-                                          "limits": dict(),
-                                          "total tasks": None,
-                                          "QoS limit": None,
-                                          "solved": 0
-                                      })
-
-    def del_job(self, job_identifier):
-        """
-        Stop tracking the job.
-
-        :param job_identifier: job identifier.
-        :return: None
-        """
-        if job_identifier in self._jdata:
-            del self._jdata[job_identifier]
-
-    def _estimate_resource_limitations(self, item, identifier):
-        """
-        :param item: Description of the task.
-        :param identifier: Task identifier.
-        :return: New resource limitations.
-        """
-        job_identifier = item["description"]["job id"]
-        attribute = item["description"]["solution class"]
-        job_limitations = item["description"]["resource limits"]
-        message = "Set job limit for task {}: ".format(identifier)
-
-        # First set QoS limit
-        job = self._track_job(job_identifier)
-        qos = job.get("QoS limit")
-        assert qos is not None
-        assert job_limitations is not None
-
-        # Start tracking the element
-        element = self._is_there_or_init(job_identifier, attribute, identifier)
-        limits = dict(job_limitations)
-
-        # Check do we have some statistics already
-        speculative = False
-
-        if limits.get('memory size', 0) <= 0:
-            message += 'There is no memory size limitation at solving task {}.'
-        elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
-            message += 'There is no memory size limitation at solving task {}.'
-        elif self._is_there(job_identifier, attribute, identifier):
-            limits = dict(qos)
-            message = 'Set QoS limit for the task {}'.format(identifier)
-        elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
-            message += 'We have not enough solved tasks (5%) to yield speculative limit'
-        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
-            message += 'We have not solved at least 5 tasks to estimate average consumption'
-        else:
-            statistics = job["limits"][attribute]["statistics"]
-            if int(statistics['mean mem']) < 0:
-                raise ValueError('Mean memory is negative: {}'.format(int(statistics['mean mem'])))
-            if int(statistics['memdev']) < 0:
-                raise ValueError('Memory deviation is negative: {}'.format(int(statistics['memdev'])))
-            limits['memory size'] = int(statistics['mean mem']) + 2 * int(statistics['memdev'])
-            if limits['memory size'] < qos['memory size']:
-                message = "Try running task {} with a speculative limitation {}B".\
-                          format(identifier, limits['memory size'])
-                speculative = True
-            else:
-                message += "Estimation {}B is too high.".format(limits['memory size'])
-                limits = dict(job_limitations)
-
-        element["limitation"] = limits
-        item["description"]["resource limits"] = limits
-        item["description"]["speculative"] = speculative
-        return message
-
-    def _add_statisitcs(self, job, attribute, resources):
-        """
-        Add statistics collected after task solution.
-
-        :param job: Description dictionary of the job.
-        :param attribute: Attribute given to the job to classify it.
-        :param resources: Dictionary with resource consumption data.
-        :return: None
-        """
-        if not job["limits"][attribute]["statistics"]:
-            job["limits"][attribute]["statistics"] = {
-                'mean mem': resources['memory size'],
-                'memsum': 0,
-                'memdev': 0,
-                'mean time': resources['CPU time'] / 1000,
-                'timesum': 0,
-                'timedev': 0,
-                'number': 1
-            }
-        else:
-            statistics = job["limits"][attribute]["statistics"]
-            statistics['number'] += 1
-            # First save data for CPU
-            newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'] / 1000)
-            newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'] / 1000)
-            timedev = devn(newsum, statistics['number'])
-            statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
-
-            # Then memory
-            newmean = incmean(statistics['mean mem'], statistics['number'], resources['memory size'])
-            newsum = incsum(statistics['memsum'], statistics['mean mem'], newmean, resources['memory size'])
-            memdev = devn(newsum, statistics['number'])
-            statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
-
-    def _add_solution(self, job_identifier, attribute, identifier, solution):
-
-        """
-        Save solution and return is this solution is final or not.
-
-        :param job_identifier: Job identifier.
-        :param attribute: Attribute given to the job to classify it.
-        :param identifier: Identifier of the task.
-        :param solution: Data from the task solution.
-        :return: True if task is solved.
-        """
-        status = solution["status"]
-        resources = solution["resources"]
-        job = self._track_job(job_identifier)
-        element = self._is_there_or_init(job_identifier, attribute, identifier)
-        element["status"] = status
-
-        # Check that it is an error from scheduler
-        self.logger.info("Task {}:{} finished with status".format(attribute, identifier, status))
-        if resources:
-            job["solved"] += 1
-            self.logger.debug(
-                "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
-                format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))
-
-            if solution['uploaded']:
-                self._del_task(job_identifier, attribute, identifier)
-                self._add_statisitcs(job, attribute, resources)
-                self.logger.info("Accept task {}".format(identifier))
-                return True
-            else:
-                self.logger.info("Do not accept timeout task {} with status {!r}".
-                                 format(identifier, status))
-                return False
-        else:
-            self._del_task(job_identifier, attribute, identifier)
-            return True
-
-
-class Speculative(SpeculativeSimple):
-
-    def _add_statisitcs(self, job, attribute, resources):
-        """
-        Add statistics collected after task solution.
-
-        :param job: Description dictionary of the job.
-        :param attribute: Attribute given to the job to classify it.
-        :param resources: Dictionary with resource consumption data.
-        :return: None
-        """
-
-        def inc_wighted_mean(totalsumm, totaltime):
-            """Calculate incremental mean"""
-            return round(totalsumm/totaltime)
-
-        if not job["limits"][attribute]["statistics"]:
-            job["limits"][attribute]["statistics"] = {
-                'mean mem': 0,
-                'memsum': 0,
-                'memdevsum': 0,
-                'memdev': 0,
-                'mean time': 0,
-                'timedevsum': 0,
-                'timesum': 0,
-                'timedev': 0,
-                'number': 0,
-            }
-
-        statistics = job["limits"][attribute]["statistics"]
-        statistics['number'] += 1
-        statistics['timesum'] += (resources['CPU time'] / 1000)
-
-        # First save data for CPU
-        newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'] / 1000)
-        newsum = incsum(statistics['timedevsum'], statistics['mean time'], newmean, resources['CPU time'] / 1000)
-        if newsum != 0:
-            timedev = devn(newsum, statistics['number'])
-        else:
-            timedev = 0
-        statistics.update({'mean time': newmean, 'timedevsum': newsum, 'timedev': timedev})
-        self.logger.debug("Current mean CPU time: {}s, current CPU time deviation: {}s".
-                          format(round(newmean), round(timedev)))
-
-        # Then memory
-        statistics['memsum'] = round(resources['memory size'] * resources['CPU time'] / 1000)
-        newmean = inc_wighted_mean(statistics['memsum'], statistics['timesum'])
-        newsum = incsum(statistics['memdevsum'], statistics['mean mem'], newmean, resources['memory size'])
-        if newsum != 0:
-            memdev = devn(newsum, statistics['number'])
-        else:
-            memdev = 0
-        statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
-        self.logger.debug("Current mean RAM: {}GB, current RAM deviation: {}GB".format(
-            utils.memory_units_converter(round(newmean), 'GB')[0],
-            utils.memory_units_converter(round(memdev), 'GB')[0]))
