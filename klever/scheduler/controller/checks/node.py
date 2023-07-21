@@ -14,15 +14,16 @@
 # limitations under the License.
 
 import os
+import sys
 
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
     print("Looking for a file {}".format(expect_file))
     if os.path.isfile(expect_file):
-        exit(0)
-    else:
-        exit(2)
+        sys.exit(0)
+
+    sys.exit(2)
 
 
 if __name__ == "__main__":

@@ -23,17 +23,16 @@ from klever.core.pfg.fragmentation import FragmentationAlgorythm
 
 
 class Busybox(FragmentationAlgorythm):
-
     CLADE_PRESET = 'busybox_linux'
 
     def __init__(self, logger, conf, tactic, pf_dir):
         super().__init__(logger, conf, tactic, pf_dir)
         self._incorporate_libbb = tactic.get("include dependencies from libbb to applets fragments")
-        self._match_files = dict()
+        self._match_files = {}
 
     def _determine_units(self, program):
         """
-        Find all files that has \w+_main function and add dependencies files except that ones that stored in libbb dir.
+        Find all files that has *_main function and add dependencies files except that ones that stored in libbb dir.
         All files from the libbb directory add to the specific unit with the libbb name.
 
         :param program: Program object.
@@ -41,7 +40,7 @@ class Busybox(FragmentationAlgorythm):
         main_func = re.compile("\\w+main")
 
         libbb = set()
-        applets = dict()
+        applets = {}
         for file in program.files:
             rel_path = make_relative_path(self.source_paths, str(file))
             if os.path.commonpath(['libbb', rel_path]):
@@ -49,7 +48,7 @@ class Busybox(FragmentationAlgorythm):
             else:
                 for func in file.export_functions:
                     if main_func.match(func):
-                        path, name = os.path.split(rel_path)
+                        _, name = os.path.split(rel_path)
                         name = os.path.splitext(name)[0]
                         applets[name] = {file}
                         if self._incorporate_libbb:
@@ -57,7 +56,7 @@ class Busybox(FragmentationAlgorythm):
                         else:
                             dfiles = program.collect_dependencies(
                                 {file}, filter_func=lambda x:
-                                    not os.path.commonpath(['libbb', make_relative_path(self.source_paths, x.name)]))
+                                not os.path.commonpath(['libbb', make_relative_path(self.source_paths, x.name)]))
                         applets[name].update(dfiles)
 
         # Create fragments for found applets and libbb
@@ -83,5 +82,5 @@ class Busybox(FragmentationAlgorythm):
         """
         super()._determine_targets(program)
         # Do not consider libbb files as targets
-        for file in (program._files[f] for f in self._match_files if self._match_files[f] > 0):
+        for file in (program._files[f] for f, item in self._match_files.items() if item > 0):
             file.target = False

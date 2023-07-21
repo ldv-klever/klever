@@ -29,9 +29,9 @@ import sys
 class Cd:
     def __init__(self, path):
         self.new_path = path
+        self.prev_path = os.getcwd()
 
     def __enter__(self):
-        self.prev_path = os.getcwd()
         os.chdir(self.new_path)
 
     def __exit__(self, etype, value, traceback):
@@ -65,8 +65,8 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
 
     if get_output:
         return subprocess.check_output(args, **kwargs).decode('utf-8')
-    else:
-        subprocess.check_call(args, stdout=stdout, **kwargs)
+
+    subprocess.check_call(args, stdout=stdout, **kwargs)
 
 
 def check_deployment_configuration_file(logger, deploy_conf_file):
@@ -109,10 +109,10 @@ def get_logger(name, level='INFO'):
 def get_password(logger, prompt):
     if sys.stdin.isatty():
         return getpass.getpass(prompt)
-    else:
-        logger.warning('Password will be echoed')
-        print(prompt, end='', flush=True)
-        return sys.stdin.readline().rstrip()
+
+    logger.warning('Password will be echoed')
+    print(prompt, end='', flush=True)
+    return sys.stdin.readline().rstrip()
 
 
 def make_canonical_path(src_dir, path):
@@ -188,8 +188,8 @@ def get_cgroup_version():
     # TODO: improve detection of cgroup version
     if os.path.exists('/sys/fs/cgroup/freezer'):
         return 'v1'
-    else:
-        return 'v2'
+
+    return 'v2'
 
 
 def get_klever_version():

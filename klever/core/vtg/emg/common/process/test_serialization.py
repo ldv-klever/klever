@@ -58,7 +58,7 @@ def test_imported_names(raw_model, model):
 
 def test_export_model(source, model):
     raw1 = json.dumps(model, cls=CollectionEncoder)
-    new_model = CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(raw1),
+    new_model = CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(raw1),
                                                                              ProcessCollection())
     raw2 = json.dumps(new_model, cls=CollectionEncoder)
 
@@ -73,9 +73,9 @@ def test_requirements_field(source, raw_model):
 
     # Incorrect process
     test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['processes']['c5/p4'] =\
-        dict()
-    with pytest.raises(ValueError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+        {}
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
                                                                      ProcessCollection())
 
     # Missing action
@@ -83,7 +83,7 @@ def test_requirements_field(source, raw_model):
     test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['actions'] = \
         {'c1/p1': ['goaway']}
     with pytest.raises(ValueError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
                                                                      ProcessCollection())
 
 
@@ -97,7 +97,7 @@ def test_savepoint_uniqueness(source, raw_model):
 
     # Expect an error
     with pytest.raises(ValueError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(raw_model)),
                                                                      ProcessCollection())
 
 
@@ -106,13 +106,13 @@ def test_failures(source, raw_model):
     raw_model1 = copy.deepcopy(raw_model)
     raw_model1['environment processes']['c1/p2']['labels']['unused_label'] = {'declaration': 'int x'}
     with pytest.raises(RuntimeError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model1)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(raw_model1)),
                                                                      ProcessCollection())
     # Check for unused actions
     raw_model2 = copy.deepcopy(raw_model)
     raw_model2['environment processes']['c1/p2']['actions']['new'] = {'comment': 'Test', "statements": []}
     with pytest.raises(RuntimeError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model2)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(raw_model2)),
                                                                      ProcessCollection())
 
     # todo: Implement unused recursive subprocess
@@ -121,21 +121,21 @@ def test_failures(source, raw_model):
         'comment': 'Test', "process": "(<read> | <read>).{test}"
     }
     with pytest.raises(RuntimeError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
                                                                      ProcessCollection())
 
     raw_model4 = copy.deepcopy(raw_model)
     raw_model4['environment processes']['c1/p1']['process'] = '(!register_c1p1).{activate[%unknown_label%]}'
     with pytest.raises(RuntimeError):
-        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model4)),
+        CollectionDecoder(logging, {}).parse_event_specification(source, json.loads(json.dumps(raw_model4)),
                                                                      ProcessCollection())
 
 
 def _compare_models(raw1, raw2):
     _compare_process(raw1["main process"], raw2["main process"])
     for attr in ("functions models", "environment processes"):
-        collection1 = raw1.get(attr, dict())
-        collection2 = raw2.get(attr, dict())
+        collection1 = raw1.get(attr, {})
+        collection2 = raw2.get(attr, {})
         assert len(collection1) == len(collection2), attr
         for key in collection1:
             assert key in collection2, key
@@ -191,20 +191,20 @@ def _compare_savepoints(desc1, desc2):
 
 
 def _compare_requirements(desc1, desc2):
-    assert set(desc1.get('processes', dict()).keys()) == set(desc1.get('processes', dict()).keys())
-    assert set(desc1.get('actions', dict()).keys()) == set(desc1.get('actions', dict()).keys())
+    assert set(desc1.get('processes', {}).keys()) == set(desc1.get('processes', {}).keys())
+    assert set(desc1.get('actions', {}).keys()) == set(desc1.get('actions', {}).keys())
 
-    for name, flag in desc1.get('processes', dict()).items():
-        assert desc2.get('processes', dict())[name] == flag
+    for name, flag in desc1.get('processes', {}).items():
+        assert desc2.get('processes', {})[name] == flag
 
-    for name, actions in desc1.get('actions', dict()).items():
-        assert set(desc2.get('actions', dict())[name]) == set(actions)
+    for name, actions in desc1.get('actions', {}).items():
+        assert set(desc2.get('actions', {})[name]) == set(actions)
 
 
 def test_compare_peers(model):
     def _check_peers(p1, p2, actions):
-        assert str(p1) in p2.peers, 'Peers are {}'.format(', ', p2.peers.keys())
-        assert str(p2) in p1.peers, 'Peers are {}'.format(', ', p1.peers.keys())
+        assert str(p1) in p2.peers, 'Peers are {}'.format(', '.join(p2.peers.keys()))
+        assert str(p2) in p1.peers, 'Peers are {}'.format(', '.join(p1.peers.keys()))
         for action in actions:
             assert action in p1.peers[str(p2)], 'Peer actions are: {}'.format(', '.join(sorted(p1.peers[str(p2)])))
             assert action in p2.peers[str(p1)], 'Peer actions are: {}'.format(', '.join(sorted(p2.peers[str(p1)])))
@@ -217,33 +217,33 @@ def test_compare_peers(model):
         peers2 = model.peers(p2, list(map(str, actions)), [str(p1)])
         assert len(peers2) == len(actions), 'Peer actions are: {}, but got: {}'. \
                                             format(', '.join(sorted(p2.peers[str(p1)])), ', '.join(map(str, peers2)))
-            
+
     def expect_peers(p1, length):
-        assert len(p1.peers) == length, 'Peers are {}'.format(', ', p1.peers.keys())
-    
+        assert len(p1.peers) == length, 'Peers are {}'.format(', '.join(p1.peers.keys()))
+
     model.establish_peers()
-    
+
     # register_c1, deregister_c1
     _check_peers(model.models['register_c1'], model.environment['c1/p1'], {'register_c1p1'})
     _check_peers(model.models['deregister_c1'], model.environment['c1/p1'], {'deregister_c1p1'})
     expect_peers(model.models['register_c1'], 1)
     expect_peers(model.models['deregister_c1'], 1)
-    
+
     # register_c2, deregister_c2
     _check_peers(model.models['register_c2'], model.environment['c2/p1'], {'register_c2p1'})
     _check_peers(model.models['deregister_c2'], model.environment['c2/p1'], {'deregister_c2p1'})
     expect_peers(model.models['register_c2'], 1)
     expect_peers(model.models['deregister_c2'], 1)
-    
+
     # c1/p1
     _check_peers(model.environment['c1/p1'], model.environment['c1/p2'], {'register_c1p2', 'deregister_c1p2'})
     expect_peers(model.environment['c1/p1'], 3)
-    
+
     # c1/p2
     expect_peers(model.environment['c1/p2'], 1)
-    
+
     # c2/p2
     expect_peers(model.environment['c1/p1'], 3)
-    
+
     # main
     expect_peers(model.entry, 0)

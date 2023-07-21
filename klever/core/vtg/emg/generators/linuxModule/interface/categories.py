@@ -79,8 +79,6 @@ def __populate_resources(collection):
             interface.declaration = declaration
             collection.set_intf(interface)
 
-    return
-
 
 def __fulfill_function_interfaces(logger, collection, interface, category=None):
     """
@@ -132,13 +130,13 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
                 'Interface {!r} return value signature {!r} can be match with several following interfaces: {}'.
                 format(interface.name, str(declaration.return_value), ', '.join((str(i) for i in rv_interface))))
 
-    for index in range(len(declaration.parameters)):
+    for index, param in enumerate(declaration.parameters):
         if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]) and \
-                not isinstance(declaration.parameters[index], str) and \
-                not is_primitive_or_void(declaration.parameters[index]):
-            p_interface = collection.resolve_interface(declaration.parameters[index], category, False)
+                not isinstance(param, str) and \
+                not is_primitive_or_void(param):
+            p_interface = collection.resolve_interface(param, category, False)
             if len(p_interface) == 0:
-                p_interface = collection.resolve_interface_weakly(declaration.parameters[index], category, False)
+                p_interface = collection.resolve_interface_weakly(param, category, False)
             if len(p_interface) == 1:
                 p_interface = p_interface[0]
             elif len(p_interface) == 0:
@@ -147,7 +145,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
                 logger.warning(
                     'Interface {!r} parameter in the position {} with signature {!r} can be match with several '
                     'following interfaces: {}'.
-                    format(interface.name, index, str(declaration.parameters[index]),
+                    format(interface.name, index, str(param),
                            ', '.join((str(i) for i in p_interface))))
                 p_interface = None
 
@@ -162,29 +160,29 @@ def __complement_interfaces(logger, collection):
         candidates = collection.resolve_interface_weakly(signature, category, use_cache=False)
         if len(candidates) == 1:
             return candidates[0]
-        elif len(candidates) == 0:
+        if len(candidates) == 0:
             return None
-        else:
-            strict_candidates = collection.resolve_interface(signature, category, use_cache=False)
-            if len(strict_candidates) == 1:
-                return strict_candidates[0]
-            elif len(strict_candidates) > 1 and id_match:
-                id_candidates = [i for i in strict_candidates if i.name == id_match]
-                if len(id_candidates) == 1:
-                    return id_candidates[0]
-                else:
-                    return None
 
-            if len(strict_candidates) > 1:
-                raise RuntimeError("There are several interfaces with the same declaration {!r}".
-                                   format(signature.to_string('a')))
+        strict_candidates = collection.resolve_interface(signature, category, use_cache=False)
+        if len(strict_candidates) == 1:
+            return strict_candidates[0]
+        if len(strict_candidates) > 1 and id_match:
+            id_candidates = [i for i in strict_candidates if i.name == id_match]
+            if len(id_candidates) == 1:
+                return id_candidates[0]
 
-            # Filter of resources
-            candidates = [i for i in candidates if not isinstance(i, Resource)]
-            if len(candidates) == 1:
-                return candidates[0]
-            else:
-                return None
+            return None
+
+        if len(strict_candidates) > 1:
+            raise RuntimeError("There are several interfaces with the same declaration {!r}".
+                               format(signature.to_string('a')))
+
+        # Filter of resources
+        candidates = [i for i in candidates if not isinstance(i, Resource)]
+        if len(candidates) == 1:
+            return candidates[0]
+
+        return None
 
     # Resolve callback parameters
     for callback in collection.callbacks():
@@ -219,8 +217,6 @@ def __complement_interfaces(logger, collection):
                     isinstance(container.field_interfaces[field].declaration.points, Function):
                 # Track implementations from structures if types slightly differs and attached to structure variable
                 container.field_interfaces[field].declaration = container.declaration.fields[field]
-
-    return
 
 
 def __refine_categories(logger, conf, collection, sa):

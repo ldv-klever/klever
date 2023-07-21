@@ -24,9 +24,9 @@ import klever.core.components
 
 class PW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, total_subjobs=None):
-        super(PW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
         # Initialize shared values and queues
         self.mqs['finished and failed tasks'] = multiprocessing.Queue()
@@ -42,44 +42,44 @@ class PW(klever.core.components.Component):
         else:
             self.subjobs_number = 1
             self.job_mode = True
-        self.total_tasks_data = dict()
-        self.failed_tasks_data = dict()
-        self.finished_tasks_data = dict()
-        self.subjobs_cache = dict()
-        self.report_cache = dict()
+        self.total_tasks_data = {}
+        self.failed_tasks_data = {}
+        self.finished_tasks_data = {}
+        self.subjobs_cache = {}
+        self.report_cache = {}
         self.cached_tasks_progress = None
         self.cached_subjobs_progress = None
 
     @property
     def solved_subjobs(self):
-        return len([j for j in self.subjobs_cache.keys() if self.subjobs_cache[j] == 'finished'])
+        return len([j for j, stat in self.subjobs_cache.items() if stat == 'finished'])
 
     @property
     def failed_subjobs(self):
-        return len([j for j in self.subjobs_cache.keys() if self.subjobs_cache[j] == 'failed'])
+        return len([j for j, stat in self.subjobs_cache.items() if stat == 'failed'])
 
     @property
     def solved_tasks(self):
-        return sum((self.finished_tasks_data[j] for j in self.finished_tasks_data))
+        return sum((data for data in self.finished_tasks_data.values()))
 
     @property
     def failed_tasks(self):
-        return sum((self.failed_tasks_data[j] for j in self.failed_tasks_data))
+        return sum((data for data in self.failed_tasks_data.values()))
 
     @property
     def total_tasks(self):
         if len(self.total_tasks_data.keys()) == self.subjobs_number:
             return sum(self.total_tasks_data.values())
-        else:
-            return None
+
+        return None
 
     @property
     def rest_tasks(self):
         t = self.total_tasks
         if t:
             return t - self.solved_tasks - self.failed_tasks
-        else:
-            return None
+
+        return None
 
     @property
     def rest_subjobs(self):
@@ -90,10 +90,10 @@ class PW(klever.core.components.Component):
         if isinstance(self.total_tasks, int) and self.failed_tasks != self.total_tasks:
             # We should not round the progress value as it may lead to an incomplete progress submitting
             return int(100 * self.solved_tasks / (self.total_tasks - self.failed_tasks))
-        elif isinstance(self.total_tasks, int) and self.failed_tasks == self.total_tasks:
+        if isinstance(self.total_tasks, int) and self.failed_tasks == self.total_tasks:
             return 100
-        else:
-            return None
+
+        return None
 
     @property
     def subjobs_progress(self):
@@ -102,8 +102,8 @@ class PW(klever.core.components.Component):
             return int(100 * self.solved_subjobs / (self.subjobs_number - self.failed_subjobs))
         if not self.job_mode and self.failed_subjobs == self.subjobs_number:
             return 100
-        else:
-            return None
+
+        return None
 
     def watch_progress(self):
         self.logger.info("Start progress calculator")
@@ -113,17 +113,17 @@ class PW(klever.core.components.Component):
         subjobs_start_time = time.time()
         first_task_appeared = False
         total_tasks_determined = False
-        total_tasks_messages = list()
-        task_messages = list()
+        total_tasks_messages = []
+        task_messages = []
         if self.conf.get('wall time limit', None):
-            self.logger.info("Expecting wall time limitation as {}".format(self.conf.get('wall time limit', None)))
+            self.logger.info("Expecting wall time limitation as %s", self.conf.get('wall time limit', None))
             given_finish_time = subjobs_start_time + klever.core.utils.time_units_converter(
                 self.conf['wall time limit'])[0]
         else:
             given_finish_time = None
 
         if self.job_mode:
-            data_report = dict()
+            data_report = {}
         else:
             data_report = {
                 "total_sj": self.subjobs_number,
@@ -133,7 +133,7 @@ class PW(klever.core.components.Component):
         delay = 1
         while True:
             if not data_report:
-                data_report = dict()
+                data_report = {}
 
             # Drain queue to wait for the whole tasks in background
             klever.core.utils.drain_queue(task_messages, self.mqs['finished and failed tasks'])
@@ -172,9 +172,9 @@ class PW(klever.core.components.Component):
             # Check subjobs
             changes = [i for i in self.subjobs.keys() if i not in self.subjobs_cache]
             if any(changes):
-                for job_id in (i for i in self.subjobs.keys() if self.subjobs[i] == 'failed' and
+                for job_id in (i for i, stat in self.subjobs.items() if stat == 'failed' and
                                i not in self.subjobs_cache):
-                    self.logger.debug("The job {!r} has failed".format(job_id))
+                    self.logger.debug("The job %r has failed", job_id)
                     if job_id in self.total_tasks_data:
                         number = self.total_tasks_data[job_id] - \
                                  (self.finished_tasks_data[job_id] if job_id in self.finished_tasks_data else 0) - \
@@ -191,8 +191,8 @@ class PW(klever.core.components.Component):
                         # Estimate it as sum of already received tasks
                         self.total_tasks_data[job_id] = total
                 # Check solved job
-                if any([True for i in self.subjobs.keys()
-                        if self.subjobs[i] == 'finished' and i not in self.subjobs_cache]):
+                if any(True for i, stat in self.subjobs.items()
+                        if stat == 'finished' and i not in self.subjobs_cache):
                     self.logger.debug("Set new time as some jobs has been finished")
                     subjobs_update_time = time.time()
                 for i in changes:
@@ -200,8 +200,8 @@ class PW(klever.core.components.Component):
 
             # Calculate time on each report sending on base of all time and the whole number of tasks/subjobs
             if isinstance(self.total_tasks, int) and isinstance(self.tasks_progress, int):
-                self.logger.info("Current tasks progress is {}".format(self.tasks_progress))
-                self.logger.debug("Left to solve {} tasks of {} in total".format(self.rest_tasks, self.total_tasks))
+                self.logger.info(f"Current tasks progress is {self.tasks_progress}")
+                self.logger.debug(f"Left to solve {self.rest_tasks} tasks of {self.total_tasks} in total")
                 task_estimation = self._estimate_time(tasks_start_time, task_update_time, self.solved_tasks,
                                                       self.rest_tasks, self.tasks_progress, given_finish_time)
                 data_report["failed_ts"] = self.failed_tasks
@@ -215,11 +215,10 @@ class PW(klever.core.components.Component):
 
             # Estimate subjobs
             if not self.job_mode and isinstance(self.subjobs_progress, int):
-                self.logger.info("Current subjobs progress is {}".format(self.subjobs_progress))
+                self.logger.info(f"Current subjobs progress is {self.subjobs_progress}")
                 subjob_estimation = self._estimate_time(subjobs_start_time, subjobs_update_time, self.solved_subjobs,
                                                         self.rest_subjobs, self.subjobs_progress, given_finish_time)
-                self.logger.debug("Left to solve {} subjobs of {} in total".format(self.rest_subjobs,
-                                                                                   self.subjobs_number))
+                self.logger.debug(f"Left to solve {self.rest_subjobs} subjobs of {self.subjobs_number} in total")
                 data_report["failed_sj"] = self.failed_subjobs
                 data_report["solved_sj"] = self.solved_subjobs
                 if isinstance(subjob_estimation, int):
@@ -270,19 +269,19 @@ class PW(klever.core.components.Component):
         else:
             ret = 0
 
-        self.logger.info("Solution progress: {}, time estimation: {}".format(progress, ret))
+        self.logger.info(f"Solution progress: {progress}, time estimation: {ret}")
         return ret
 
     def _send_report(self, report):
         send_report = False
-        new_report = dict()
+        new_report = {}
 
         def check_new_field(name):
             if name not in self.report_cache and name in report:
                 new_report[name] = report[name]
                 return True
-            else:
-                return False
+
+            return False
 
         # Send when appears total tasks, start tasks solution, end task solution, total subjobs and start solution
         for prop in ["total_sj", "subjobs_started", "subjobs_finished",
@@ -338,6 +337,6 @@ class PW(klever.core.components.Component):
                     new_report[i] = report[i]
 
         if send_report:
-            self.logger.info("Sending progress report: {}".format(str(new_report)))
+            self.logger.info("Sending progress report: %s", str(new_report))
             self.session.submit_progress(new_report)
             self.report_cache = copy.copy(report)

@@ -105,7 +105,7 @@ def parse_args(args):
     return args
 
 
-def main(sys_args=sys.argv[1:]):
+def main(sys_args=sys.argv[1:]): # pylint: disable=dangerous-default-value
     args = parse_args(sys_args)
     logger = get_logger(__name__, args.log_level)
 
@@ -127,4 +127,4 @@ def main(sys_args=sys.argv[1:]):
         )
         raise
 
-    logger.info('Finish execution of action "{0}" for "{1}"'.format(args.action, args.entity))
+    logger.info(f'Finish execution of action "{args.action}" for "{args.entity}"')

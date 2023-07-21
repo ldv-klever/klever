@@ -72,7 +72,7 @@ class PFG(klever.core.components.Component):
         self.prepare_descriptions_file(pairs)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
         self.excluded_clean.append(attr_data[1])
-        self.logger.debug("Excluded {}".format(', '.join(self.excluded_clean)))
+        self.logger.debug(f"Excluded {', '.join(self.excluded_clean)}")
         self.clean_dir = True
 
     main = generate_program_fragments
@@ -101,7 +101,7 @@ class PFG(klever.core.components.Component):
 
         :param pairs: The list of name and program fragment description files pairs.
         """
-        self.logger.info("Save file with program fragments descriptions {!r}".format(self.PF_FILE))
+        self.logger.info("Save file with program fragments descriptions %r", self.PF_FILE)
         with open(self.PF_FILE, 'w') as fp:
             fp.writelines((name + ':=' + os.path.relpath(file, self.conf['main working directory']) + '\n'
                           for name, file in pairs))
@@ -120,7 +120,7 @@ class PFG(klever.core.components.Component):
         tactic_name = self.conf.get('fragmentation tactic')
 
         if program:
-            self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
+            self.logger.info("Search for fragmentation description and configuration for %r", program)
             conf_files = glob.glob(os.path.join(db, '*.json'))
             specification = {}
             for conf_file in conf_files:
@@ -129,7 +129,7 @@ class PFG(klever.core.components.Component):
                         specification = json.load(fp)
 
             if not specification:
-                self.logger.warning('There is no fragmentation sets description file for program {!r}'.format(program))
+                self.logger.warning('There is no fragmentation sets description file for program %r', program)
         else:
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")
 
@@ -138,14 +138,14 @@ class PFG(klever.core.components.Component):
             tactics = specification.get('tactics', {})
             tactic = {}
             if tactic_name and tactic_name in tactics:
-                self.logger.info('Found options for {!r} tactic'.format(tactic))
+                self.logger.info('Found options for %r tactic', tactic)
                 tactic.update(tactics[tactic_name])
             elif tactic_name:
                 raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(tactic_name))
             else:
                 for item, desc in tactics.items():
                     if desc.get('reference'):
-                        self.logger.info('Use default options from {!r} tactic'.format(item))
+                        self.logger.info('Use default options from %r tactic', item)
                         tactic.update(desc)
                         tactic_name = item
                         break
@@ -160,7 +160,7 @@ class PFG(klever.core.components.Component):
             fsets = specification.get('fragmentation sets', {})
             fset = {}
             if fset_name and fset_name in fsets:
-                self.logger.info('Fragmentation set {!r}'.format(fset_name))
+                self.logger.info('Fragmentation set %r', fset_name)
                 fset.update(fsets[fset_name])
             elif fset_name:
                 raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(tactic_name))
@@ -169,7 +169,7 @@ class PFG(klever.core.components.Component):
                 if fsets:
                     for item, desc in fsets.items():
                         if desc.get('reference'):
-                            self.logger.info('Use default {!r} fragmentation set'.format(item))
+                            self.logger.info('Use default %r fragmentation set', item)
                             fset.update(desc)
                             if not fset_name:
                                 fset_name = item
@@ -193,7 +193,7 @@ class PFG(klever.core.components.Component):
         :param strategy_name:
         :return: Fragmentation strategy class.
         """
-        self.logger.info('Import fragmentation strategy {!r}'.format(strategy_name))
+        self.logger.info('Import fragmentation strategy %r', strategy_name)
         # Remove spaces that are nice for users but can not be used in Python module names.
         module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower().replace(' ', ''))
         try:

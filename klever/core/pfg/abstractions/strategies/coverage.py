@@ -43,7 +43,7 @@ class Coverage(Abstract):
         # Extract/fetch file
         with zipfile.ZipFile(archive) as z:
             with z.open('coverage.json') as zf:
-                coverage = ujson.load(zf)
+                coverage = ujson.load(zf) # pylint: disable=c-extension-no-member
 
         # Extract information on functions
         self._func_coverage = coverage.get('functions statistics')
@@ -63,8 +63,8 @@ class Coverage(Abstract):
         cg = self.program.clade.callgraph
         self.logger.info("Find fragments that call functions from the target fragment {!r}".format(fragment.name))
         # Search for export functions
-        ranking = dict()
-        function_map = dict()
+        ranking = {}
+        function_map = {}
         for path in fragment.files:
             for func in path.export_functions:
                 # Find fragments that call this function
@@ -83,14 +83,14 @@ class Coverage(Abstract):
             if function_map[func].intersection(added):
                 # Already added
                 continue
-            else:
-                possible = {f.name for f in function_map[func]}.intersection(self._white_list)
-                if not possible:
-                    # Get rest
-                    possible = {f.name for f in function_map[func]}.difference(self._black_list)
-                if possible:
-                    added.add(sorted((f for f in function_map[func] if f.name in possible),
-                                     key=lambda x: ranking[x.name], reverse=True)[0])
+
+            possible = {f.name for f in function_map[func]}.intersection(self._white_list)
+            if not possible:
+                # Get rest
+                possible = {f.name for f in function_map[func]}.difference(self._black_list)
+            if possible:
+                added.add(sorted((f for f in function_map[func] if f.name in possible),
+                                 key=lambda x: ranking[x.name], reverse=True)[0])
 
         # Now generate pairs
         return [("{}:{}".format(fragment.name, frag.name), fragment, {fragment, frag}) for frag in added] + \
@@ -108,9 +108,9 @@ class Coverage(Abstract):
         """
         result = set()
         # Get functions from the callgraph
-        desc = cg.get(path.name, dict()).get(func)
+        desc = cg.get(path.name, {}).get(func)
         if desc:
-            for scope, called_funcs in ((s, d) for s, d in desc.get('called_in', dict()).items()
+            for scope, called_funcs in ((s, d) for s, d in desc.get('called_in', {}).items()
                                         if s != path.name and s in self._func_coverage):
                 if any(True for f in called_funcs if f in self._func_coverage[scope]):
                     # Found function call in covered functions retrieve Fragment and add to result

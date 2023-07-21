@@ -119,11 +119,9 @@ class FSATranslator:
         # Add types
         for pair in self._structures.values():
             file, decl = pair
-            self._cmodel.types.setdefault(file, list())
+            self._cmodel.types.setdefault(file, [])
             if decl not in self._cmodel.types[file]:
                 self._cmodel.types[file].append(decl)
-
-        return
 
     def _prepare_control_functions(self):
         """
@@ -135,7 +133,8 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    def _art_action(self, action, automaton):
+    @staticmethod
+    def _art_action(action, automaton):
         """
         Generate a code block for an artificial node in FSA which does not correspond to any action.
 
@@ -147,8 +146,8 @@ class FSATranslator:
                  [list of strings with model comments which embrace the code block]
         """
         # Make comments
-        code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(action, 'Artificial state in scenario'.format(automaton.process.name)))
+        code, v_code, conditions, comments = [], [], [], []
+        comments.append(action_model_comment(action, 'Artificial state in scenario {}'.format(automaton.process.name)))
 
         return code, v_code, conditions, comments
 
@@ -167,7 +166,7 @@ class FSATranslator:
                  [list of strings with boolean conditional expressions which guard code block entering],
                  [list of strings with model comments which embrace the code block]
         """
-        code, v_code, conditions, comments = list(), list(), list(), list()
+        code, v_code, conditions, comments = [], [], [], []
 
         # Determine peers to receive the signal
         automata_peers = sortedcontainers.SortedDict()
@@ -229,10 +228,10 @@ class FSATranslator:
             function_parameters = []
 
             # Add parameters
-            for index in range(len(action.parameters)):
+            for param in action.parameters:
                 # Determine dispatcher parameter
                 # We expect strictly one
-                dispatcher_access = automaton.process.resolve_access(action.parameters[index])
+                dispatcher_access = automaton.process.resolve_access(param)
                 variable = automaton.determine_variable(dispatcher_access.label)
                 function_parameters.append(variable.declaration)
                 df_parameters.append(variable.name)
@@ -324,7 +323,7 @@ class FSATranslator:
                  [list of strings with boolean conditional expressions which guard code block entering],
                  [list of strings with model comments which embrace the code block]
         """
-        code, v_code, conditions, comments = list(), list(), list(), list()
+        code, v_code, conditions, comments = [], [], [], []
 
         # Make comments
         comment = action.comment
@@ -351,7 +350,7 @@ class FSATranslator:
                  [list of strings with boolean conditional expressions which guard code block entering],
                  [list of strings with model comments which embrace the code block]
         """
-        code, v_code, conditions, comments = list(), list(), list(), list()
+        code, v_code, conditions, comments = [], [], [], []
 
         # Make comments
         comment = action.comment
@@ -384,8 +383,8 @@ class FSATranslator:
                 raise KeyError('Structure name is not unique')
 
             decl = import_declaration('struct {} a'.format(struct_name))
-            for index in range(len(params)):
-                decl.fields['arg{}'.format(index)] = params[index]
+            for index, param in enumerate(params):
+                decl.fields['arg{}'.format(index)] = param
             decl.fields['signal_pending'] = import_declaration('int a')
 
             self._structures[cache_identifier] = [automaton.process.file, decl]
@@ -406,8 +405,8 @@ class FSATranslator:
 
         if self._conf.get('direct control functions calls'):
             return '{}({});'.format(self._control_function(automaton).name, parameter)
-        else:
-            return self._call_cf_code(automaton, parameter)
+
+        return self._call_cf_code(automaton, parameter)
 
     def _join_cf(self, automaton):
         """
@@ -420,8 +419,8 @@ class FSATranslator:
 
         if self._conf.get('direct control functions calls'):
             return '/* Skip thread join call */'
-        else:
-            return self._join_cf_code(automaton)
+
+        return self._join_cf_code(automaton)
 
     def _control_function(self, automaton):
         """
@@ -440,9 +439,9 @@ class FSATranslator:
                 if len(function_objs) == 0:
                     raise ValueError("Unfortunately there is no function {!r} found by the source analysis".
                                      format(automaton.process.name))
-                else:
-                    # We ignore there that fact that functions can have different scopes
-                    function_obj = function_objs[0]
+
+                # We ignore there that fact that functions can have different scopes
+                function_obj = function_objs[0]
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
                     if isinstance(param, str):
@@ -530,7 +529,7 @@ class FSATranslator:
                  [list of strings with boolean conditional expressions which guard code block entering],
                  [list of strings with model comments which embrace the code block]
         """
-        code, v_code, conditions, comments = list(), list(), list(), list()
+        code, v_code, conditions, comments = [], [], [], []
 
         # Make comments
         comment = action.comment.format(automaton.process.category.upper())
@@ -567,8 +566,7 @@ class FSATranslator:
         action = behaviour.description
 
         def compose_single_action(beh, code, v_code, conditions, comments):
-            final_code = list()
-            final_code.append(comments[0])
+            final_code = [comments[0]]
 
             if isinstance(beh.repeat, int):
                 code = ([''] + code) * beh.repeat

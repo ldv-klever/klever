@@ -23,7 +23,7 @@ class SavepointsSelector(Selector):
     def __call__(self, *args, **kwargs):
         self.logger.info("Iterate over all generated scenarios with both SP and not")
 
-        selection = self.conf.get("savepoints", dict())
+        selection = self.conf.get("savepoints", {})
         self._check_configuration(selection)
 
         for process in (p for n, p in self.model.non_models.items()

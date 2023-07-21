@@ -18,7 +18,7 @@
 import math
 import sys
 
-import klever.scheduler.utils as utils
+from klever.scheduler import utils
 from klever.scheduler.schedulers import SchedulerException
 
 def incmean(prevmean, n, x):
@@ -253,9 +253,9 @@ class Runner:
             finally:
                 utils.kv_clear_solutions(self.logger, self.scheduler_type(), identifier)
                 del item["future"]
-                return True
-        else:
-            return False
+            return True
+
+        return False
 
     def _process_task_result(self, identifier, future, description):
         """
@@ -295,9 +295,9 @@ class Runner:
                     self.cancel_task(task["id"], task)
             finally:
                 del item["future"]
-                return True
-        else:
-            return False
+            return True
+
+        return False
 
     def _process_job_result(self, identifier, future):
         """
@@ -399,7 +399,6 @@ class Runner:
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
         utils.kv_clear_solutions(self.logger, self.scheduler_type())
-        return
 
     def update_nodes(self, wait_controller=False):
         """
@@ -443,7 +442,7 @@ class TryLessMemoryRunner(Runner):
                 self.logger.debug(f"Set mem limit to {new_mem_limit} instead of {mem_limit}")
                 limits['memory size'] = new_mem_limit
                 item["description"]["speculative"] = True
-        return super(TryLessMemoryRunner, self).solve_task(identifier, item)
+        return super().solve_task(identifier, item)
 
     def process_task_result(self, identifier, item):
         """
@@ -463,7 +462,7 @@ class TryLessMemoryRunner(Runner):
                                     format(identifier, err))
                 # If we cannot get a solution due to external error, then do not rescheduler task.
                 termination_reason = "FAILURE"
-            status = super(TryLessMemoryRunner, self).process_task_result(identifier, item)
+            status = super().process_task_result(identifier, item)
             if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
                     item["description"].get('speculative', False):
                 limits = item["description"]["resource limits"]

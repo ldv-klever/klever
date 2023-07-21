@@ -91,8 +91,8 @@ class Function:
         self._name = name
         self._declaration = None
 
-        self.body = list()
-        self.header_files = list()
+        self.body = []
+        self.header_files = []
         self.definition_file = None
         self.calls = sortedcontainers.SortedDict()
         self.called_at = sortedcontainers.SortedDict()

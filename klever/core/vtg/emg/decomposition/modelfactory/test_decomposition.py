@@ -59,7 +59,7 @@ def logger():
 
 # def _obtain_model(logger, model, specification):
 #     separation = CombinatorialFactory(logger, specification)
-#     scenario_generator = SeparationStrategy(logger, dict())
+#     scenario_generator = SeparationStrategy(logger, {})
 #     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
 #                               for process in model.environment.values()}
 #     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
@@ -67,7 +67,7 @@ def logger():
 #
 # def _obtain_linear_model(logger, model, specification, separate_dispatches=False):
 #     separation = CombinatorialFactory(logger, specification)
-#     scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
+#     scenario_generator = LinearStrategy(logger, {} if not separate_dispatches else
 #     {'add scenarios without dispatches': True})
 #     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
 #                               for process in model.environment.values()}
@@ -76,7 +76,7 @@ def logger():
 
 def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     separation = SavepointsFactory(logger, specification)
-    scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
+    scenario_generator = ReqsStrategy(logger, {} if not separate_dispatches else
     {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
                               for process in model.non_models.values()}
@@ -85,7 +85,7 @@ def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
 
 def test_default_models(base_model):
     separation = ModelFactory(logging.Logger('default'), {})
-    scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
+    scenario_generator = SeparationStrategy(logging.Logger('default'), {})
     processes_to_scenarios = {str(process): list(scenario_generator(process, base_model))
                               for process in base_model.non_models.values()}
     models = list(separation(processes_to_scenarios, base_model))
@@ -164,7 +164,7 @@ def test_default_models(base_model):
 
 def test_fs_reqs(logger, fs_deps_model):
     spec = {}
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, fs_deps_model, spec)
     expected = [
         {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
         {'c/p1': 'sp2 with base', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
@@ -178,7 +178,7 @@ def test_fs_reqs(logger, fs_deps_model):
 
 def test_fs_init_reqs(logger, fs_init_deps_model):
     spec = {}
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
     expected = [
         {'entry_point/main': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'base'},
         {'entry_point/main': 'sp2 with exit', 'c/p4': 'base for sp2', 'c/p3': 'register_p4_success_create for sp2',
@@ -192,7 +192,7 @@ def test_fs_init_reqs(logger, fs_init_deps_model):
 
 def test_double_init_reqs(logger, double_init_with_deps_model):
     spec = {}
-    processes_to_scenarios, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
     expected = [
         {'c1/p1': 's1 with base', 'c1/p2': 'Removed', 'c2/p1': 'base', 'c2/p2': 'base'},
         {'c1/p1': 's2 with base', 'c2/p1': 'base for s2', 'c2/p2': 'Removed', 'c1/p2': 'Removed'},
@@ -211,7 +211,7 @@ def test_double_init_selected(logger, double_init_with_deps_model):
             "c2/p1": True
         }
     }
-    processes_to_scenarios, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, double_init_with_deps_model, spec)
     expected = [
         {'c1/p1': 's1 with base', 'c1/p2': 'Removed', 'c2/p1': 'base', 'c2/p2': 'base'},
         {'c2/p1': 's5 with base', 'c1/p1': 'Removed', 'c2/p2': 'Removed', 'c1/p2': 'Removed'}
@@ -232,4 +232,3 @@ def _expect_models_with_attrs(models, attributes):
 
     missing = attrs.difference(model_attrs)
     assert len(missing) == 0, f"There are missing models: {missing}"
-

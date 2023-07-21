@@ -83,7 +83,7 @@ class Aspect(Function):
     """
 
     def __init__(self, name, declaration, aspect_type="after"):
-        super(Aspect, self).__init__(name, declaration)
+        super().__init__(name, declaration)
         self.aspect_type = aspect_type
 
     def define(self, scope=None):
@@ -92,7 +92,7 @@ class Aspect(Function):
 
         :return: List of strings.
         """
-        lines = list()
+        lines = []
         lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
@@ -250,10 +250,10 @@ class CModel:
             for file in (f for f in self.files if f in additional_lines):
                 self.add_headers(file, get_or_die(self._conf["translation options"], "additional headers"))
 
-        addictions = dict()
+        addictions = {}
         # Write aspects
         for file in self.files:
-            lines = list()
+            lines = []
 
             # Check headers
             if file == self.entry_file:
@@ -272,7 +272,7 @@ class CModel:
                 # Add model itself
                 lines.extend(['after: file ("$this")\n', '{\n'])
 
-            for tp in self.types.get(file, list()):
+            for tp in self.types.get(file, []):
                 lines += [tp.to_string('') + " {\n"] + \
                          [("\t{};\n".format(tp.fields[field].
                                             to_string(field, typedef='complex_and_params'), scope={file}))
@@ -410,7 +410,7 @@ class CModel:
     @staticmethod
     def _collapse_headers_sets(sets):
         final_list = []
-        sortd = sorted(sets, key=lambda f: len(f))
+        sortd = sorted(sets, key=lambda f: len(f))  # pylint: disable=unnecessary-lambda
         while len(sortd) > 0:
             data = sortd.pop()
             difference = set(data).difference(set(final_list))
@@ -471,82 +471,83 @@ class FunctionModels:
             replacement = self._replace_comment(cmnt_match)
             statement = statement.replace(cmnt_match.group(0), replacement)
             return [statement]
-        else:
-            # Replace function calls
-            for fn in self.simple_function_re.findall(statement):
-                matched = True
 
-                # Bracket is required to ignore CIF expressions like $res or $arg1
-                if fn in self.mem_function_map or fn in self.free_function_map:
-                    access = self.mem_function_re.search(statement)
-                    if not access:
-                        raise ValueError("Cannot parse the {!r} statement. Ensure you provided labels as arguments and "
-                                         "do not miss '%' symbols.".format(statement))
-                    else:
-                        access = access.group(2)
+        # Replace function calls
+        for fn in self.simple_function_re.findall(statement):
+            matched = True
 
-                    if fn in self.mem_function_map:
-                        replacement = self._replace_mem_call
-                    else:
-                        replacement = self._replace_free_call
+            # Bracket is required to ignore CIF expressions like $res or $arg1
+            if fn in self.mem_function_map or fn in self.free_function_map:
+                access = self.mem_function_re.search(statement)
+                if not access:
+                    raise ValueError("Cannot parse the {!r} statement. Ensure you provided labels as arguments and "
+                                     "do not miss '%' symbols.".format(statement))
 
-                    access = automaton.process.resolve_access('%{}%'.format(access))
-                    signature = access.label.declaration
-                    if signature:
-                        var = automaton.determine_variable(access.label)
-                        if isinstance(var.declaration, Pointer):
-                            self.signature = var.declaration
-                            new = self.mem_function_re.sub(replacement, statement)
-                            stms.append(new)
-                    else:
-                        self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
-                elif fn in self.irq_function_map:
-                    statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
-                    stms.append(statement)
+                access = access.group(2)
+
+                if fn in self.mem_function_map:
+                    replacement = self._replace_mem_call
                 else:
-                    raise NotImplementedError("Model function '${}' is not supported at line {!r}".
-                                              format(fn, statement))
+                    replacement = self._replace_free_call
 
-            if not matched:
-                stms = [statement]
+                access = automaton.process.resolve_access('%{}%'.format(access))
+                signature = access.label.declaration
+                if signature:
+                    var = automaton.determine_variable(access.label)
+                    if isinstance(var.declaration, Pointer):
+                        self.signature = var.declaration
+                        new = self.mem_function_re.sub(replacement, statement)
+                        stms.append(new)
+                else:
+                    self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
+            elif fn in self.irq_function_map:
+                statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
+                stms.append(statement)
+            else:
+                raise NotImplementedError("Model function '${}' is not supported at line {!r}".
+                                          format(fn, statement))
 
-            # Replace rest accesses
-            final = []
-            for original_stm in stms:
-                # Collect duplicates
-                stm_set = {original_stm}
+        if not matched:
+            stms = [statement]
 
-                while len(stm_set) > 0:
-                    stm = stm_set.pop()
-                    match = self.access_re.search(stm)
-                    if match:
-                        expression = match.group(1)
-                        access = automaton.process.resolve_access(expression)
-                        if not access:
-                            raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
-                                             format(stm, expression))
-                        var = automaton.determine_variable(access.label)
-                        if not var:
-                            raise ValueError(f"There is no variable created for "
-                                             f"label '{access.label}' of access '{str(access)}'")
-                        stm = stm.replace(expression, var.name)
-                        stm_set.add(stm)
-                    else:
-                        final.append(stm)
+        # Replace rest accesses
+        final = []
+        for original_stm in stms:
+            # Collect duplicates
+            stm_set = {original_stm}
 
-            return final
+            while len(stm_set) > 0:
+                stm = stm_set.pop()
+                match = self.access_re.search(stm)
+                if match:
+                    expression = match.group(1)
+                    access = automaton.process.resolve_access(expression)
+                    if not access:
+                        raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
+                                         format(stm, expression))
+                    var = automaton.determine_variable(access.label)
+                    if not var:
+                        raise ValueError(f"There is no variable created for "
+                                         f"label '{access.label}' of access '{str(access)}'")
+                    stm = stm.replace(expression, var.name)
+                    stm_set.add(stm)
+                else:
+                    final.append(stm)
 
-    def _replace_comment(self, match):
+        return final
+
+    @staticmethod
+    def _replace_comment(match):
         arguments = match.groups()
         if arguments[0] == 'callback':
             name = arguments[1]
             cmnt = model_comment('callback', name, {'call': "{}();".format(name)})
             return cmnt
-        else:
-            raise NotImplementedError("Replacement of {!r} comments is not implemented".format(arguments[0]))
+
+        raise NotImplementedError("Replacement of {!r} comments is not implemented".format(arguments[0]))
 
     def _replace_mem_call(self, match):
-        func, label_name, suffix, flag = match.groups()
+        func, label_name, suffix, _ = match.groups()
         size = '0'
 
         # TODO: Implement this using access parser
@@ -555,7 +556,7 @@ class FunctionModels:
 
         if func not in self.mem_function_map:
             raise NotImplementedError("Model of {!r} is not supported".format(func))
-        elif not self.mem_function_map[func]:
+        if not self.mem_function_map[func]:
             raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         if isinstance(self.signature, Pointer):
@@ -565,18 +566,18 @@ class FunctionModels:
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)
-        else:
-            raise ValueError('This is not a pointer')
+
+        raise ValueError('This is not a pointer')
 
     def _replace_free_call(self, match):
-        func, label_name, suffix, flag = match.groups()
+        func, label_name, suffix, _ = match.groups()
         if func not in self.free_function_map:
             raise NotImplementedError("Model of {!r} is not supported".format(func))
-        elif not self.free_function_map[func]:
+        if not self.free_function_map[func]:
             raise NotImplementedError("Set implementation for the function {!r}".format(func))
 
         # Create function call
         if isinstance(self.signature, Pointer):
             return "{}(%{}%{})".format(self.free_function_map[func], label_name, suffix if suffix else '')
-        else:
-            raise ValueError('This is not a pointer')
+
+        raise ValueError('This is not a pointer')

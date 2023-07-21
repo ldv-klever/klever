@@ -44,11 +44,11 @@ class ASE(klever.core.vtg.plugins.Plugin):
             arg_signs = None
 
             if os.path.isfile(arg_signs_file):
-                self.logger.info('Process obtained argument signatures from file "{0}"'.format(arg_signs_file))
+                self.logger.info(f'Process obtained argument signatures from file "{arg_signs_file}"')
                 # We could obtain the same argument signatures, so remove duplicates.
                 with open(arg_signs_file, encoding='utf-8') as fp:
                     arg_signs = set(fp.read().splitlines())
-                self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
+                self.logger.debug(f'Obtain following argument signatures "{arg_signs}"')
 
             # Convert each argument signature (that is represented as C identifier) into:
             # * the same identifier but with leading "_" for concatenation with other identifiers ("_" allows to
@@ -77,22 +77,22 @@ class ASE(klever.core.vtg.plugins.Plugin):
         for request_aspect in self.conf['request aspects']:
             request_aspect = klever.core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                                     request_aspect)
-            self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
+            self.logger.debug(f'Request aspect is "{request_aspect}"')
 
             for grp in self.abstract_task_desc['grps']:
-                self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
+                self.logger.info('Request argument signatures for C files of group "%s"', grp['id'])
 
                 for extra_cc in grp['Extra CCs']:
                     infile = extra_cc['in file']
-                    self.logger.info('Request argument signatures for C file "{0}"'.format(infile))
+                    self.logger.info(f'Request argument signatures for C file "{infile}"')
 
                     cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
 
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(
                         os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0])
-                    self.logger.debug('Argument signature file is "{0}"'
-                                      .format(os.path.relpath(env['LDV_ARG_SIGNS_FILE'])))
+                    self.logger.debug('Argument signature file is "%s"',
+                                      os.path.relpath(env['LDV_ARG_SIGNS_FILE']))
 
                     # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
                     # additional argument signatures should be extracted. Like in Weaver.

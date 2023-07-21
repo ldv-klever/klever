@@ -214,5 +214,5 @@ class Session:
         }
         with open(image_file, mode='rb') as image_fp:
             with open(dot_file, mode='rb') as dot_fp:
-                self.__request('reports/api/component/images-create/'.format(), 'POST', data=data,
+                self.__request('reports/api/component/images-create/', 'POST', data=data,
                                files=[('image', image_fp), ('data', dot_fp)])

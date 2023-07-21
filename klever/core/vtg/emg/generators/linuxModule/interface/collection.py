@@ -73,7 +73,7 @@ class InterfaceCollection:
         :return: True or False.
         """
         return identifier in self.__deleted_interfaces
-    
+
     def is_removed_function(self, name):
         """
         Returns True if there is an function interface with a provided identifier in a deleted interfaces collection.
@@ -94,7 +94,7 @@ class InterfaceCollection:
         """
         if identifier in self._interfaces:
             return self._interfaces[identifier]
-        elif identifier not in self._interfaces and identifier in self.__deleted_interfaces:
+        if identifier not in self._interfaces and identifier in self.__deleted_interfaces:
             # Restore interface itself
             self._interfaces[identifier] = self.__deleted_interfaces[identifier]
             del self.__deleted_interfaces[identifier]
@@ -105,8 +105,8 @@ class InterfaceCollection:
                     self.get_or_restore_intf(str(pi))
 
             return self._interfaces[identifier]
-        else:
-            raise KeyError("Unknown interface {!r}".format(identifier))
+
+        raise KeyError("Unknown interface {!r}".format(identifier))
 
     def del_intf(self, identifier):
         """
@@ -182,14 +182,14 @@ class InterfaceCollection:
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[str(declaration)][category] = cnts
             return cnts
-        elif not category and 'default' not in self._containers_cache[str(declaration)]:
+        if not category and 'default' not in self._containers_cache[str(declaration)]:
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[str(declaration)]['default'] = cnts
             return cnts
-        elif category and category in self._containers_cache[str(declaration)]:
+        if category and category in self._containers_cache[str(declaration)]:
             return self._containers_cache[str(declaration)][category]
-        else:
-            return self._containers_cache[str(declaration)]['default']
+
+        return self._containers_cache[str(declaration)]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
         """

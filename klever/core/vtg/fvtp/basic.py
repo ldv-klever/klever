@@ -21,8 +21,8 @@ import re
 from xml.dom import minidom
 from xml.etree import ElementTree
 
-import klever.core.vtg.fvtp.common as common
-import klever.core.utils as utils
+from klever.core.vtg.fvtp import common
+from klever.core import utils
 
 
 class Basic:
@@ -144,7 +144,8 @@ class Basic:
 
         return task_desc
 
-    def _prepare_run_definition(self, benchmark_definition, options):
+    @staticmethod
+    def _prepare_run_definition(benchmark_definition, options):
         """
         The function should add a new subelement with name 'rundefinition' to the XML description of the given
         benchmark. The new element should contains a list of options for the given verifier.
@@ -178,13 +179,12 @@ class Basic:
             ElementTree.SubElement(tasks, "include").text = 'cil.yml'
             return ['cil.yml', file]
         # TODO: this is for experimental purposes only!
-        else:
-            c_files = [os.path.join(self.conf['main working directory'], extra_c_file['C file']) for
-                       extra_c_file in self.abstract_task_desc['extra C files'] if 'C file' in extra_c_file]
-            ElementTree.SubElement(tasks, "include").text = c_files[0]
-            for file in c_files[1:]:
-                ElementTree.SubElement(tasks, "append").text = file
-            return c_files
+        c_files = [os.path.join(self.conf['main working directory'], extra_c_file['C file']) for
+                   extra_c_file in self.abstract_task_desc['extra C files'] if 'C file' in extra_c_file]
+        ElementTree.SubElement(tasks, "include").text = c_files[0]
+        for file in c_files[1:]:
+            ElementTree.SubElement(tasks, "append").text = file
+        return c_files
 
     def _prepare_resource_limits(self):
         """
@@ -218,7 +218,7 @@ class Basic:
         if len(self.abstract_task_desc['entry points']) > 1:
             raise NotImplementedError('Several entry points are not supported')
 
-        if not len(safe_prps):
+        if not safe_prps:
             raise ValueError('Safety properties specification was not prepared since there is no safety properties')
 
         with open('safe-prps.prp', 'w', encoding='utf-8') as fp:

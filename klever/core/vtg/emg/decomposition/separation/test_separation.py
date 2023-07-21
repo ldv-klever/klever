@@ -35,17 +35,17 @@ def model():
 
 @pytest.fixture
 def default_separator():
-    return SeparationStrategy(logging.Logger('default'), dict())
+    return SeparationStrategy(logging.Logger('default'), {})
 
 
 @pytest.fixture
 def linear_separator():
-    return LinearStrategy(logging.Logger('default'), dict())
+    return LinearStrategy(logging.Logger('default'), {})
 
 
 @pytest.fixture
 def requirements_driven_separator():
-    return ReqsStrategy(logging.Logger('default'), dict())
+    return ReqsStrategy(logging.Logger('default'), {})
 
 
 @pytest.fixture()
@@ -104,7 +104,7 @@ def specific_model():
         },
         "main process": entry
     }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
+    collection = CollectionDecoder(logging, {}).parse_event_specification(source_preset(),
                                                                               json.loads(json.dumps(spec)),
                                                                               ProcessCollection())
     return collection
@@ -276,7 +276,7 @@ def model_with_savepoint_requirements():
         },
         "main process": entry
     }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
+    collection = CollectionDecoder(logging, {}).parse_event_specification(source_preset(),
                                                                               json.loads(json.dumps(spec)),
                                                                               ProcessCollection())
     return collection
@@ -469,7 +469,7 @@ def _check_linear_actions(scenarios, actions):
     assert savepoints == covered, "Covered: {}; All: {}".format(', '.join(savepoints), ', '.join(covered))
 
     # All actions are covered
-    covered_actions = dict()
+    covered_actions = {}
     for scenario in scenarios:
         for name in scenario.actions:
             covered_actions.setdefault(name, 0)

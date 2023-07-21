@@ -32,13 +32,8 @@ from klever.core.cross_refs import CrossRefs
 
 class Weaver(klever.core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                     separate_from_parent, include_child_resources)
-
     def weave(self):
-        self.abstract_task_desc.setdefault('extra C files', dict())
+        self.abstract_task_desc.setdefault('extra C files', {})
 
         search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
@@ -63,7 +58,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # Put all extra CC descriptions into the queue prior to launching parallel workers.
         self.extra_ccs = []
         for grp in self.abstract_task_desc['grps']:
-            self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
+            self.logger.info('Weave in C files of group "%s"', grp['id'])
 
             for extra_cc in grp['Extra CCs']:
                 self.extra_ccs.append((grp['id'], extra_cc))
@@ -85,7 +80,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         def constructor(extra_cc_index):
             weaver_worker = WeaverWorker(self.conf, self.logger, self.id, self.callbacks, self.mqs,
                                          vals,
-                                         id=str(extra_cc_index),
+                                         cur_id=str(extra_cc_index),
                                          separate_from_parent=False,
                                          include_child_resources=True,
                                          search_dirs=search_dirs,
@@ -131,7 +126,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # Copy additional sources for total code coverage.
         if self.conf['code coverage details'] != 'Original C source files':
             with klever.core.utils.Cd('additional sources'):
-                for root, dirs, files in os.walk(os.path.curdir):
+                for root, _, files in os.walk(os.path.curdir):
                     for file in files:
                         # These files are handled below in addition to corresponding source files.
                         if file.endswith('.json'):
@@ -161,20 +156,20 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                             os.remove(new_file + '.tmp')
 
         # These sections won't be refereed any more.
-        del (self.abstract_task_desc['grps'])
-        del (self.abstract_task_desc['deps'])
+        del self.abstract_task_desc['grps']
+        del self.abstract_task_desc['deps']
 
     main = weave
 
 
 class WeaverWorker(klever.core.components.Component):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, search_dirs=None, clade=None,
                  clade_meta=None, env=None, grp_id=None, extra_cc=None, lock=None):
-        super(WeaverWorker, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                                            separate_from_parent, include_child_resources)
 
-        self.name += id
+        self.name += cur_id
 
         self.search_dirs = search_dirs
         self.clade = clade
@@ -217,7 +212,7 @@ class WeaverWorker(klever.core.components.Component):
                 pass
         # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
         outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
-        self.logger.info('Weave in C file "{0}"'.format(infile))
+        self.logger.info(f'Weave in C file "{infile}"')
 
         # Produce aspect to be weaved in.
         if 'plugin aspects' in self.extra_cc:
@@ -246,12 +241,14 @@ class WeaverWorker(klever.core.components.Component):
                         continue
 
                     with open(a, encoding='utf-8') as fin:
+                        last_line = None
                         for line in fin:
                             fout.write(line)
+                            last_line = line
                         # Aspects may not terminate with the new line symbol that will cause horrible syntax
                         # errors when parsing the concatenated aspect, e.g. when the last line of some aspect is
                         # a one-line comment "//" that will truncate the first line of the next aspect.
-                        if not line.endswith('\n'):
+                        if last_line and not last_line.endswith('\n'):
                             fout.write('\n')
         else:
             # Instrumentation is not required when there is no aspects. But we will still pass source files
@@ -260,7 +257,7 @@ class WeaverWorker(klever.core.components.Component):
             aspect = None
 
         if aspect:
-            self.logger.info('Aspect to be weaved in is "{0}"'.format(aspect))
+            self.logger.info(f'Aspect to be weaved in is "{aspect}"')
         else:
             self.logger.info('C file will be passed through C Back-end only')
 
@@ -273,7 +270,7 @@ class WeaverWorker(klever.core.components.Component):
 
         cwd = self.clade.get_storage_path(cc['cwd'])
 
-        is_model = (self.grp_id == 'models')
+        is_model = self.grp_id == 'models'
 
         # Original sources should be woven in and we do not need to get cross references for them since this
         # was already done before.
@@ -390,7 +387,7 @@ class WeaverWorker(klever.core.components.Component):
 
         # Like in klever.core.job.Job#__upload_original_sources.
         os.makedirs(outfile + ' additional sources')
-        for root, dirs, files in os.walk(clade_extra.storage_dir):
+        for root, _, files in os.walk(clade_extra.storage_dir):
             for file in files:
                 file = os.path.join(root, file)
 
@@ -426,10 +423,11 @@ class WeaverWorker(klever.core.components.Component):
         if not self.conf['keep intermediate files']:
             shutil.rmtree(outfile + ' clade')
 
-    def __merge_additional_srcs(self, from_dir):
+    @staticmethod
+    def __merge_additional_srcs(from_dir):
         to_dir = os.path.realpath('additional sources')
         with klever.core.utils.Cd(from_dir):
-            for root, dirs, files in os.walk(os.path.curdir):
+            for root, _, files in os.walk(os.path.curdir):
                 for file in files:
                     file = os.path.join(root, file)
                     dest = os.path.join(to_dir, file)

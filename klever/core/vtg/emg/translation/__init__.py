@@ -30,7 +30,6 @@ from klever.core.vtg.emg.translation.fsa_translator.label_fsa_translator import 
 from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
 from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
 
-
 DEFAULT_INCLUDE_HEADERS = (
     "ldv/linux/common.h",
     "ldv/linux/err.h",
@@ -64,7 +63,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
     conf['translation options'].setdefault('environment model file', 'environment_model.c')
     conf['translation options'].setdefault('nested automata', True)
     conf['translation options'].setdefault('direct control functions calls', True)
-    conf['translation options'].setdefault('code additional aspects', list())
+    conf['translation options'].setdefault('code additional aspects', [])
     conf['translation options'].setdefault('additional headers', DEFAULT_INCLUDE_HEADERS)
     conf['translation options'].setdefault('self parallel processes', False)
     conf['translation options'].setdefault('ignore missing program files', False)
@@ -141,7 +140,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
         avt['environment model'] = entry_file_realpath
 
     # First just merge all as is
-    additional_code = dict()
+    additional_code = {}
     for process in list(collection.models.values()) + list(collection.environment.values()) + [collection.entry]:
         for att in ('declarations', 'definitions'):
             for file in getattr(process, att):
@@ -156,12 +155,12 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
     cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Then convert into proper format
-    for file in additional_code:
-        additional_code[file]['declarations'] = [val if val.endswith('\n') else val + '\n'
-                                                 for val in additional_code[file]['declarations'].values()]
+    for file, value in additional_code.items():
+        value['declarations'] = [val if val.endswith('\n') else val + '\n'
+                                 for val in value['declarations'].values()]
 
-        val = additional_code[file]['definitions']
-        additional_code[file]['definitions'] = list()
+        val = value['definitions']
+        value['definitions'] = []
         for name, item in val.items():
             if isinstance(item, list):
                 additional_code[file]['definitions'].extend(item)
@@ -220,7 +219,8 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
     if conf['translation options'].get("simple control functions calls", True):
-        SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
+        SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa,
+                           main_fsa)
     elif get_or_die(conf['translation options'], "nested automata"):
         LabelTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
@@ -253,7 +253,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
 
     extra_c_files = {f for p in list(collection.models.values()) + list(collection.environment.values()) +
                      [collection.entry] for f in p.cfiles}
-    avt.setdefault('extra C files', list())
+    avt.setdefault('extra C files', [])
     avt['extra C files'].extend([
         {"C file": os.path.realpath(find_file_or_dir(logger,
                                                      get_or_die(conf, "main working directory"), f))}

@@ -25,11 +25,6 @@ import klever.core.vtg.utils
 
 class RSG(klever.core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(RSG, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
-
     def generate_requirement(self):
         generated_models = {}
 
@@ -41,9 +36,9 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 ext = os.path.splitext(file)[1]
                 if ext == '.c':
                     generated_models[file] = {}
-                    self.logger.debug('Get generated model with C file "{0}'.format(file))
+                    self.logger.debug('Get generated model with C file "%s"', file)
                 elif ext == '.aspect':
-                    self.logger.debug('Get generated aspect "{0}'.format(file))
+                    self.logger.debug('Get generated aspect "%s"', file)
                 else:
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
@@ -78,15 +73,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
             # Model may be a C file or a dictionary with model file and option attributes.
             if isinstance(model, dict):
                 return model['model']
-            else:
-                return model
+
+            return model
 
         # Get common and requirement specific models.
         if 'exclude common models' in self.conf:
-            self.logger.info('Common models to be excluded:\n{0}'
-                             .format('\n'.join(['  {0}'.format(m) for m in self.conf['exclude common models']])))
+            self.logger.info('Common models to be excluded:\n%s',
+                             '\n'.join(['  {0}'.format(m) for m in self.conf['exclude common models']]))
             common_models = [m for m in self.conf['common models']
-                             if get_model_c_file(common_model) not in self.conf['exclude common models']]
+                             if get_model_c_file(m) not in self.conf['exclude common models']]
         else:
             common_models = self.conf['common models']
 
@@ -138,7 +133,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 else:
                     model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                         self.logger, self.conf['main working directory'], model_c_file)
-                    self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
+                    self.logger.debug(f'Get model with C file "{model_c_file_realpath}"')
                     add_model(model, model_c_file_realpath)
 
         # Like for models above.
@@ -146,10 +141,10 @@ class RSG(klever.core.vtg.plugins.Plugin):
             common_model_c_file = get_model_c_file(common_model)
             common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                 self.logger, self.conf['main working directory'], common_model_c_file)
-            self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
+            self.logger.debug('Get common model with C file "%s"', common_model_c_file_realpath)
             add_model(common_model, common_model_c_file_realpath)
 
-        self.logger.debug('Resulting models are: {0}'.format(models))
+        self.logger.debug('Resulting models are: %s', models)
 
         if not models:
             self.logger.warning('No models are specified')
@@ -172,7 +167,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
             if not os.stat(aspect).st_size:
                 raise ValueError('Aspect "{0}" is empty and should be removed from the verification job'.format(aspect))
 
-            self.logger.debug('Get aspect "{0}"'.format(aspect))
+            self.logger.debug('Get aspect "%s"', aspect)
 
             aspects.append(aspect)
 
@@ -189,7 +184,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
             opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
         for grp in self.abstract_task_desc['grps']:
-            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
+            self.logger.info('Add aspects to C files of group "%s"', grp['id'])
             for extra_cc in grp['Extra CCs']:
                 if 'plugin aspects' not in extra_cc:
                     extra_cc['plugin aspects'] = []
@@ -222,9 +217,9 @@ class RSG(klever.core.vtg.plugins.Plugin):
             if not compiler_cmds:
                 raise RuntimeError("There is no compiler commands for {!r}"
                                    .format(self.conf['model compiler input file']))
-            elif len(compiler_cmds) > 1:
-                self.logger.warning("There are more than one compiler command for {!r}".
-                                    format(self.conf['model compiler input file']))
+            if len(compiler_cmds) > 1:
+                self.logger.warning("There are more than one compiler command for %r",
+                                    self.conf['model compiler input file'])
 
             model_compiler_opts = clade.get_cmd_opts(compiler_cmds[0]['id'])
             model_compiler_cwd = compiler_cmds[0]['cwd']
@@ -243,7 +238,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
             full_desc_file = '{0}{1}.json'.format(base_name, ext)
             out_file = '{0}.c'.format(base_name)
 
-            self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
+            self.logger.debug('Dump CC full description to file "%s"', full_desc_file)
             with open(full_desc_file, 'w', encoding='utf-8') as fp:
                 klever.core.utils.json_dump({
                     'cwd': model_compiler_cwd,

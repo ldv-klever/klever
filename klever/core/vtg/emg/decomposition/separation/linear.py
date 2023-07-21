@@ -93,7 +93,7 @@ class LinearExtractor(ScenarioExtractor):
                 yield from self._new_scenarios(paths, action)
 
     def __determine_paths(self):
-        subp_to_paths = dict()
+        subp_to_paths = {}
         # Collect subprocesses and possible different paths
         for subprocess_desc in self._actions.filter(include={Subprocess}):
             subp_to_paths[str(subprocess_desc)] = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
@@ -112,8 +112,7 @@ class LinearExtractor(ScenarioExtractor):
                         new_paths = set()
                         for path in paths:
                             if path[-1].name == dependency:
-                                suffixes = {p for p in subp_to_paths[dependency] if p[-1].name != dependency and
-                                            p[-1].name != subprocess}
+                                suffixes = {p for p in subp_to_paths[dependency] if p[-1].name not in (dependency, subprocess)}
                                 if suffixes:
                                     newly_created = self.__do_substitution(path, suffixes)
                                     new_paths.update(newly_created)
@@ -148,7 +147,7 @@ class LinearExtractor(ScenarioExtractor):
             # Check the rest subprocesses
             for subprocess, paths in subp_to_paths.items():
                 new_subp_paths = set()
-                for path in subp_to_paths[subprocess]:
+                for path in paths:
                     if not path.terminal and not self.__path_dependencies(subp_to_paths[path[-1].name]):
                         new_subp_paths.update(self.__do_substitution(path, subp_to_paths[path[-1].name]))
                     else:
@@ -169,7 +168,8 @@ class LinearExtractor(ScenarioExtractor):
 
         return initial_paths, subp_to_paths
 
-    def __do_substitution(self, origin, suffixes):
+    @staticmethod
+    def __do_substitution(origin, suffixes):
         assert suffixes
         return {origin + suffix for suffix in suffixes if not origin.included(suffix)}
 
@@ -186,7 +186,7 @@ class LinearExtractor(ScenarioExtractor):
         """
         if isinstance(action, Operator):
             if isinstance(action, Choice):
-                paths = list()
+                paths = []
                 for child in action:
                     # Determine name
                     first_actions = self._actions.first_actions(child, enter_subprocesses=False)

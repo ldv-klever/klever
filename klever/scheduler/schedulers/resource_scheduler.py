@@ -23,7 +23,7 @@ import requests
 from klever.scheduler.schedulers.global_config import get_workers_cpu_cores
 from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
-import klever.scheduler.utils.consul as consul
+from klever.scheduler.utils import consul
 
 
 class ResourceManager:
@@ -65,7 +65,10 @@ class ResourceManager:
         :return: [list of identifiers of jobs to cancel], [list of identifiers of tasks to cancel].
         """
         def request(kv_url):
-            r = requests.get(kv_url)
+            try:
+                r = requests.get(kv_url, timeout=10)
+            except requests.exceptions.Timeout as exp:
+                raise ValueError("Timeout while requesting {}".format(kv_url)) from exp
             if not r.ok:
                 raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
                                  format(kv_url, r.status_code, r.reason))
@@ -100,8 +103,8 @@ class ResourceManager:
             if not response:
                 self.__logger.warning(f"Node {node} was not connected yet.")
                 continue
-            else:
-                node_status = json.loads(response)
+
+            node_status = json.loads(response)
 
             # Get dictionary and compare it with existing one
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":
@@ -149,8 +152,8 @@ class ResourceManager:
             self.__system_status[missing]["status"] = "DISCONNECTED"
 
         # Check ailing status
-        for name, node in [[n, self.__system_status[n]] for n in self.__system_status
-                           if self.__system_status[n]["status"] != "DISCONNECTED"]:
+        for name, node in [[n, stat] for n, stat in self.__system_status.items()
+                           if stat["status"] != "DISCONNECTED"]:
             if node["reserved CPU number"] > node["available CPU number"] or \
                     node["reserved RAM memory"] > node["available RAM memory"] or \
                     node["reserved disk memory"] > node["available disk memory"]:
@@ -318,7 +321,7 @@ class ResourceManager:
         """
         if job and identifier in self.__processing_jobs:
             raise KeyError("Verification job {!r} should be already running")
-        elif not job and identifier in self.__processing_tasks:
+        if not job and identifier in self.__processing_tasks:
             raise KeyError("Verification task {!r} should be already running")
 
         if job:
@@ -448,6 +451,7 @@ class ResourceManager:
                 self.__raise_limitation_error(msg)
         else:
             self.__raise_limitation_error(msg)
+        return False
 
     def node_info(self, node):
         """
@@ -466,7 +470,7 @@ class ResourceManager:
 
         :return: A list with node names.
         """
-        return [n for n in self.__system_status.keys() if self.__system_status[n]['status'] != 'DISCONNECTED']
+        return [n for n, stat in self.__system_status.items() if stat['status'] != 'DISCONNECTED']
 
     def __make_limitation_error(self, resources, job_restrictions, task_restrictions):
         cpus, memory, disk = resources
@@ -501,8 +505,8 @@ class ResourceManager:
         :return: A list of running jobs identifiers.
         """
         jobs = []
-        for node in self.__system_status:
-            for job in self.__system_status[node]["running verification jobs"]:
+        for node, stat in self.__system_status.items():
+            for job in stat["running verification jobs"]:
                 jobs.append([job, node])
 
         return jobs
@@ -515,8 +519,8 @@ class ResourceManager:
         :return: A list of running tasks identifiers.
         """
         tasks = []
-        for node in self.__system_status:
-            for task in self.__system_status[node]["running verification tasks"]:
+        for node, stat in self.__system_status.items():
+            for task in stat["running verification tasks"]:
                 tasks.append([task, node])
 
         return tasks
@@ -562,8 +566,8 @@ class ResourceManager:
         nodes = self.__nodes_ranking(status, task['description']['resource limits'])
         if len(nodes) > 0:
             return nodes[0]
-        else:
-            return None
+
+        return None
 
     def __check_invariant(self, job=None):
         """
@@ -591,7 +595,7 @@ class ResourceManager:
                     'CPU model': given_model
                 }
                 for r in ["number of CPU cores", "memory size", "disk memory size"]:
-                    m = max(restrictions, key=lambda e: e[r])
+                    m = max(restrictions, key=lambda e: e[r]) # pylint: disable=cell-var-from-loop
                     restriction[r] = m[r]
             else:
                 restriction = {
@@ -659,18 +663,15 @@ class ResourceManager:
                     sysinfo, cpu_model, mx_task = check_invariant_for_jobs(jobs)
 
                 return False, cancel
-            elif cpu_model and mx_task:
+            if cpu_model and mx_task:
                 return False, None
 
             # Invariant is preserved, return ranking for the given job
             if job:
                 ranking = self.__nodes_ranking(sysinfo, job["configuration"]["resource limits"], job=True)
                 return True, ranking
-            else:
-                return True, None
 
-        else:
-            return True, None
+        return True, None
 
     def __create_system_status(self, delete_jobs=True, delete_tasks=True, keep_jobs=None, keep_tasks=None):
         """
@@ -758,15 +759,15 @@ class ResourceManager:
         if cpu_number >= cpu_number_limit and ram_memory >= memory_size_limit and \
                 disk_memory >= disk_memory_size_limit:
             return True
-        else:
-            self.__last_limitation_error = []
-            if cpu_number < restriction["number of CPU cores"]:
-                self.__last_limitation_error.append('number of CPU cores')
-            if ram_memory < restriction["memory size"]:
-                self.__last_limitation_error.append('memory size')
-            if disk_memory < restriction["disk memory size"]:
-                self.__last_limitation_error.append('disk memory size')
-            return False
+
+        self.__last_limitation_error = []
+        if cpu_number < restriction["number of CPU cores"]:
+            self.__last_limitation_error.append('number of CPU cores')
+        if ram_memory < restriction["memory size"]:
+            self.__last_limitation_error.append('memory size')
+        if disk_memory < restriction["disk memory size"]:
+            self.__last_limitation_error.append('disk memory size')
+        return False
 
     def __reserve_resources(self, system_status, amount, node=None):
         """
@@ -780,12 +781,11 @@ class ResourceManager:
             raise KeyError("There is no node {!r} in the system".format(node))
 
         # Minus resources
-        for reserved, value, available, unit in self.__iterate_over_resources():
+        for reserved, value, available, _ in self.__iterate_over_resources():
             system_status[node][reserved] += amount[value]
             if system_status[node][reserved] > system_status[node][available]:
                 raise ValueError(f"{reserved.capitalize()}, equal to {system_status[node][reserved]}, cannot be more "
                                  f"than {available} which is {system_status[node][available]}")
-        return
 
     def __release_resources(self, system_status, amount, node):
         """
@@ -799,12 +799,10 @@ class ResourceManager:
             raise KeyError("There is no node {!r} in the system".format(node))
 
         # Plus resources
-        for reserved, value, available, unit in self.__iterate_over_resources():
+        for reserved, value, _, _ in self.__iterate_over_resources():
             system_status[node][reserved] -= amount[value]
             if system_status[node][reserved] < 0:
                 raise ValueError(f"{reserved.capitalize()} cannot be negative {system_status[node][reserved]}")
-
-        return
 
     @staticmethod
     def __iterate_over_resources():

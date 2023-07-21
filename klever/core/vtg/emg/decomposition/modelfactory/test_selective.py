@@ -72,7 +72,7 @@ def logger():
 
 def _obtain_model(logger, model, specification):
     separation = SelectiveFactory(logger, specification)
-    scenario_generator = SeparationStrategy(logger, dict())
+    scenario_generator = SeparationStrategy(logger, {})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
                               for process in model.non_models.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
@@ -80,7 +80,7 @@ def _obtain_model(logger, model, specification):
 
 def _obtain_linear_model(logger, model, specification, separate_dispatches=False):
     separation = SelectiveFactory(logger, specification)
-    scenario_generator = LinearStrategy(logger, dict() if not separate_dispatches else
+    scenario_generator = LinearStrategy(logger, {} if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
                               for process in model.non_models.values()}
@@ -89,7 +89,7 @@ def _obtain_linear_model(logger, model, specification, separate_dispatches=False
 
 def _obtain_reqs_model(logger, model, specification, separate_dispatches=False):
     separation = SelectiveFactory(logger, specification)
-    scenario_generator = ReqsStrategy(logger, dict() if not separate_dispatches else
+    scenario_generator = ReqsStrategy(logger, {} if not separate_dispatches else
                                                 {'add scenarios without dispatches': True})
     processes_to_scenarios = {str(process): list(scenario_generator(process, model))
                               for process in model.non_models.values()}
@@ -163,9 +163,9 @@ def test_inclusion_p1(logger, model):
 
     # No savepoints from c2p2
     c2p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
-    for model in models:
-        if model.entry.actions == c2p2_withsavepoint.actions:
-            assert False, f"Model {model.attributed_name} has a savepoint from p2"
+    for mdl in models:
+        if mdl.entry.actions == c2p2_withsavepoint.actions:
+            assert False, f"Model {mdl.attributed_name} has a savepoint from p2"
 
 
 def test_deletion(logger, model):
@@ -176,7 +176,7 @@ def test_deletion(logger, model):
     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
     # Cover all scenarios from p1
-    p1scenarios = {s for s in processes_to_scenarios['c/p1']}
+    p1scenarios = processes_to_scenarios['c/p1']
     assert len(p1scenarios) == len(models)
     actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
               [m.entry.actions for m in models]
@@ -185,11 +185,11 @@ def test_deletion(logger, model):
 
     # No savepoints from p2
     p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
-    assert all([True if p2_withsavepoint.actions != m.entry.actions else False for m in models])
+    assert all(p2_withsavepoint.actions != m.entry.actions for m in models)
 
     # No other actions
-    for model in models:
-        assert 'c/p2' not in model.environment
+    for mdl in models:
+        assert 'c/p2' not in mdl.environment
 
 
 def test_complex_restrictions(logger, model):
@@ -212,7 +212,7 @@ def test_complex_restrictions(logger, model):
 
     # No scenarios with a savepoint p1s1
     p1_withsavepoint = [s for s in processes_to_scenarios['c/p1'] if s.savepoint].pop()
-    assert all([True if p1_withsavepoint.actions != m.entry.actions else False for m in models])
+    assert all(p1_withsavepoint.actions != m.entry.actions for m in models)
 
 
 def test_controversial_conditions1(logger, model):
@@ -222,7 +222,7 @@ def test_controversial_conditions1(logger, model):
         "cover scenarios": {"c/p1": {}}
     }
     with pytest.raises(ValueError):
-        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+        _, _ = _obtain_linear_model(logger, model, spec)
 
 
 def test_controversial_conditions2(logger, model):
@@ -232,8 +232,7 @@ def test_controversial_conditions2(logger, model):
         "cover scenarios": {"c/p2": {}}
     }
     with pytest.raises(ValueError):
-        processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
-        pass
+        _, _ = _obtain_linear_model(logger, model, spec)
 
 
 def test_complex_exclusion(logger, model):
@@ -263,7 +262,7 @@ def test_cover_actions(logger, model):
     spec = {
         "cover scenarios": {"c/p1": {"actions": ["probe"], "savepoints": []}}
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+    _, models = _obtain_linear_model(logger, model, spec)
 
     assert len(models) == 1
     model = models.pop()
@@ -285,9 +284,9 @@ def test_cover_savepoint(logger, model):
     relevant_scenarios = [s.actions for s in processes_to_scenarios['c/p1'] if s.savepoint]
     assert len(relevant_scenarios) == len(models)
 
-    for model in models:
-        assert "c/p1" not in model.environment
-        assert "s1" in model.entry.actions
+    for mdl in models:
+        assert "c/p1" not in mdl.environment
+        assert "s1" in mdl.entry.actions
 
 
 def test_cover_except_savepoint(logger, model):
@@ -457,7 +456,7 @@ def test_combinations_with_extra_dependencies(logger, advanced_model):
     # Cover all scenarios from p1
     p3scenarios = {s for s in processes_to_scenarios['c/p3']
                    if s.savepoint and {"create2", "success"}.issubset(set(s.actions.keys()))}
-    p2scenarios = {s for s in processes_to_scenarios['c/p2']}
+    p2scenarios = set(processes_to_scenarios['c/p2'])
     assert len(models) <= (len(p3scenarios) + len(p2scenarios))
     names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
     for scenario in p3scenarios:
@@ -542,9 +541,8 @@ def test_advanced_model_with_unique_processes(logger, advanced_model_with_unique
             "c/p6": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model_with_unique, spec,
+    _, models = _obtain_linear_model(logger, advanced_model_with_unique, spec,
                                                           separate_dispatches=True)
-    model_attrs = {_to_sorted_attr_str(m.attributes) for m in models}
     expected = [
         {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w2"},
         {"c/p1": "Removed", "c/p2": "Removed", "c/p3": "Removed", "c/p4": "Removed", "c/p6": "sp_unique_2 with w1"},
@@ -599,7 +597,7 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model_with_independent_process, spec,
                                                           separate_dispatches=True)
-    s5 = {s for s in processes_to_scenarios['c/p5']}
+    s5 = set(processes_to_scenarios['c/p5'])
     s2 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
     assert len(models) == len(s5)
     names = [m.attributes['c/p5'] for m in models if m.attributes.get('c/p5')]
@@ -617,7 +615,7 @@ def test_double_sender_model_single_init(logger, double_init_model):
             "c2/p2": {}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    _, models = _obtain_linear_model(logger, double_init_model, spec)
     expected = [
         {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 's1 with fail', 'c1/p2': 'Removed'},
         {'c2/p2': 'v1', 'c1/p1': 's1 with ok', 'c2/p1': 'base', 'c1/p2': 'Removed'},
@@ -634,7 +632,7 @@ def test_double_sender_model(logger, double_init_model):
             "c2/p2": {}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    _, models = _obtain_linear_model(logger, double_init_model, spec)
     expected = [
         {'c2/p2': 'Removed', 'c1/p1': 'Removed', 'c2/p1': 'Removed', 'c1/p2': 'basic with fail'},
         {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
@@ -654,7 +652,7 @@ def test_double_sender_model_full_list(logger, double_init_model):
             "c2/p2": {}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    _, models = _obtain_linear_model(logger, double_init_model, spec)
     expected = [
         {'c2/p2': 'Removed', 'c2/p1': 'Removed', 'c1/p1': 'Removed', 'c1/p2': 'basic with fail'},
         {'c2/p2': 'Removed', 'c2/p1': 'base', 'c1/p1': 'Removed', 'c1/p2': 'basic with ok'},
@@ -671,7 +669,7 @@ def test_fs_reqs_linear(logger, fs_deps_model):
             "c/p1": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    _, models = _obtain_linear_model(logger, fs_deps_model, spec)
     expected = [
         {"c/p1": "sp1 with exit", "c/p2": "deregister_p2", "c/p3": "Removed", "c/p4": "Removed"},
         {"c/p1": "sp2 with exit", "c/p2": "success_probe_deregister_p2", "c/p3": "create_scenario_p4_scenario_success", "c/p4": "base"},
@@ -688,7 +686,7 @@ def test_fs_reqs_linear_p3(logger, fs_deps_model):
             "c/p3": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, fs_deps_model, spec)
+    _, models = _obtain_linear_model(logger, fs_deps_model, spec)
     expected = [
         {'c/p3': 'sp3 with create_scenario_p4_scenario_success', 'c/p4': 'base', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with create_scenario_p4_scenario_success', 'c/p4': 'Removed', 'c/p2': 'Removed',
@@ -703,7 +701,7 @@ def test_fs_reqs_p1(logger, fs_deps_model):
             "c/p1": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, fs_deps_model, spec)
     # todo: hmm, maybe it is required to have scenario with s5 there
     expected = [
         {'c/p1': 'sp1 with base', 'c/p4': 'Removed', 'c/p3': 'Removed', 'c/p2': 'Removed'},
@@ -719,7 +717,7 @@ def test_fs_reqs_p3(logger, fs_deps_model):
             "c/p3": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, fs_deps_model, spec)
     expected = [
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'c/p1': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'c/p1': 'Removed'}
@@ -733,7 +731,7 @@ def test_fs_reqs_init_linear(logger, fs_init_deps_model):
             "entry_point/main": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_linear_model(logger, fs_init_deps_model, spec)
+    _, models = _obtain_linear_model(logger, fs_init_deps_model, spec)
     expected = [
         {'c/p2': 'success_probe_deregister_p2', 'c/p3': 'create_scenario_p4_scenario_success', 'c/p4': 'base',
          'entry_point/main': 'sp5 with exit'},
@@ -751,7 +749,7 @@ def test_fs_reqs_init_cover_init(logger, fs_init_deps_model):
             "c/p3": {"savepoints only": True}
         }
     }
-    processes_to_scenarios, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
+    _, models = _obtain_reqs_model(logger, fs_init_deps_model, spec)
     expected = [
         {'c/p3': 'sp3 with base', 'c/p4': 'base for sp3', 'c/p2': 'Removed', 'entry_point/main': 'Removed'},
         {'c/p3': 'sp4 with register_p4', 'c/p4': 'Removed', 'c/p2': 'Removed', 'entry_point/main': 'Removed'}

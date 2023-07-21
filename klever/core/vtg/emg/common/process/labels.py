@@ -45,6 +45,7 @@ class Label:
     A label is a C variable without a strictly given scope. It can be local, global depending on translation of the
     environment model to C code. Process state consists of labels and from current action.
     """
+
     def __init__(self, name: str):
         self.value = None
         self.declaration = None
@@ -63,8 +64,8 @@ class Label:
     def __eq__(self, other):
         if self.declaration and other.declaration:
             return self.declaration == other.declaration
-        else:
-            return False
+
+        return False
 
     def __hash__(self):
         return hash(self._name)

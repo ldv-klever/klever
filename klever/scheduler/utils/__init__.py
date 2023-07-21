@@ -33,7 +33,7 @@ import multiprocessing
 import sys
 from xml.etree import ElementTree
 
-import klever.scheduler.utils.consul as consul
+from klever.scheduler.utils import consul
 
 # This should prevent rumbling of urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -120,8 +120,8 @@ def common_initialization(tool, conf=None):
     # Prepare working directory
     if "working directory" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''working directory'")
-    else:
-        conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
+
+    conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
 
     clean_dir = False
     if os.path.isdir(conf["common"]['working directory']) and not conf["common"].get("keep working directory", False):
@@ -139,8 +139,8 @@ def common_initialization(tool, conf=None):
     # Report about the dir
     if clean_dir:
         # Go to the working directory to avoid creating files elsewhere
-        logger.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
-        logger.debug("Create working dir: {0}".format(conf["common"]['working directory']))
+        logger.debug(f"Clean working dir: {conf['common']['working directory']}")
+        logger.debug(f"Create working dir: {conf['common']['working directory']}")
     else:
         logger.info("Keep working directory from the previous run")
 
@@ -187,7 +187,7 @@ def extract_system_information():
     Extract information about the system and return it as a dictionary.
     :return: dictionary with system info,
     """
-    system_conf = dict()
+    system_conf = {}
     system_conf["node name"] = get_output('uname -n')
     system_conf["CPU model"] = get_output('cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"')
     system_conf["CPU number"] = len(extract_cpu_cores_info().keys())
@@ -207,14 +207,14 @@ def sort_priority(priority):
     """
     if priority == "IDLE":
         return 0
-    elif priority == "LOW":
+    if priority == "LOW":
         return 1
-    elif priority == "HIGH":
+    if priority == "HIGH":
         return 2
-    elif priority == "URGENT":
+    if priority == "URGENT":
         return 3
-    else:
-        raise ValueError("Unknown priority: {}".format(priority))
+
+    raise ValueError("Unknown priority: {}".format(priority))
 
 
 def higher_priority(one, two, strictly=False):
@@ -233,20 +233,20 @@ def higher_priority(one, two, strictly=False):
 
     if strictly:
         return one_priority > two_priority
-    else:
-        return one_priority >= two_priority
+
+    return one_priority >= two_priority
 
 
-def dir_size(dir):
+def dir_size(dir_path):
     """
     Measure size of the given directory.
 
-    :param dir: Path string.
+    :param dir_path: Path string.
     :return: integer size in Bytes.
     """
-    if not os.path.isdir(dir):
-        raise ValueError('Expect existing directory but it is not: {}'.format(dir))
-    output = get_output('du -bs {} | cut -f1'.format(dir))
+    if not os.path.isdir(dir_path):
+        raise ValueError('Expect existing directory but it is not: {}'.format(dir_path))
+    output = get_output('du -bs {} | cut -f1'.format(dir_path))
     try:
         res = int(output)
     except ValueError as e:
@@ -255,8 +255,8 @@ def dir_size(dir):
         if len(splts) < 2:
             # Can not delete the warning message
             raise e
-        else:
-            res = int(splts[-1])
+
+        res = int(splts[-1])
     return res
 
 
@@ -288,8 +288,8 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             os.kill(pid, 0)
         except OSError:
             return False
-        else:
-            return True
+
+        return True
 
     def handler(arg1, arg2):
         def terminate():
@@ -348,8 +348,8 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             checker = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
             checker.start()
             return checker
-        else:
-            return None
+
+        return None
 
     set_handlers()
     cmd = args[0]
@@ -386,7 +386,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
         err_q.join()
     else:
-        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout)
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout) # pylint: disable=consider-using-with
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
     p.wait()
@@ -466,7 +466,7 @@ def submit_task_results(logger, server, scheduler_type, identifier, decision_res
     with open(results_archive, mode='w+b', buffering=0) as fp:
         with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
-            for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
+            for dirpath, _, filenames in os.walk(os.path.join(solution_path, "output")):
                 for filename in filenames:
                     zfp.write(os.path.join(dirpath, filename),
                               os.path.join(os.path.relpath(dirpath, solution_path), filename))
@@ -519,8 +519,8 @@ def __converter(value, table, kind, outunit):
         regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
         if not regex.search(value):
             raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
-        else:
-            value, inunit = regex.search(value).groups()
+
+        value, inunit = regex.search(value).groups()
     else:
         inunit = ''
     # Check values
@@ -622,8 +622,8 @@ def kv_get_solution(logger, scheduler_type, identifier):
     data = consul_client.kv_get(key)
     if data:
         return json.loads(data)
-    else:
-        raise RuntimeError("Cannot obtain key {!r} from key-value storage".format(key))
+
+    raise RuntimeError("Cannot obtain key {!r} from key-value storage".format(key))
 
 
 def kv_clear_solutions(logger, scheduler_type, identifier=None):

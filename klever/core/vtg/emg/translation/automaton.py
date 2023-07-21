@@ -28,7 +28,6 @@ class Automaton:
     def __init__(self, process, identifier):
         # Set default values
         self.__label_variables = {}
-        self.__file = None
 
         # Set given values
         self.process = process
@@ -39,7 +38,7 @@ class Automaton:
 
         # Generate FSA itself
         self.variables()
-        self.code = dict()
+        self.code = {}
 
     def __str__(self):
         return str(self._identifier)
@@ -88,15 +87,15 @@ class Automaton:
             if not shadow_use:
                 self.__label_variables[label.name]["default"].use += 1
             return self.__label_variables[label.name]["default"]
-        else:
-            if label.declaration:
-                var = Variable("emg_{}_{}".format(self._identifier, label.name), label.declaration)
-                var.value = label.value
 
-                self.__label_variables.setdefault(label.name, {})
-                self.__label_variables[label.name]["default"] = var
-                if not shadow_use:
-                    self.__label_variables[label.name]["default"].use += 1
-                return self.__label_variables[label.name]["default"]
-            else:
-                return None
+        if label.declaration:
+            var = Variable("emg_{}_{}".format(self._identifier, label.name), label.declaration)
+            var.value = label.value
+
+            self.__label_variables.setdefault(label.name, {})
+            self.__label_variables[label.name]["default"] = var
+            if not shadow_use:
+                self.__label_variables[label.name]["default"].use += 1
+            return self.__label_variables[label.name]["default"]
+
+        return None

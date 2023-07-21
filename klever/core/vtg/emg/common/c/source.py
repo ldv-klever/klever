@@ -122,7 +122,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
                 except ValueError:
                     pass
                 # Add called functions
-                for def_scope, cf_desc in desc.get('calls', dict()).items():
+                for def_scope, cf_desc in desc.get('calls', {}).items():
                     if def_scope not in collection.cfiles:
                         for called_func in (f for f in cf_desc if def_scope in fs and f in fs[def_scope]):
                             collection.add_function(called_func, def_scope, fs, dependencies, collection.cfiles)
@@ -151,7 +151,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
             if not obj.definition_file:
                 # It is likely be this way
                 scopes.add('unknown')
-            for scope in (s for s in scopes if cg.get(s, dict()).get(func)):
+            for scope in (s for s in scopes if cg.get(s, {}).get(func)):
                 for cscope, desc in ((s, d) for s, d in cg[scope][func].get('called_in', {}).items()
                                      if s in collection.cfiles):
                     for caller in desc:
@@ -178,7 +178,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
                                 caller_intf.call_in_function(obj, params)
             if obj.definition_file and obj.definition_file in scopes and obj.definition_file in cg and \
                     func in cg[obj.definition_file]:
-                for called_def_scope in cg[obj.definition_file][func].get('calls', dict()):
+                for called_def_scope in cg[obj.definition_file][func].get('calls', {}):
                     for called_func in cg[obj.definition_file][func]['calls'][called_def_scope]:
                         called_obj = collection.get_source_function(called_func, paths={obj.definition_file})
                         if called_obj:
@@ -245,8 +245,6 @@ class Source:
         self._source_vars = sortedcontainers.SortedDict()
         self._macros = sortedcontainers.SortedDict()
 
-        self.__function_calls_cache = sortedcontainers.SortedDict()
-
     def dump(self, var_file, func_file, macro_file):
         with open(var_file, 'w', encoding='utf-8') as fp:
             ujson.dump({k: {f: v.declare_with_init() for f, v in fs.items()} for k, fs in self._source_vars.items()},
@@ -279,8 +277,8 @@ class Source:
                 if two[0] == '/':
                     two = two[1:]
                 return '%s/%s' % (one, two)
-            else:
-                return two
+
+            return two
 
         if path == 'environment model':
             return path
@@ -289,9 +287,9 @@ class Source:
             real_path = _accurate_concatenation(with_clade_dir, path)
             if os.path.isfile(real_path):
                 return _accurate_concatenation(source_prefix, path)
-        else:
-            raise FileNotFoundError('There is no file {!r} in the build base or the path to source files is incorrect.'
-                                    ' Set the following prefixes: {}'.format(path, str(self.prefixes)))
+
+        raise FileNotFoundError('There is no file {!r} in the build base or the path to source files is incorrect.'
+                                ' Set the following prefixes: {}'.format(path, str(self.prefixes)))
 
     def get_source_function(self, name=None, paths=None, declaration=None):
         """
@@ -311,14 +309,14 @@ class Source:
         if match and len(match) == 1:
             # Bingo!
             return match[0]
-        else:
-            # This is a bit weaker search because comparing declaration can be difficult
-            match = self.get_source_functions(name, paths)
-            if match and len(match) == 1:
-                return match[0]
-            elif match and len(match) > 1:
-                raise ValueError("There are several definitions of function {!r} in provided code you must specify "
-                                 "scope".format(name))
+
+        # This is a bit weaker search because comparing declaration can be difficult
+        match = self.get_source_functions(name, paths)
+        if match and len(match) == 1:
+            return match[0]
+        if match and len(match) > 1:
+            raise ValueError("There are several definitions of function {!r} in provided code you must specify "
+                             "scope".format(name))
 
         return None
 
@@ -344,7 +342,7 @@ class Source:
             names = self.source_functions
 
         for func_name in names:
-            for path, func in ((p, f) for p, f in self._source_functions[func_name].items() if not paths or p in paths):
+            for func in (f for p, f in self._source_functions[func_name].items() if not paths or p in paths):
                 if func not in result and (not declaration or (declaration and declaration == func.declaration)):
                     result.append(func)
         return result
@@ -391,10 +389,10 @@ class Source:
         if name and name in self._source_vars:
             if path and path in self._source_vars[name]:
                 return self._source_vars[name][path]
-            else:
-                variables = self.get_source_variables(name)
-                if len(variables) == 1:
-                    return variables[0]
+
+            variables = self.get_source_variables(name)
+            if len(variables) == 1:
+                return variables[0]
         return None
 
     def get_source_variables(self, name):
@@ -442,8 +440,8 @@ class Source:
         """
         if name in self._macros:
             return self._macros[name]
-        else:
-            return None
+
+        return None
 
     def set_macro(self, new_obj):
         """
@@ -475,18 +473,19 @@ class Source:
         name_re = re.compile(r'\(?\s*&?\s*(\w+)\s*\)?$')
         if name_re.fullmatch(call):
             return name_re.fullmatch(call).group(1)
-        else:
-            return None
 
-    def search_function(self, func_name, some_scope, fs):
+        return None
+
+    @staticmethod
+    def search_function(func_name, some_scope, fs):
         # Be aware of  this function - it is costly
         if some_scope in fs and func_name in fs[some_scope]:
             return some_scope
-        elif 'unknown' in fs and func_name in fs['unknown']:
+        if 'unknown' in fs and func_name in fs['unknown']:
             return 'unknown'
-        else:
-            for s in (s for s in fs if func_name in fs[s]):
-                return s
+
+        for s in (s for s in fs if func_name in fs[s]):
+            return s
         return None
 
     def add_function(self, func, scope, fs, deps, cfiles):

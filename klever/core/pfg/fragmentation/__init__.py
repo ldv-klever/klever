@@ -48,8 +48,8 @@ class FragmentationAlgorythm:
         self.conf = conf
         self.tactic = tactic
         self.pf_dir = pf_dir
-        self.files_to_keep = list()
-        self.project_attrs = list()
+        self.files_to_keep = []
+        self.project_attrs = []
 
         self.source_paths = self.conf['working source trees']
 
@@ -102,25 +102,25 @@ class FragmentationAlgorythm:
         grps = self._add_dependencies(deps)
 
         # Remove useless duplicates
-        for manual in defined_groups:
+        for manual, group in defined_groups.items():
             fragment = deps.get_fragment(manual)
             if fragment:
                 allfiles = set()
-                for item in defined_groups[manual]:
+                for item in group:
                     allfiles.update(item.files)
                 fragment.files.difference_update(allfiles)
 
         # Before describing files add manually defined files
-        for group in grps:
+        for group, item in grps.items():
             update = True
             while update:
                 update = False
-                old = set(grps[group][1])
-                for fragment in list(grps[group][1]):
+                old = set(item[1])
+                for fragment in list(item[1]):
                     if not fragment.files:
-                        grps[group][1].remove(fragment)
-                    grps[group][1].update(defined_groups.get(str(fragment), set()))
-                if old.symmetric_difference(grps[group][1]):
+                        item[1].remove(fragment)
+                    item[1].update(defined_groups.get(str(fragment), set()))
+                if old.symmetric_difference(item[1]):
                     update = True
 
         # Prepare program fragments
@@ -146,7 +146,6 @@ class FragmentationAlgorythm:
 
         :param program: Program object.
         """
-        pass
 
     def _determine_targets(self, program):
         """
@@ -196,13 +195,13 @@ class FragmentationAlgorythm:
         :param fragments_desc: Fragmentation set dictionary.
         """
         self.logger.info("Adjust fragments according to the manually provided fragmentation set")
-        fragments = fragments_desc.get('fragments', dict())
+        fragments = fragments_desc.get('fragments', {})
         remove = set(fragments_desc.get('exclude from all fragments', set()))
         add = set(fragments_desc.get('add to all fragments', set()))
-        defined_groups = dict()
+        defined_groups = {}
 
         # Collect files
-        new = dict()
+        new = {}
         for identifier, frags_exprs in ((i, set(e)) for i, e in fragments.items()):
             # First detect fragments and use them at description of manually defined groups
             frags, matched = program.get_fragments(frags_exprs)
@@ -248,8 +247,8 @@ class FragmentationAlgorythm:
         frags, matched = program.get_fragments(remove)
         remove.difference_update(matched)
         if matched:
-            for manual in defined_groups:
-                defined_groups[manual].difference_update(frags)
+            for group in defined_groups.values():
+                group.difference_update(frags)
             for frag in (str(f) for f in frags if str(f) in defined_groups):
                 del defined_groups[frag]
         for fragment in frags:
@@ -299,9 +298,9 @@ class FragmentationAlgorythm:
         :param grps: Name of the fragmentation set.
         :return: Attributes and dict a list of data files.
         """
-        data = dict()
+        data = {}
         for name, main_and_frgs in grps.items():
-            main, frags = main_and_frgs
+            _, frags = main_and_frgs
             data[name] = {
                 "files": [make_relative_path(self.source_paths, l.name) for f in frags for l in f.files],
                 "size": str(sum(int(f.size) for f in frags))
@@ -344,7 +343,7 @@ class FragmentationAlgorythm:
         :param grps: Dictionary with program fragments with dependencies.
         :return: A list of pairs of fragment and related file names.
         """
-        pairs = list()
+        pairs = []
         for name, grp in grps.items():
             pairs.append((name, self.__describe_program_fragment(program, name, grp)))
         return pairs
@@ -366,8 +365,8 @@ class FragmentationAlgorythm:
             'id': name,
             'fragment': name,
             'targets': sorted([str(f) for f in main_fragment.target_files]),
-            'grps': list(),
-            'deps': dict(),
+            'grps': [],
+            'deps': {},
             'size': str(sum((int(f.size) for f in fragments)))
         }
 

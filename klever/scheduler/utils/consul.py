@@ -26,7 +26,10 @@ class Session:
 
     def kv_get(self, key):
         url = self.address + '/v1/kv/' + key
-        response = requests.get(url)
+        try:
+            response = requests.get(url, timeout=100)
+        except requests.exceptions.Timeout as exp:
+            raise RuntimeError(f'Timeout while request {key}') from exp
 
         if response.status_code == 404:
             return None
@@ -40,7 +43,10 @@ class Session:
 
     def kv_put(self, key, value):
         url = self.address + '/v1/kv/' + key
-        response = requests.put(url, value)
+        try:
+            response = requests.put(url, value, timeout=100)
+        except requests.exceptions.Timeout as exp:
+            raise RuntimeError(f'Timeout while request {key} with {value}') from exp
 
         if not response.ok:
             raise RuntimeError(
@@ -49,7 +55,10 @@ class Session:
 
     def kv_delete(self, key):
         url = self.address + '/v1/kv/' + key
-        response = requests.delete(url)
+        try:
+            response = requests.delete(url, timeout=100)
+        except requests.exceptions.Timeout as exp:
+            raise RuntimeError(f'Timeout while request {key}') from exp
 
         if not response.ok:
             raise RuntimeError(

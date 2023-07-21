@@ -17,8 +17,9 @@ import os
 import time
 import json
 import logging
+import sys
 
-import klever.scheduler.utils.consul as consul
+from klever.scheduler.utils import consul
 
 
 def set_data(consul_client, conf):
@@ -27,12 +28,12 @@ def set_data(consul_client, conf):
                              json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4))
     except (AttributeError, KeyError):
         print("Key-value storage is inaccessible")
-        exit(2)
+        sys.exit(2)
 
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-    logging.info("Configuration file: {}".format(expect_file))
+    logging.info(f"Configuration file: {expect_file}")
 
     # Read node configuration
     with open(expect_file, encoding="utf-8") as fh:
@@ -50,7 +51,7 @@ def main():
     else:
         set_data(consul_client, node_conf)
 
-    exit(0)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

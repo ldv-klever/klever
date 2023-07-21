@@ -18,8 +18,27 @@
 import json
 import re
 
-import klever.scheduler.utils.bridge as bridge
+from klever.scheduler.utils import bridge
 
+
+def _robust_request(req):
+    """
+    This decorator processes some error that can happen at requesting Bridge. If an error occurred the decorated
+    function will return None. This function should be used for decorating all requests that can fail but does not
+    influence the whole scheduler but particular jobs or tasks.
+    """
+
+    def tolerant_method(self, *args, **kwargs):
+        try:
+            return req(self, *args, **kwargs)
+        except bridge.BridgeError:
+            if self._tolerate_error(): # pylint: disable=protected-access
+                self.logger.debug('Ignore error from failed request {!r}: {!r}'.
+                                  format(req.__name__, str(self.session.error)))
+                return None
+            raise
+
+    return tolerant_method
 
 class Server:
     """Exchange with gateway via net."""
@@ -36,25 +55,8 @@ class Server:
         :return:
         """
         self.conf = conf
-        self.work_dir = work_dir,
+        self.work_dir = work_dir
         self.logger = logger
-
-    def _robust_request(req):
-        """
-        This decorator processes some error that can happen at requesting Bridge. If an error occurred the decorated
-        function will return None. This function should be used for decorating all requests that can fail but does not
-        influence the whole scheduler but particular jobs or tasks.
-        """
-        def tolerant_method(self, *args, **kwargs):
-            try:
-                return req(self, *args, **kwargs)
-            except bridge.BridgeError:
-                if self._tolerate_error():
-                    self.logger.debug('Ignore error from failed request {!r}: {!r}'.
-                                      format(req.__name__, str(self.session.error)))
-                    return None
-                raise
-        return tolerant_method
 
     @_robust_request
     def pull_job_conf(self, job_identifier):
@@ -176,12 +178,12 @@ class Server:
 
         :return: ((id, status))
         """
-        self.logger.debug(f'Request a list of all running jobs')
+        self.logger.debug('Request a list of all running jobs')
         ret = self.session.json_exchange("jobs/api/decision-status/", method='GET')
         if ret:
             return ((item['identifier'], item['status']) for item in ret)
-        else:
-            return ret
+
+        return ret
 
     def get_all_tasks(self):
         """
@@ -189,7 +191,7 @@ class Server:
 
         :return: ((id, status))
         """
-        self.logger.debug(f'Request a list of all running tasks')
+        self.logger.debug('Request a list of all running tasks')
         ret = self.session.json_exchange("service/tasks/?fields=status&fields=id&fields=id", method='GET')
         return ((item['id'], item['status']) for item in ret)
 
@@ -209,7 +211,7 @@ class Server:
         :param tools: Dictionary from scheduler configuration {'tool': {'version': path}}.
         :param looping: Do not wait for a Bridge successful answer.
         """
-        tools_list = list()
+        tools_list = []
         for tool in tools.keys():
             for version in tools[tool]:
                 tools_list.append({'name': tool, 'version': version})

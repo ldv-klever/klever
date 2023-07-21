@@ -99,7 +99,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
 
     def _merge_specifications(self, specifications_set, files):
-        merged_specification = list()
+        merged_specification = []
         for file in files:
             with open(file, 'r', encoding='utf-8') as fp:
                 new_content = json.load(fp)
@@ -110,9 +110,9 @@ class ScenarioModelgenerator(AbstractGenerator):
                     merged_specification.extend(new_content[spec_set])
                 else:
                     # Find reference ones
-                    for specification in (s.get('model', dict()) for s in new_content[spec_set]):
+                    for specification in (s.get('model', {}) for s in new_content[spec_set]):
                         for subsection in ('functions models', 'environment processes'):
-                            for k, v in list(specification.get(subsection, dict()).items()):
+                            for k, v in list(specification.get(subsection, {}).items()):
                                 assert v is None or isinstance(v, dict), str(v)
                                 if not (v and v.get('reference')):
                                     del specification[subsection][k]

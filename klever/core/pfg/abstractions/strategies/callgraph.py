@@ -42,7 +42,7 @@ class Callgraph(Abstract):
         :param fragment: Fragment object.
         """
         name = fragment.name
-        files = self.program.collect_dependencies(fragment.files, depth=self._max_deep, max=self._max_size)
+        files = self.program.collect_dependencies(fragment.files, depth=self._max_deep, max_files=self._max_size)
         fragments = self.program.get_fragments_with_files(files)
         fragments.add(fragment)
         return [(name, fragment, fragments)]

@@ -48,7 +48,7 @@ class SSH:
     def __enter__(self):
         self.logger.info('Open SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
 
-        self.ssh = paramiko.SSHClient()
+        self.ssh = paramiko.SSHClient() # pylint: disable=attribute-defined-outside-init
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:

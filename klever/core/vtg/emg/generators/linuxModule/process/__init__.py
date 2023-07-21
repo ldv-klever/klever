@@ -51,7 +51,7 @@ class CallRetval(Receive):
 
 class ExtendedAccess(Access):
     def __init__(self, expression):
-        super(ExtendedAccess, self).__init__(expression)
+        super().__init__(expression)
         self._interface = None
         self._base_interface = None
 
@@ -69,10 +69,10 @@ class ExtendedAccess(Access):
     def base_interface(self):
         if self._base_interface:
             return self._base_interface
-        elif self._interface:
+        if self._interface:
             return self._interface
-        else:
-            return None
+
+        return None
 
     @base_interface.setter
     def base_interface(self, value):
@@ -87,8 +87,8 @@ class ExtendedAccess(Access):
         if reg.search(statement):
             expr = self.access_with_label(label)
             return statement.replace(self.expression, expr)
-        else:
-            return statement
+
+        return statement
 
     def access_with_label(self, label):
         # Increase use counter
@@ -140,7 +140,7 @@ class ExtendedAccess(Access):
 class ExtendedLabel(Label):
 
     def __init__(self, name):
-        super(ExtendedLabel, self).__init__(name)
+        super().__init__(name)
         self.match_implemented = False
         self.container = False
         self.resource = False
@@ -159,14 +159,14 @@ class ExtendedLabel(Label):
     def declarations(self):
         if self.declaration:
             return [self.declaration]
-        else:
-            return list(self._signature_map.values())
+
+        return list(self._signature_map.values())
 
     def get_declaration(self, identifier):
         if identifier in self._signature_map:
             return self._signature_map[identifier]
-        else:
-            return None
+
+        return None
 
     def set_declaration(self, identifier, declaration):
         self._signature_map[identifier] = declaration
@@ -179,25 +179,19 @@ class ExtendedLabel(Label):
 
     def __eq__(self, label):
         if len(self.interfaces) > 0 and len(label.interfaces) > 0:
-            if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
-                return True
-            else:
-                return False
-        elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
-            if (self.container and label.container) or (self.resource and label.resource) or \
-                    (self.callback and label.callback):
-                return True
-            else:
-                return False
-        else:
-            return super(ExtendedLabel, self).__eq__(label)
+            return len(list(set(self.interfaces) & set(label.interfaces))) > 0
+        if len(label.interfaces) > 0 or len(self.interfaces) > 0:
+            return (self.container and label.container) or (self.resource and label.resource) or \
+                    (self.callback and label.callback)
+
+        return super().__eq__(label)
 
 
 class ExtendedProcess(Process):
     label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
 
     def __init__(self, name: str, category: str):
-        super(ExtendedProcess, self).__init__(name, category)
+        super().__init__(name, category)
         self.self_parallelism = True
         self.allowed_implementations = sortedcontainers.SortedDict()
         self.instance_number = 0
@@ -235,13 +229,10 @@ class ExtendedProcess(Process):
                 used_labels.add(m.group(1))
 
         for action in self.actions.values():
-            if (isinstance(action, Call) or isinstance(action, CallRetval)) and action.callback:
+            if isinstance(action, (Call, CallRetval)) and action.callback:
                 assert action.callback, 'Expect required callback action'
                 extract_labels(action.callback)
-            if isinstance(action, Call):
-                for param in action.parameters:
-                    extract_labels(param)
-            if isinstance(action, Receive) or isinstance(action, Dispatch):
+            if isinstance(action, (Call, Receive, Dispatch)):
                 for param in action.parameters:
                     extract_labels(param)
             if isinstance(action, CallRetval) and action.retlabel:
@@ -279,7 +270,7 @@ class ExtendedProcess(Process):
         return signals
 
     def extract_label(self, string):
-        name, tail = self.extract_label_with_tail(string)
+        name, _ = self.extract_label_with_tail(string)
         return name
 
     def add_access(self, expression, obj):
@@ -293,10 +284,10 @@ class ExtendedProcess(Process):
             tail = self.label_re.fullmatch(string).group(2)
             if name not in self.labels:
                 raise ValueError("Cannot extract label name from string {!r}: no such label".format(string))
-            else:
-                return self.labels[name], tail
-        else:
-            raise ValueError("Cannot extract label from access {!r} in process {!r}".format(string, format(string)))
+
+            return self.labels[name], tail
+
+        raise ValueError("Cannot extract label from access {!r} in process {!r}".format(string, format(string)))
 
     def establish_peers(self, process):
         assert isinstance(process, ExtendedProcess), \
@@ -308,8 +299,8 @@ class ExtendedProcess(Process):
             del self.peers[str(process)]
 
         for signals in self.get_available_peers(process):
-            for index in range(len(self.actions[signals[0]].parameters)):
-                label1 = self.extract_label(self.actions[signals[0]].parameters[index])
+            for index, param in enumerate(self.actions[signals[0]].parameters):
+                label1 = self.extract_label(param)
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
                 if len(label1.interfaces) > 0 and not label2.declaration and \
@@ -355,7 +346,7 @@ class ExtendedProcess(Process):
 
     def accesses(self, accesses=None, exclude=None, no_labels=False, refresh=False):
         if not exclude:
-            exclude = list()
+            exclude = []
 
         if not accesses:
             accss = sortedcontainers.SortedDict()
@@ -363,14 +354,11 @@ class ExtendedProcess(Process):
             if refresh or (not self._accesses or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
                 for action in self.actions.filter(exclude=exclude):
-                    if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+                    if isinstance(action, (Call, CallRetval)) and action.callback:
                         accss[action.callback] = []
-                    if isinstance(action, Call):
-                        for index in range(len(action.parameters)):
-                            accss[action.parameters[index]] = []
-                    if isinstance(action, Receive) or isinstance(action, Dispatch):
-                        for index in range(len(action.parameters)):
-                            accss[action.parameters[index]] = []
+                    if isinstance(action, (Call, Receive, Dispatch)):
+                        for param in action.parameters:
+                            accss[param] = []
                     if isinstance(action, CallRetval) and action.retlabel:
                         accss[action.retlabel] = []
                     if isinstance(action, Block):
@@ -395,8 +383,9 @@ class ExtendedProcess(Process):
                 accss = self._accesses
 
             return accss
-        else:
-            self._accesses = accesses
+
+        self._accesses = accesses
+        return None
 
     def resolve_access(self, access, interface=None):
         if isinstance(access, Label):
@@ -408,22 +397,22 @@ class ExtendedProcess(Process):
 
         if not interface:
             return self._accesses[string]
-        else:
-            cnds = [acc for acc in self._accesses[string] if acc.interface and str(acc.interface) == interface]
-            if cnds:
-                return cnds[0]
-            else:
-                return None
+
+        cnds = [acc for acc in self._accesses[string] if acc.interface and str(acc.interface) == interface]
+        if cnds:
+            return cnds[0]
+
+        return None
 
     def get_implementation(self, access):
         if access.interface:
             if str(access.interface) in self.allowed_implementations[access.expression] and \
                     self.allowed_implementations[access.expression][str(access.interface)] != '':
                 return self.allowed_implementations[access.expression][str(access.interface)]
-            else:
-                return False
-        else:
-            return None
+
+            return False
+
+        return None
 
     def add_label(self, name, declaration, value=None):
         lb = ExtendedLabel(name)
@@ -441,22 +430,22 @@ class ExtendedProcess(Process):
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
-            for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
+            for index, param in enumerate(first.parameters):
+                label = self.extract_label(param)
                 if not label:
                     raise ValueError("Provide label in action {!r} at position {!r} in process {!r}".
                                      format(first.name, index, self._name))
                 pair = process.extract_label(second.parameters[index])
                 if not pair:
-                    raise ValueError("Provide label in action {!r} at position {!r}".
+                    raise ValueError("Provide label in action {!r} at position {!r} in process {!r}".
                                      format(second.name, index, process.name))
 
                 if label != pair:
                     match = False
                     break
             return match
-        else:
-            return False
+
+        return False
 
 
 class ExtendedProcessCollection(ProcessCollection):
@@ -482,7 +471,6 @@ class ExtendedProcessCollection(ProcessCollection):
 
         if len(interfaces) == 0:
             raise RuntimeError('Need at least one common interface to send a signal')
-        else:
-            # Todo how to choose between several ones?
-            return list(interfaces)[0]
 
+        # Todo how to choose between several ones?
+        return list(interfaces)[0]

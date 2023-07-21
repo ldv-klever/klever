@@ -109,7 +109,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param functions_collection: Dictionary: function name -> a list of Function objects.
         :return: name -> child Process, main Process object.
         """
-        processes = dict()
+        processes = {}
 
         # Make a process
         main_process = Process("main")
@@ -133,9 +133,9 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             dereg_name = self.__dereg_name(identifier)
             dereg_list.insert(0, f"[{dereg_name}]")
-        else:
-            if len(reg_list) == 0:
-                raise RuntimeError("There is no any functions to call")
+
+        if len(reg_list) == 0:
+            raise RuntimeError("There is no any functions to call")
 
         process = ".".join(reg_list + dereg_list)
         self.logger.debug(f"Going to parse main process: '{process}'")
@@ -180,10 +180,12 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         return child_proc
 
-    def __reg_name(self, identifier):
+    @staticmethod
+    def __reg_name(identifier):
         return f"register_{identifier}"
 
-    def __dereg_name(self, identifier):
+    @staticmethod
+    def __dereg_name(identifier):
         return f"deregister_{identifier}"
 
     def __generate_calls_together(self, functions_collection):

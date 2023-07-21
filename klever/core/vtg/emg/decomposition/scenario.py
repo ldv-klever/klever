@@ -36,8 +36,8 @@ class ScenarioCollection(ProcessCollection):
         assert isinstance(name, str)
         self.entry = entry
         self.original_model = original_model
-        self.models = models if isinstance(models, dict) else dict()
-        self.environment = environment if isinstance(environment, dict) else dict()
+        self.models = models if isinstance(models, dict) else {}
+        self.environment = environment if isinstance(environment, dict) else {}
 
     def __hash__(self):
         return hash(str(self.attributed_name))
@@ -53,11 +53,12 @@ class ScenarioCollection(ProcessCollection):
         new.attributes = dict(self.attributes)
         new.entry = self.entry.clone() if self.entry else None
         for collection in ('models', 'environment'):
-            for key in getattr(self, collection):
-                if getattr(self, collection)[key]:
+            for key in getattr(self, collection):  # pylint: disable=not-an-iterable
+                if getattr(self, collection)[key]:  # pylint: disable=unsubscriptable-object
+                    # pylint: disable=not-an-iterable, unsubscriptable-object, unsupported-assignment-operation
                     getattr(new, collection)[key] = getattr(self, collection)[key].clone()
                 else:
-                    getattr(new, collection)[key] = None
+                    getattr(new, collection)[key] = None  # pylint: disable=not-an-iterable, unsupported-assignment-operation
         return new
 
     @property
@@ -88,8 +89,8 @@ class ScenarioCollection(ProcessCollection):
         for s in self.processes:
             if isinstance(s, Scenario) and s.savepoint:
                 return s.savepoint
-        else:
-            return None
+
+        return None
 
     def delete_with_deps(self, process_name, dep_order, processed):
         # Check that there is a savepoint in the model and required by must contain
@@ -135,7 +136,7 @@ class ScenarioCollection(ProcessCollection):
                 processed.remove(process_name)
             broken.update(self.broken_processes(process_name, scenario.actions))
             return broken
-        elif savepoint and savepoint in dep_order:
+        if savepoint and savepoint in dep_order:
             requiring_sp = self.requiring_processes(savepoint, processed)
             if requiring_sp:
                 broken = {savepoint}
@@ -143,14 +144,14 @@ class ScenarioCollection(ProcessCollection):
                               if p in requiring_sp):
                     broken.add(child)
                 return broken
-            else:
-                return set()
-        elif savepoint:
+
+            return set()
+        if savepoint:
             # Only savepoint is broken
             return {savepoint}
-        else:
-            # Nothing is broken
-            return set()
+
+        # Nothing is broken
+        return set()
 
 
 class Path(collections.UserList):
@@ -198,8 +199,8 @@ class Path(collections.UserList):
     def terminal(self):
         if not self.data:
             return True
-        else:
-            return self.data[-1].kind is not Subprocess
+
+        return self.data[-1].kind is not Subprocess
 
     def included(self, path):
         """
@@ -286,7 +287,7 @@ class Scenario:
     def clone(self):
         new = Scenario(self.process, self.savepoint, self.name)
         new.actions = self.actions.clone()
-        new.__initial_action = new.actions.initial_action
+        new.__initial_action = new.actions.initial_action  # pylint: disable=unused-private-member
         return new
 
     @property
@@ -314,11 +315,11 @@ class Scenario:
             if isinstance(action, Receive) and action.replicative and self.savepoint:
                 # Skip the signal receiving if there is a savepoint
                 continue
-            else:
-                if action.requirements and not action.requirements.is_empty:
-                    yield action.requirements
-                if action.weak_requirements and not action.weak_requirements.is_empty:
-                    yield action.weak_requirements
+
+            if action.requirements and not action.requirements.is_empty:
+                yield action.requirements
+            if action.weak_requirements and not action.weak_requirements.is_empty:
+                yield action.weak_requirements
 
         if self.savepoint:
             new = self.savepoint.requirements
@@ -354,8 +355,8 @@ class Scenario:
                     if broken.intersection(set(map(str, model.defined_processes))):
                         return False
             return True
-        else:
-            return Process.compatible_with_model(self, model, restrict_to)
+
+        return Process.compatible_with_model(self, model, restrict_to)
 
     def _broken_defined_processes(self, requirement, processes, model):
         broken = set()

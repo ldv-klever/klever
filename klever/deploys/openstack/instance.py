@@ -62,7 +62,7 @@ class OSKleverInstance:
             ssh.open_shell()
 
     def add_security_group(self, instance):
-        if not any([sec_group.name == self.args.os_sec_group for sec_group in instance.list_security_group()]):
+        if not any([sec_group.name == self.args.os_sec_group for sec_group in instance.list_security_group()]): # pylint: disable=use-a-generator
             instance.add_security_group(self.args.os_sec_group)
 
     def share(self):

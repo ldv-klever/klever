@@ -29,10 +29,10 @@ class LabelTranslator(FSATranslator):
 
     def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__thread_variables = sortedcontainers.SortedDict()
-        super(LabelTranslator, self).__init__(logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa)
+        super().__init__(logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
-        return list()
+        return []
 
     def _join_cf_code(self, automaton):
         if automaton.self_parallelism and self._conf.get('self parallel processes') and \
@@ -40,15 +40,15 @@ class LabelTranslator(FSATranslator):
             for var in self.__thread_variable(automaton, 'pair'):
                 self._cmodel.add_global_variable(var, automaton.process.file, extern=True)
             return 'pthread_join({}, 0);'
-        else:
-            if automaton.self_parallelism and self._conf.get('self parallel processes'):
-                sv = self.__thread_variable(automaton, 'array')
-                self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
-                return 'pthread_join_N({}, 0);'.format(sv.name)
-            else:
-                sv = self.__thread_variable(automaton, 'single')
-                self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
-                return 'pthread_join({}, 0);'.format(sv.name)
+
+        if automaton.self_parallelism and self._conf.get('self parallel processes'):
+            sv = self.__thread_variable(automaton, 'array')
+            self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
+            return 'pthread_join_N({}, 0);'.format(sv.name)
+
+        sv = self.__thread_variable(automaton, 'single')
+        self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
+        return 'pthread_join({}, 0);'.format(sv.name)
 
     def _call_cf_code(self, automaton, parameter='0'):
         if automaton.self_parallelism and self._conf.get('self parallel processes') and \
@@ -58,17 +58,17 @@ class LabelTranslator(FSATranslator):
             # Leave the first parameter to fill twice later
             return 'pthread_create({}, 0, {}, {});'.\
                 format('{}', self._control_function(automaton).name, parameter)
-        else:
-            if automaton.self_parallelism and self._conf.get('self parallel processes'):
-                sv = self.__thread_variable(automaton, 'array')
-                self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
-                return 'pthread_create_N({}, 0, {}, {});'.\
-                    format(sv.name, self._control_function(automaton).name, parameter)
-            else:
-                sv = self.__thread_variable(automaton, 'single')
-                self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
-                return 'pthread_create({}, 0, {}, {});'.\
-                    format('& ' + sv.name, self._control_function(automaton).name, parameter)
+
+        if automaton.self_parallelism and self._conf.get('self parallel processes'):
+            sv = self.__thread_variable(automaton, 'array')
+            self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
+            return 'pthread_create_N({}, 0, {}, {});'.\
+                format(sv.name, self._control_function(automaton).name, parameter)
+
+        sv = self.__thread_variable(automaton, 'single')
+        self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
+        return 'pthread_create({}, 0, {}, {});'.\
+            format('& ' + sv.name, self._control_function(automaton).name, parameter)
 
     def _dispatch_blocks(self, action, automaton, function_parameters, automata_peers, replicative):
         pre = []
@@ -83,11 +83,10 @@ class LabelTranslator(FSATranslator):
 
             if replicative:
                 for r_action in automata_peers[a_peer]['actions']:
-                    block = list()
-                    block.append('{} = {}(sizeof({}));'.
-                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], str(decl)))
-                    for index in range(len(function_parameters)):
-                        block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
+                    block = ['{} = {}(sizeof({}));'.
+                             format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], str(decl))]
+                    for index, _ in enumerate(function_parameters):
+                        block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))  # pylint: disable=duplicate-string-formatting-argument
                     if r_action.replicative:
                         call = self._call_cf(a_peer, cf_param)
                         if self._conf.get('direct control functions calls'):
@@ -105,13 +104,13 @@ class LabelTranslator(FSATranslator):
                                               'ldv_assume(ret == 0);'])
                         blocks.append(block)
                         break
-                    else:
-                        self._logger.warning(
-                            'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
-                            .format(r_action.name, a_peer.process.name, a_peer.process.category))
+
+                    self._logger.warning(
+                        'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
+                        .format(r_action.name, a_peer.process.name, a_peer.process.category))
             # todo: Pretty ugly, but works
             elif action.name.find('dereg') != -1:
-                block = list()
+                block = []
                 call = self._join_cf(automata_peers[a_peer]['automaton'])
                 if not self._conf.get('direct control functions calls'):
                     if automata_peers[a_peer]['automaton'].self_parallelism and self._conf.get("self parallel processes")\
@@ -129,7 +128,7 @@ class LabelTranslator(FSATranslator):
         return pre, blocks, post
 
     def _receive(self, action, automaton):
-        code, v_code, conditions, comments = super(LabelTranslator, self)._receive(action, automaton)
+        code, v_code, conditions, comments = super()._receive(action, automaton)
 
         automata_peers = {}
         action_peers = self._collection.peers(automaton.process, {str(action)})
@@ -163,7 +162,7 @@ class LabelTranslator(FSATranslator):
 
                 # This should be before precondition because it may check values unpacked in this section
                 if len(param_declarations) > 0:
-                    decl = self._get_cf_struct(automaton, [val for val in param_declarations])
+                    decl = self._get_cf_struct(automaton, param_declarations)
                     var = Variable('data', decl.take_pointer)
                     v_code += ['/* Received labels */',
                                '{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')), '']
@@ -217,7 +216,6 @@ class LabelTranslator(FSATranslator):
         if model_flag:
             for file in self._source.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
-        return
 
     def _entry_point(self):
         self._logger.info("Finally generate an entry point function {!r}".format(self._cmodel.entry_name))

@@ -70,8 +70,7 @@ def get_program_class(class_name):
     for program_class in get_all_subclasses(Program):
         if class_name == program_class.__name__:
             return program_class
-    else:
-        raise NotImplementedError(f'Can not find "{class_name}" class')
+    raise NotImplementedError(f'Can not find "{class_name}" class')
 
 
 def import_build_modules():
@@ -198,7 +197,7 @@ def parse_args(args, logger):
     return args
 
 
-def main(args=sys.argv[1:]):
+def main(args=sys.argv[1:]): # pylint: disable=dangerous-default-value
     logger = get_logger(__name__)
     args = parse_args(args, logger)
     all_desc_paths = []
@@ -227,7 +226,7 @@ def main(args=sys.argv[1:]):
             if "GCC 4.6 Clade CIF options" in desc:
                 desc.update(gcc46_clade_cif_opts)
 
-            logger.info('Prepare build base "{}"'.format(desc['build base']))
+            logger.info('Prepare build base "%s"', desc['build base'])
 
             common_desc = dict(common_target_program_descs[desc['name']])
             common_desc.update(desc)
@@ -237,7 +236,7 @@ def main(args=sys.argv[1:]):
             ProgramObj = ProgramClass(logger, common_desc)
             ProgramObj.build()
 
-            logger.info('Build base "{}" was successfully prepared'.format(desc['build base']))
+            logger.info('Build base "%s" was successfully prepared', desc['build base'])
 
 
 if __name__ == '__main__':

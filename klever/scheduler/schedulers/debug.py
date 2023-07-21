@@ -19,9 +19,9 @@ import time
 import os
 import shutil
 
-import klever.scheduler.schedulers as schedulers
+from klever.scheduler import schedulers
 import klever.scheduler.schedulers.native
-import klever.scheduler.utils as utils
+from klever.scheduler import utils
 
 
 class Debug(klever.scheduler.schedulers.native.Native):
@@ -41,7 +41,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
         original_executor = self._process_starter
         if mode == 'job':
             self._process_starter = self._fake_starter
-        super(Debug, self)._prepare_solution(identifier, configuration, mode)
+        super()._prepare_solution(identifier, configuration, mode)
         if mode == 'job':
             self._process_starter = original_executor
         self.logger.warning('You should start Klever Core yourself (most likely in the debug mode)')
@@ -75,7 +75,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
         self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
-                self._manager.release_resources(identifier, self._node_name, True if mode == 'job' else False,
+                self._manager.release_resources(identifier, self._node_name, mode == 'job',
                                                 reserved_space)
                 result = future.result()
                 if result != 0:

@@ -73,7 +73,7 @@ class BaseAction:
         return new
 
     @property
-    def my_operator(self):
+    def my_operator(self): # pylint: disable=function-redefined
         """Returns the operator that joins this action with the others in the process."""
         return self._my_operator
 
@@ -81,6 +81,7 @@ class BaseAction:
     def my_operator(self, new):
         assert new is not self, 'Prevent recursive operator dependency'
         assert isinstance(new, Operator) or new is None, f"Cannot set as operator a non-operator object '{repr(new)}'"
+        # pylint: disable=access-member-before-definition
         assert not new or not self._my_operator,\
             f"Has operator '{repr(self._my_operator)}' at '{repr(self)}' before setting '{repr(new)}'"
         self._my_operator = new
@@ -190,28 +191,28 @@ class Operator(BaseAction, collections.UserList):
     def __len__(self):
         return len(self.data)
 
-    def insert(self, position, value):
-        self._pair(value)
-        self.data.insert(position, value)
+    def insert(self, i, item):
+        self._pair(item)
+        self.data.insert(i, item)
 
-    def remove(self, value):
-        assert value in self.data, f"There is no '{repr(value)}' in '{repr(self)}'"
-        index = self.data.index(value)
+    def remove(self, item):
+        assert item in self.data, f"There is no '{repr(item)}' in '{repr(self)}'"
+        index = self.data.index(item)
         del self[index]
 
-    def replace(self, old, value):
+    def replace(self, old, item):
         assert old in self.data, f"There is no '{repr(old)}' in '{repr(self)}'"
         index = self.data.index(old)
-        self[index] = value
+        self[index] = item
 
-    def index(self, value, **kwargs):
-        return self.data.index(value)
+    def index(self, item, *args):
+        return self.data.index(item)
 
-    def append(self, value):
-        assert not value.my_operator
+    def append(self, item):
+        assert not item.my_operator
 
-        self._pair(value)
-        self.data.append(value)
+        self._pair(item)
+        self.data.append(item)
 
     def clone(self):
         new = super().clone()
@@ -223,7 +224,8 @@ class Operator(BaseAction, collections.UserList):
         if not action.my_operator:
             action.my_operator = self
 
-    def _unpair(self, action):
+    @staticmethod
+    def _unpair(action):
         action.my_operator = None
 
 
@@ -242,13 +244,13 @@ class Parentheses(Operator):
         assert position == 0 and len(self) > 0
         super().__delitem__(position)
 
-    def insert(self, position, value):
-        assert position == 0 and len(self) == 0
-        super().insert(position, value)
+    def insert(self, i, item):
+        assert i == 0 and len(self) == 0
+        super().insert(i, item)
 
-    def append(self, value):
+    def append(self, item):
         assert len(self) == 0
-        super().append(value)
+        super().append(item)
 
 
 class Concatenation(Operator):
@@ -283,7 +285,7 @@ class Action:
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
-        return self.name,
+        return self.name,  # pylint: disable=trailing-comma-tuple
 
     def __str__(self):
         return self.name
@@ -334,8 +336,8 @@ class Subprocess(Action):
     def sequence(self):
         if self.action:
             return repr(self.action)
-        else:
-            return ''
+
+        return ''
 
 
 class Signal(Action):
@@ -358,7 +360,7 @@ class Dispatch(Signal):
     """
 
     def __init__(self, name, broadcast=False):
-        super(Dispatch, self).__init__(name)
+        super().__init__(name)
         self.broadcast = broadcast
         self.trace_relevant = True
         self.parameters = []
@@ -377,7 +379,7 @@ class Receive(Signal):
     """
 
     def __init__(self, name, replicative=False):
-        super(Receive, self).__init__(name)
+        super().__init__(name)
         self.replicative = replicative
         self.parameters = []
 
@@ -395,7 +397,7 @@ class Block(Action):
     """
 
     def __init__(self, name):
-        super(Block, self).__init__(name)
+        super().__init__(name)
         self.statements = []
         self.condition = []
         self.trace_relevant = False
@@ -407,11 +409,11 @@ class Block(Action):
 class Actions(collections.UserDict):
 
     def __init__(self):
-        super(Actions, self).__init__()
-        self._process_actions = dict()
+        super().__init__()
+        self._process_actions = {}
 
     def __setitem__(self, key, value):
-        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
+        assert isinstance(key, (str, Action)), f"Do not expect '{type(key).__name__}'"
         assert isinstance(value, Action), f"Accept only actions as values but got '{type(value).__name__}'"
         if isinstance(key, Action):
             key = str(key)
@@ -422,11 +424,11 @@ class Actions(collections.UserDict):
                 item.description = value
 
     def __getitem__(self, key):
-        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
+        assert isinstance(key, (str, Action)), f"Do not expect '{type(key).__name__}'"
         return self.data[str(key)]
 
     def __delitem__(self, key):
-        assert isinstance(key, str) or isinstance(key, Action), f"Do not expect '{type(key).__name__}'"
+        assert isinstance(key, (str, Action)), f"Do not expect '{type(key).__name__}'"
         if self._process_actions.get(key):
             for action in self._process_actions[key]:
                 action.my_operator.remove(action)
@@ -478,9 +480,9 @@ class Actions(collections.UserDict):
         :return: None.
         """
         assert isinstance(obj, BaseAction)
-        for key in self._process_actions:
-            if obj in self._process_actions[key]:
-                self._process_actions[key].remove(obj)
+        for item in self._process_actions.values():
+            if obj in item:
+                item.remove(obj)
 
     def clone(self):
         """
@@ -496,9 +498,9 @@ class Actions(collections.UserDict):
             new.data[action] = self.data[action].clone()
 
         # Copy BehActions
-        actions_map = dict()
-        for key in self._process_actions:
-            for item in self._process_actions[key]:
+        actions_map = {}
+        for key, items in self._process_actions.items():
+            for item in items:
                 new_item = item.clone()
                 actions_map[item] = new_item
                 new.add_process_action(new_item, key)
@@ -539,9 +541,9 @@ class Actions(collections.UserDict):
         :return: BaseAction.
         """
         if not name:
-            return {a for k in self._process_actions for a in self._process_actions[k]}
-        else:
-            return {a for a in self._process_actions.get(name, set())}
+            return {a for k, items in self._process_actions.items() for a in items}
+
+        return set(self._process_actions.get(name, set()))
 
     @property
     def initial_action(self):
@@ -734,8 +736,8 @@ class Requirements:
     """The class represent requirement of a process, scenario or savepoint."""
 
     def __init__(self):
-        self._required_actions = dict()
-        self._required_processes = dict()
+        self._required_actions = {}
+        self._required_processes = {}
 
     def __iter__(self):
         yield "processes", dict(self._required_processes)
@@ -747,22 +749,22 @@ class Requirements:
 
         new = cls()
 
-        for name, flag in desc.get('processes', dict()).items():
+        for name, flag in desc.get('processes', {}).items():
             if not isinstance(flag, bool):
-                ValueError(f"Expect bool value instead of '{type(flag).__name__}' for member '{name}'")
+                raise ValueError(f"Expect bool value instead of '{type(flag).__name__}' for member '{name}'")
 
             new._required_processes[name] = flag
 
         if me not in new._required_processes:
             new._required_processes[me] = True
 
-        for name, actions in desc.get('actions', dict()).items():
+        for name, actions in desc.get('actions', {}).items():
             if not isinstance(actions, list):
                 raise ValueError(f"Expect list of actions but got '{type(actions).__name__}' for member '{name}'")
             assert new._required_processes.get(name), \
                 f"Set process requirement for '{name}' besides adding requirements for actions"
 
-            new._required_actions.setdefault(name, list())
+            new._required_actions.setdefault(name, [])
             for action in actions:
                 if not isinstance(action, str):
                     raise ValueError(f"Expect names of actions, bug got '{type(action).__name__}' for member '{name}'")
@@ -837,14 +839,14 @@ class Requirements:
         if replace:
             self._required_actions[name] = list(actions)
         else:
-            self._required_actions.setdefault(name, list())
+            self._required_actions.setdefault(name, [])
             self._required_actions[name].extend(actions)
 
     def required_actions(self, name: str):
         """Provide a list of required actions for the given process name."""
         assert name in self._required_processes
 
-        return self._required_actions.get(name, list())
+        return self._required_actions.get(name, [])
 
     def compatible(self, name: str, actions: Actions):
         """
@@ -860,12 +862,12 @@ class Requirements:
 
         if name in self.required_processes and name in self._required_actions:
             return set(self.required_actions(name)).issubset(set(actions.keys()))
-        elif name in self.required_processes:
+        if name in self.required_processes:
             return True
-        elif name in self.forbidden_processes:
+        if name in self.forbidden_processes:
             return False
-        else:
-            return True
+
+        return True
 
     def compatible_with_model(self, model, restrict_to=None):
         """
@@ -951,8 +953,8 @@ class WeakRequirements(Requirements):
         if single_suiting:
             # Check missing processes
             return self.get_missing_processes(model, processes, restrict_to)
-        else:
-            return False
+
+        return False
 
     def get_missing_processes(self, model, processes_map, restrict_to=None):
         """

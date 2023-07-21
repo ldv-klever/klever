@@ -17,7 +17,6 @@
 
 
 class Abstract:
-
     DESC_FILE = 'aggregations description.json'
 
     def __init__(self, logger, conf, tactic, program):
@@ -33,7 +32,7 @@ class Abstract:
         self.conf = conf
         self.tactic = tactic
         self.program = program
-        self.__groups = dict()
+        self.__groups = {}
 
     def get_groups(self):
         """

@@ -21,10 +21,6 @@ import klever.core.vtg.plugins
 
 
 class FVTP(klever.core.vtg.plugins.Plugin):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(FVTP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources)
 
     def final_task_preparation(self):
         """
@@ -39,14 +35,14 @@ class FVTP(klever.core.vtg.plugins.Plugin):
         else:
             strategy_name = 'basic'
 
-        self.logger.info("Going to use strategy {!r} to generate verification tasks".format(strategy_name))
+        self.logger.info("Going to use strategy %r to generate verification tasks", strategy_name)
         try:
             strategy = getattr(importlib.import_module('.{0}'.format(strategy_name.lower()), 'klever.core.vtg.fvtp'),
                                strategy_name.capitalize())
-        except ImportError:
-            raise ValueError("There is no strategy {!r}".format(strategy_name))
+        except ImportError as e:
+            raise ValueError("There is no strategy {!r}".format(strategy_name)) from e
 
-        self.logger.info('Initialize strategy {!r}'.format(strategy_name))
+        self.logger.info('Initialize strategy %r', strategy_name)
         s = strategy(self.logger, self.conf, self.abstract_task_desc)
 
         self.logger.info('Begin task generating')

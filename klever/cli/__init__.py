@@ -141,13 +141,13 @@ class Cli:
                     new_files = json.load(fp)
                 except Exception as e:
                     logging.exception(e)
-                    raise ValueError("Wrong JSON file with replacement was provided: {}".format(replacement))
+                    raise ValueError("Wrong JSON file with replacement was provided: {}".format(replacement)) from e
         else:
             try:
                 new_files = json.loads(replacement)
             except Exception as e:
                 logging.exception(e)
-                raise ValueError("Wrong JSON data with replacement was provided: {}".format(replacement))
+                raise ValueError("Wrong JSON data with replacement was provided: {}".format(replacement)) from e
         if not isinstance(new_files, dict):
             raise ValueError('JSON with replacement data should be a dictionary')
         return new_files
@@ -230,9 +230,9 @@ class Cli:
             resp_json = resp.json()
         except Exception as e:
             logging.exception(
-                "Can't parse JSON response of starting decision request (code {}): {}".format(resp.status_code, e)
+                f"Can't parse JSON response of starting decision request (code {resp.status_code}): {e}"
             )
-            raise BridgeError("Decision wasn't started")
+            raise BridgeError("Decision wasn't started") from e
         return resp_json['id'], resp_json['identifier']
 
     def download_all_marks(self, archive):

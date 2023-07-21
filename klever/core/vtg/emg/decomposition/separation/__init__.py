@@ -41,13 +41,13 @@ class ScenarioExtractor:
         scenarios = self.__create_scenarios()
         return scenarios
 
-    def _process_subprocess(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
-        assert isinstance(beh, Behaviour)
-        assert beh.kind is Subprocess
+    def _process_subprocess(self, scenario: Scenario, behaviour: BaseAction, operator: Operator = None):
+        assert isinstance(behaviour, Behaviour)
+        assert behaviour.kind is Subprocess
 
-        new = self._process_leaf_action(scenario, beh, operator)
+        new = self._process_leaf_action(scenario, behaviour, operator)
         if len(scenario.actions.behaviour(new.name)) == 1:
-            child = beh.description.action
+            child = behaviour.description.action
             new_action = self._fill_top_down(scenario, child)
             new.description.action = new_action
         return new
@@ -55,8 +55,8 @@ class ScenarioExtractor:
     def _process_concatenation(self, scenario: Scenario, beh: Concatenation, operator: Operator = None):
         return self.__process_operator(scenario, beh, operator)
 
-    def _process_choice(self, scenario: Scenario, beh: Choice, operator: Operator = None):
-        return self.__process_operator(scenario, beh, operator)
+    def _process_choice(self, scenario: Scenario, behaviour: Choice, operator: Operator = None):
+        return self.__process_operator(scenario, behaviour, operator)
 
     def _process_parentheses(self, scenario: Scenario, beh: Parentheses, operator: Operator = None):
         return self.__process_operator(scenario, beh, operator)
@@ -74,7 +74,7 @@ class ScenarioExtractor:
         first_actual = self._actions.first_actions(root)
         assert len(first_actual) == 1, 'Support only the one first action'
         actual = self._actions.behaviour(first_actual.pop())
-        assert len(actual) == 1, f'Support only the one first action behaviour'
+        assert len(actual) == 1, 'Support only the one first action behaviour'
         actual = actual.pop()
         if actual.description.savepoints:
             for savepoint in actual.description.savepoints:
@@ -110,7 +110,7 @@ class ScenarioExtractor:
         return processing_method(scenario, beh, operator)
 
     def __create_scenarios(self):
-        scenarios = list()
+        scenarios = []
         while self._roots:
             root = self._roots.pop()
 

@@ -61,7 +61,7 @@ class Core(klever.core.components.CallbacksCaller):
             self.change_work_dir()
 
             self.logger = klever.core.utils.get_logger(type(self).__name__, self.conf['logging'])
-            self.logger.info('Solve job "{0}"'.format(self.conf['identifier']))
+            self.logger.info('Solve job "%s"', self.conf['identifier'])
 
             self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(klever.core.job.JOB_FORMAT, klever.core.job.JOB_ARCHIVE)
@@ -172,9 +172,9 @@ class Core(klever.core.components.CallbacksCaller):
                     shutil.rmtree(os.path.abspath('.'))
 
                 if self.logger:
-                    self.logger.info('Exit with code "{0}"'.format(self.exit_code))
+                    self.logger.info(f'Exit with code "{self.exit_code}"')
 
-                return self.exit_code
+        return self.exit_code
 
     def get_conf(self):
         # Get configuration file from command-line options. If it is not specified, then use the default one.
@@ -202,7 +202,7 @@ class Core(klever.core.components.CallbacksCaller):
     def get_comp_desc(self):
         self.logger.info('Get computer description')
 
-        entities = tuple([
+        entities = tuple(
             {entity_name_cmd[0]: klever.core.utils.get_entity_val(self.logger, entity_name_cmd[0], entity_name_cmd[1])}
             for entity_name_cmd in (
                 ('node name', 'uname -n'),
@@ -211,8 +211,7 @@ class Core(klever.core.components.CallbacksCaller):
                 ('memory size', 'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'),
                 ('Linux kernel version', 'uname -r'),
                 ('host architecture', 'uname -m'),
-            )
-            ])
+            ))
 
         # Add computer description to configuration since it can be used by (sub)components.
         for entity in entities:
@@ -237,11 +236,6 @@ class Core(klever.core.components.CallbacksCaller):
 
 
 class Reporter(klever.core.components.Component):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                       separate_from_parent, include_child_resources)
 
     def send_reports(self):
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -279,11 +273,10 @@ class Reporter(klever.core.components.Component):
             if reports_and_report_file_archives:
                 for report_and_report_file_archives in reports_and_report_file_archives:
                     report_file_archives = report_and_report_file_archives.get('report file archives')
-                    self.logger.debug('Upload report file "{0}"{1}'.format(
+                    self.logger.debug('Upload report file "%s" with report file archives:\n%s',
                         report_and_report_file_archives['report file'],
-                        ' with report file archives:\n{0}'
-                        .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
-                        if report_file_archives else ''))
+                        '\n'.join(['  {0}'.format(archive) for archive in report_file_archives])
+                        if report_file_archives else '')
 
                 session.upload_reports_and_report_file_archives(reports_and_report_file_archives,
                                                                 self.conf['keep intermediate files'])

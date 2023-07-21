@@ -90,7 +90,7 @@ def import_interface_specification(logger, collection, sa, specification):
     for identifier in (i for i in specification.get("functions models", {}) if i in sa.source_functions):
         if "declaration" not in specification["functions models"][identifier]:
             raise TypeError("Specify 'signature' for function {!r} at {!r}".format(identifier, category))
-        elif "header" not in specification[category][identifier] and \
+        if "header" not in specification[category][identifier] and \
                 "headers" not in specification[category][identifier]:
             raise TypeError("Specify 'header' for kernel interface {!r} at {!r}".format(identifier, category))
         interface = FunctionInterface(category, identifier)
@@ -118,7 +118,7 @@ def import_interface_declaration(collection, interface, declaration):
             cl = import_declaration(None, probe_ast)
             expr = cl.to_string(declarator)
             return expr, None
-        except KeyError:
+        except KeyError as e:
             if 'specifiers' in given_ast and 'category' in given_ast['specifiers'] and \
                     'identifier' in given_ast['specifiers']:
                 n = given_ast['specifiers']['identifier']
@@ -129,47 +129,47 @@ def import_interface_declaration(collection, interface, declaration):
                 else:
                     d = i.declaration.to_string(declarator)
                 return d, i
-            else:
-                if check_function(given_ast) and 'specifiers' not in given_ast:
-                    parameter_declarations = []
-                    for index, p in enumerate(given_ast['declarator'][0]['function arguments']):
-                        if isinstance(p, str):
-                            parameter_declarations.append(p)
-                        else:
-                            expr, i = check_ast(p, 'a', None)
-                            if iint and i:
-                                iint.set_param_interface(index, i)
-                            parameter_declarations.append(expr)
 
-                    if len(parameter_declarations) == 0:
-                        declarator += '(void)'
+            if check_function(given_ast) and 'specifiers' not in given_ast:
+                parameter_declarations = []
+                for index, p in enumerate(given_ast['declarator'][0]['function arguments']):
+                    if isinstance(p, str):
+                        parameter_declarations.append(p)
                     else:
-                        declarator += '(' + ', '.join(parameter_declarations) + ')'
+                        expr, i = check_ast(p, 'a', None)
+                        if iint and i:
+                            iint.set_param_interface(index, i)
+                        parameter_declarations.append(expr)
 
-                    declarator, i = check_ast(given_ast['return value type'], declarator, None)
-                    if iint and i:
-                        iint.rv_interface = i
-
-                    return declarator, None
-
-                elif check_array(given_ast):
-                    array = given_ast['declarator'][-1]['arrays'].pop()
-                    size = array['size']
-                    given_ast = reduce_level(given_ast)
-                    if not size:
-                        size = ''
-                    declarator += '[{}]'.format(size)
-                    return check_ast(given_ast, declarator, iint)
-                elif 'pointer' in given_ast['declarator'][-1] and given_ast['declarator'][-1]['pointer'] > 0:
-                    given_ast['declarator'][-1]['pointer'] -= 1
-                    given_ast = reduce_level(given_ast)
-                    if check_array(given_ast) or check_function(given_ast):
-                        declarator = '(*' + declarator + ')'
-                    else:
-                        declarator = '*' + declarator
-                    return check_ast(given_ast, declarator, iint)
+                if len(parameter_declarations) == 0:
+                    declarator += '(void)'
                 else:
-                    raise NotImplementedError
+                    declarator += '(' + ', '.join(parameter_declarations) + ')'
+
+                declarator, i = check_ast(given_ast['return value type'], declarator, None)
+                if iint and i:
+                    iint.rv_interface = i
+
+                return declarator, None
+
+            if check_array(given_ast):
+                array = given_ast['declarator'][-1]['arrays'].pop()
+                size = array['size']
+                given_ast = reduce_level(given_ast)
+                if not size:
+                    size = ''
+                declarator += '[{}]'.format(size)
+                return check_ast(given_ast, declarator, iint)
+            if 'pointer' in given_ast['declarator'][-1] and given_ast['declarator'][-1]['pointer'] > 0:
+                given_ast['declarator'][-1]['pointer'] -= 1
+                given_ast = reduce_level(given_ast)
+                if check_array(given_ast) or check_function(given_ast):
+                    declarator = '(*' + declarator + ')'
+                else:
+                    declarator = '*' + declarator
+                return check_ast(given_ast, declarator, iint)
+
+            raise NotImplementedError from e
 
     try:
         clean = import_declaration(declaration)
@@ -180,8 +180,8 @@ def import_interface_declaration(collection, interface, declaration):
             obj, intf = check_ast(ast, 'a', interface)
             # Reimport to get proper object
             declaration = import_declaration(obj)
-        except Exception:
-            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
+        except Exception as e:
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration)) from e
 
         return declaration, intf
 

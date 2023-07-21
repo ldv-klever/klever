@@ -452,7 +452,7 @@ class FileSystemModelWithRequirementsAndInit(FileSystemModelWithRequirements):
 
 
 class DoubleInitModel(DeviceDriverModel):
-    entry = None,
+    entry = None
     environment_models = {
         "c1/p1": {
             "comment": "Category 1, process 1.",
@@ -652,7 +652,7 @@ def _model_factory(model_class):
         'f1': "static int f1(struct test *)",
         'f2': "static void f2(struct test *)"
     }
-    source = Source(files, [], dict())
+    source = Source(files, [], {})
     for name, declaration_str in functions.items():
         new = Function(name, declaration_str)
         new.definition_file = files[0]
@@ -665,7 +665,7 @@ def _model_factory(model_class):
         "environment processes": model_class.environment_models,
         "main process": model_class.entry
     }
-    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+    collection = CollectionDecoder(logging, {}).parse_event_specification(source,
                                                                               json.loads(json.dumps(spec)),
                                                                               ProcessCollection())
     return collection

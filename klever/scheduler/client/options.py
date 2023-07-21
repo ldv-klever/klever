@@ -40,15 +40,13 @@ def cpa_adjustment(file, conf):
     :return:
     """
     # Here we can add any changes to CPAchecker config for speculative schedulers.
-    pass
-    '''
-    tree = ElementTree.parse(file)
-    root = tree.getroot()
-    rewrite = False
-    for rundefinition in root.findall('rundefinition'):
-        for option in rundefinition.findall('option'):
-            pass
 
-    if rewrite:
-        tree.write(file, encoding='utf-8')
-    '''
+    # tree = ElementTree.parse(file)
+    # root = tree.getroot()
+    # rewrite = False
+    # for rundefinition in root.findall('rundefinition'):
+    #     for option in rundefinition.findall('option'):
+    #         pass
+    #
+    # if rewrite:
+    #     tree.write(file, encoding='utf-8')

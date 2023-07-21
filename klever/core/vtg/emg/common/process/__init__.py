@@ -27,7 +27,7 @@ from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Acti
     Signal, Behaviour, Parentheses, Choice, Concatenation, Requirements, WeakRequirements
 
 
-"""Represent a signal peer."""
+# Represent a signal peer.
 Peer = collections.namedtuple('Peer', 'process action')
 
 
@@ -54,9 +54,9 @@ class Process:
         self.file = 'environment model'
         self.comment = None
         self.cfiles = sortedcontainers.SortedSet()
-        self.headers = list()
+        self.headers = []
         self.actions = Actions()
-        self.peers = dict()
+        self.peers = {}
         self.labels = sortedcontainers.SortedDict()
         self.declarations = sortedcontainers.SortedDict()
         self.definitions = sortedcontainers.SortedDict()
@@ -71,14 +71,14 @@ class Process:
     def __eq__(self, other):
         if isinstance(other, Process):
             return str(self) == str(other)
-        else:
-            return False
+
+        return False
 
     def __lt__(self, other):
         if isinstance(other, Process):
             return str(self) < str(other)
-        else:
-            return False
+
+        return False
 
     def clone(self):
         """
@@ -91,7 +91,7 @@ class Process:
 
         # Set simple attributes
         for att, val in self.__dict__.items():
-            if isinstance(val, list) or isinstance(val, dict):
+            if isinstance(val, (list, dict)):
                 setattr(inst, att, copy.copy(val))
             else:
                 setattr(inst, att, val)
@@ -182,7 +182,7 @@ class Process:
         """
         # todo: Do not like this method. Prefer seeing it as property
         if not exclude:
-            exclude = list()
+            exclude = []
 
         if not accesses:
             accss = sortedcontainers.SortedDict()
@@ -190,9 +190,9 @@ class Process:
             if refresh or (len(self._accesses) == 0 or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
                 for action in self.actions.filter(include={Action}, exclude=exclude):
-                    if isinstance(action, Receive) or isinstance(action, Dispatch):
-                        for index in range(len(action.parameters)):
-                            accss[action.parameters[index]] = None
+                    if isinstance(action, (Receive, Dispatch)):
+                        for param in action.parameters:
+                            accss[param] = None
                     if isinstance(action, Block):
                         for statement in action.statements:
                             for match in self.label_re.finditer(statement):
@@ -219,8 +219,9 @@ class Process:
                 accss = self._accesses
 
             return accss
-        else:
-            self._accesses = accesses
+
+        self._accesses = accesses
+        return None
 
     def establish_peers(self, process):
         """
@@ -269,11 +270,12 @@ class Process:
         return {peer: registrations.intersection(signals) for peer, signals in self.peers.items()
                 if registrations.intersection(signals)}
 
-    def resolve_access(self, access):
+    def resolve_access(self, access, interface=None):
         """
         Get a string access and return a matching list of Access objects.
 
         :param access: String access like "%mylabel%".
+        :param interface: process interface
         :return: List with Access objects.
         """
         if isinstance(access, Label):
@@ -451,7 +453,7 @@ class ProcessCollection:
         self.models = ProcessDict()
         self.environment = ProcessDict()
         self.name = name
-        self.attributes = dict()
+        self.attributes = {}
 
     @property
     def attributed_name(self):
@@ -493,15 +495,15 @@ class ProcessCollection:
         """
         if str(self.entry) == identifier:
             return self.entry
-        elif identifier in self.models:
+        if identifier in self.models:
             return self.models[identifier]
-        elif identifier.split('/')[-1] in self.models:
+        if identifier.split('/')[-1] in self.models:
             return self.models[identifier.split('/')[-1]]
-        elif identifier in self.environment:
+        if identifier in self.environment:
             return self.environment[identifier]
-        else:
-            raise KeyError('Cannot find process {!r} \nwhere there are processes: {}\n and models: {}'.
-                           format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
+
+        raise KeyError('Cannot find process {!r} \nwhere there are processes: {}\n and models: {}'.
+                       format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
 
     def peers(self, process: Process, signals=None, processes=None):
         """
@@ -543,7 +545,7 @@ class ProcessCollection:
 
                 if not receives.intersection(all_peers) or \
                         not process.compatible_with_model(self):
-                    self.copy_declarations_to_init(self.environment[key])
+                    self.copy_declarations_to_init(process)
                     self.remove_process(key)
                     deleted.add(key)
                     iterate = True
@@ -570,7 +572,7 @@ class ProcessCollection:
         assert process
         for attr in ('declarations', 'definitions'):
             for file in getattr(process, attr):
-                getattr(self.entry, attr).setdefault(file, dict())
+                getattr(self.entry, attr).setdefault(file, {})
                 getattr(self.entry, attr)[file].update(getattr(process, attr)[file])
 
     def establish_peers(self):
@@ -621,24 +623,24 @@ class ProcessCollection:
                         process_next({action}, real_action, covered_subprocesses)
                         graph.node(str(hash(action)), r'{}\l'.format(repr(action)))
                         return {action}
-                    else:
-                        return {covered_subprocesses[real_action]}
-                else:
-                    graph.node(str(hash(real_action)), r'{}\l'.format(repr(real_action)))
-                    return {real_action}
-            elif isinstance(action, Parentheses):
+
+                    return {covered_subprocesses[real_action]}
+
+                graph.node(str(hash(real_action)), r'{}\l'.format(repr(real_action)))
+                return {real_action}
+            if isinstance(action, Parentheses):
                 return process_next(prevs, action[0], covered_subprocesses)
-            elif isinstance(action, Choice):
+            if isinstance(action, Choice):
                 new_prevs = set()
                 for act in action:
                     new_prevs.update(process_next(prevs, act, covered_subprocesses))
                 return new_prevs
-            elif isinstance(action, Concatenation):
+            if isinstance(action, Concatenation):
                 for act in action:
                     prevs = process_next(prevs, act, covered_subprocesses)
                 return prevs
-            else:
-                raise NotImplementedError(type(action))
+
+            raise NotImplementedError(type(action))
 
         # Dump separately all automata
         for process in self.processes:
@@ -649,7 +651,7 @@ class ProcessCollection:
                 format="png"
             )
 
-            process_next(set(), process.actions.initial_action, dict())
+            process_next(set(), process.actions.initial_action, {})
 
             # Save to dg_file
             graph.save(dg_file)
@@ -661,8 +663,8 @@ class ProcessCollection:
             for requirement in process.requirements:
                 if not requirement.compatible_with_model(self):
                     return False
-        else:
-            return True
+
+        return True
 
     def requiring_processes(self, name, restrict_to=None):
         """

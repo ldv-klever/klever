@@ -24,7 +24,7 @@ class BusyBox(MakeProgram):
         super().__init__(logger, target_program_desc)
         self.configuration = self.target_program_desc.get('configuration')
 
-    def _configure(self):
+    def _configure(self, *args):
         self.logger.info(f'Configure BusyBox as {self.configuration}')
         target = [self.configuration]
         self._make(*target)

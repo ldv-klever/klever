@@ -107,7 +107,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
             desc1["safety properties"] = []
 
         if "exclude options" in desc2:
-            remove = list()
+            remove = []
             # For each excluded option
             for e in desc2["exclude options"]:
                 name = list(e.keys())[0]
@@ -150,15 +150,15 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     logger.debug("Import verifier profiles base")
     try:
         verifier_profile_db = conf["verifier profiles base"]
-    except KeyError:
+    except KeyError as e:
         raise KeyError('Set "verifier profiles base" configuration option and provide corresponding file with '
-                       'verifiers profiles containing options')
+                       'verifiers profiles containing options') from e
     try:
         verifier_profile_db = klever.core.utils.find_file_or_dir(logger, conf["main working directory"], verifier_profile_db)
         with open(verifier_profile_db, 'r', encoding='utf-8') as fp:
             profiles = json.loads(fp.read())
-    except FileNotFoundError:
-        raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db))
+    except FileNotFoundError as e:
+        raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db)) from e
 
     logger.debug("Determine profile for the given verifier and its version")
     try:
@@ -170,7 +170,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     except KeyError as err:
         raise KeyError("To run verification you need to: 1) Provide name, version and profile name of verifier at FVTP"
                        " plugin configuration. 2) Create such verifier profile at verifier profiles base file. The"
-                       " following key is actually not found: {!r}".format(err))
+                       " following key is actually not found: {!r}".format(err)) from err
 
     logger.debug("Determine inheritance of profiles and templates")
     sets = [user_opts, profile_opts]
@@ -181,7 +181,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
 
     logger.debug("Prepare final opts description")
     last = None
-    while len(sets):
+    while sets:
         if not last:
             # We know that there are at least two elements in the list
             last = sets.pop()
@@ -199,7 +199,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
         last = merge(last, conf['verifier profile description'])
 
     # Process given options according to ldv patterns
-    matcher = re.compile("\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")
+    matcher = re.compile(r"\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")
 
     def processor(v):
         """Replace patterns in options by values"""

@@ -26,17 +26,18 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 
 class StateTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):  # pylint: disable=super-init-not-called
         raise NotImplementedError('State translator requires update to the newest API which has not been done')
 
-        self.__state_variables = dict()
-        self.__state_chains_memoization = dict()
-        self.__switchers_cache = dict()
-
-        conf.setdefault('actions composition', default_value=[])
-        self.__jump_types = set([t for t in [Dispatch, Receive, Block, Subprocess]
-                                 if t.__name__ not in get_or_die(conf, 'actions composition')])
-        super(StateTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
+        # TODO
+        # self.__state_variables = {}
+        # self.__state_chains_memoization = {}
+        # self.__switchers_cache = {}
+        #
+        # conf.setdefault('actions composition', default_value=[])
+        # self.__jump_types = set([t for t in [Dispatch, Receive, Block, Subprocess]
+        #                          if t.__name__ not in get_or_die(conf, 'actions composition')])
+        # super().__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         checks = []
@@ -53,7 +54,7 @@ class StateTranslator(FSATranslator):
         raise NotImplementedError('State control functions are not designed to be run in separate threads')
 
     def _call_cf_code(self, automaton, parameter='0'):
-        return "{}({});".format(self._control_function(automaton).name, parameter),
+        return "{}({});".format(self._control_function(automaton).name, parameter),  # pylint: disable=trailing-comma-tuple
 
     def _dispatch_blocks(self, action, automaton, function_parameters, automata_peers, replicative):
         pre = []
@@ -89,8 +90,8 @@ class StateTranslator(FSATranslator):
         return pre, blocks, post
 
     def _receive(self, action, automaton):
-        code, v_code, conditions, comments = super(StateTranslator, self)._receive(action, automaton)
-        code.append("/* Automaton itself cannot perform a receive, look at a dispatcher's code */".
+        code, v_code, conditions, comments = super()._receive(action, automaton)
+        code.append("/* Automaton itself cannot perform a receive {}, look at a dispatcher's code */".
                     format(action.action.name))
 
         return code, v_code, conditions, comments
@@ -163,7 +164,6 @@ class StateTranslator(FSATranslator):
         else:
             for var in automaton.variables():
                 self._cmodel.add_global_variable(var, automaton.process.file, initialize=False)
-        return
 
     def _entry_point(self):
         self._logger.info("Generate body for entry point function {!r}".format(self._cmodel.entry_name))
@@ -204,7 +204,6 @@ class StateTranslator(FSATranslator):
         :param automaton: Automaton object.
         :return: None
         """
-        pass
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
@@ -225,7 +224,7 @@ class StateTranslator(FSATranslator):
 
         if not isinstance(state_block[0].action, Receive):
             code.append('/* Set the next state */')
-            code.extend(self.__switch_state_code(automaton, action))
+            code.extend(self.__switch_state_code(automaton, action))  # pylint: disable=undefined-loop-variable
         else:
             code.append('/* Omit state transition for a receive */')
 
@@ -234,7 +233,7 @@ class StateTranslator(FSATranslator):
     def __state_chains(self, automaton):
         if automaton.identifier not in self.__state_chains_memoization:
             blocks_stack = sorted(list(automaton.fsa.initial_states), key=lambda f: f.identifier)
-            self.__state_chains_memoization[automaton.identifier] = dict()
+            self.__state_chains_memoization[automaton.identifier] = {}
             while len(blocks_stack) > 0:
                 origin = blocks_stack.pop()
                 block = []
@@ -267,9 +266,9 @@ class StateTranslator(FSATranslator):
         # Expect exactly single chain with the state identifier
         try:
             found = (o for o in chains if state_identifier in next(chains[o]))
-        except StopIteration:
+        except StopIteration as e:
             raise RuntimeError("Seems that state {!r} is not reachable in automaton {!r}".
-                               format(state_identifier, automaton.process.name))
+                               format(state_identifier, automaton.process.name)) from e
 
         return found
 
@@ -307,11 +306,10 @@ class StateTranslator(FSATranslator):
         func.definition_file = self._cmodel.entry_file
 
         # Generate switch body
-        code = list()
-        code.append('switch (ldv_undef_int()) {')
-        for index in range(len(states)):
+        code = ['switch (ldv_undef_int()) {']
+        for index, state in enumerate(states):
             code.append('\tcase {}: '.format(index) + '{')
-            code.append('\t\treturn {};'.format(states[index]))
+            code.append('\t\treturn {};'.format(state))
             code.append('\t\tbreak;')
             code.append('\t}')
         code.append('\tdefault: ldv_assume(0);')
@@ -329,9 +327,8 @@ class StateTranslator(FSATranslator):
         return invoke
 
     def __set_initial_state(self, automaton):
-        body = list()
-        body.append('/* Initialize initial state of automaton {!r} with process {!r} of category {!r} */'.
-                    format(automaton.identifier, automaton.process.name, automaton.process.category))
+        body = ['/* Initialize initial state of automaton {!r} with process {!r} of category {!r} */'.
+                format(automaton.identifier, automaton.process.name, automaton.process.category)]
 
         body.extend(initialize_automaton_variables(self._conf, automaton))
         initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
@@ -346,12 +343,11 @@ class StateTranslator(FSATranslator):
             ])
         elif len(initial_states) > 2:
             body.append('switch (ldv_undef_int()) {')
-            for index in range(len(initial_states)):
+            for index, state in enumerate(initial_states):
                 body.append('\tcase {}: '.format(index) + '{')
                 body.append('\t\t{} = {};'.format(self.__state_variable(automaton).name,
-                                                  initial_states[index].identifier))
-                body.append('\t\tbreak;'.format(self.__state_variable(automaton).name,
-                                                initial_states[index].identifier))
+                                                  state.identifier))
+                body.append('\t\tbreak;')
                 body.append('\t}')
                 body.append('\tdefault: ldv_assume(0);')
                 body.append('}')

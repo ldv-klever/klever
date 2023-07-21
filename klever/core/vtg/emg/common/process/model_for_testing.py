@@ -330,7 +330,7 @@ def source_preset():
         'lib.c'
     ]
 
-    source = Source(cfiles, [], dict())
+    source = Source(cfiles, [], {})
     main_functions = {
         'f1': "static int f1(struct test *)",
         'f2': "static void f2(struct test *)",
@@ -365,7 +365,7 @@ def raw_model_preset():
 def model_preset():
     source = source_preset()
     raw_model = raw_model_preset()
-    parser = CollectionDecoder(logging, dict())
+    parser = CollectionDecoder(logging, {})
     model = parser.parse_event_specification(source, raw_model, ProcessCollection())
     model.establish_peers()
     return model

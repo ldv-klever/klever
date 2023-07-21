@@ -28,9 +28,9 @@ import collections
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
-import klever.scheduler.schedulers as schedulers
-import klever.scheduler.schedulers.runners as runners
-import klever.scheduler.utils as utils
+from klever.scheduler import schedulers
+from klever.scheduler.schedulers import runners
+from klever.scheduler import utils
 
 
 class Run:
@@ -52,8 +52,8 @@ class Run:
         if description["verifier"]["name"] != "CPAchecker":
             raise ValueError("VerifierCloud can use only 'CPAchecker' tool, but {} is given instead".format(
                 description["verifier"]["name"]))
-        else:
-            self.tool = "CPAchecker"
+
+        self.tool = "CPAchecker"
 
         if "version" in description["verifier"]:
             self.version = description["verifier"]["version"]
@@ -139,10 +139,10 @@ class VerifierCloud(runners.Runner):
 
     def __init__(self, conf, logger, work_dir, server):
         """Do VerifierCloud specific initialization"""
-        super(VerifierCloud, self).__init__(conf, logger, work_dir, server)
+        super().__init__(conf, logger, work_dir, server)
         self.wi = None
         self.__tasks = None
-        self.__credentials_cache = dict()
+        self.__credentials_cache = {}
         self.init()
 
     def init(self):
@@ -150,7 +150,7 @@ class VerifierCloud(runners.Runner):
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(VerifierCloud, self).init()
+        super().init()
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
@@ -163,7 +163,7 @@ class VerifierCloud(runners.Runner):
         from webclient import WebInterface
         self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
-        self.__tasks = dict()
+        self.__tasks = {}
 
     @staticmethod
     def scheduler_type():
@@ -205,7 +205,7 @@ class VerifierCloud(runners.Runner):
         :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
-        return super(VerifierCloud, self).update_nodes()
+        return super().update_nodes()
 
     def update_tools(self):
         """
@@ -422,7 +422,7 @@ class VerifierCloud(runners.Runner):
         """
         self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super(VerifierCloud, self)._cancel_task(identifier, future)
+        super()._cancel_task(identifier, future)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
         self.__drop_task(identifier)
@@ -485,7 +485,7 @@ class VerifierCloud(runners.Runner):
                         description["comp"]["command"] = value
                     elif key == "exitsignal":
                         description["signal num"] = int(value)
-                    elif key == "exitcode" or key == "returnvalue":
+                    elif key in ["exitcode", "returnvalue"]:
                         description["return value"] = int(value)
                     elif key == "walltime":
                         sec = number.match(value).group(1)
@@ -573,8 +573,7 @@ class VerifierCloud(runners.Runner):
                 for line in stream.readlines():
                     if re.search(r'Verification result: UNKNOWN', line):
                         return True
-        else:
-            return False
+        return False
 
     def __track_task(self, job_id, run, task_id):
         """

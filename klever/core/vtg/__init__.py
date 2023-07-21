@@ -67,10 +67,10 @@ FRAGMENT_DESC_FIELS = None
 
 class VTG(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.req_spec_descs = []
         self.req_spec_classes = {}
@@ -80,8 +80,8 @@ class VTG(klever.core.components.Component):
         klever.core.utils.report(self.logger,
                                  'patch',
                                  {
-                                   'identifier': self.id,
-                                   'attrs': self.__get_common_attrs()
+                                     'identifier': self.id,
+                                     'attrs': self.__get_common_attrs()
                                  },
                                  self.mqs['report files'],
                                  self.vals['report id'],
@@ -92,7 +92,7 @@ class VTG(klever.core.components.Component):
         self.__classify_req_spec_descs()
 
         # Set global shared values (read-only)
-        global REQ_SPEC_CLASSES, FRAGMENT_DESC_FIELS
+        global REQ_SPEC_CLASSES, FRAGMENT_DESC_FIELS  # pylint: disable=global-statement
         REQ_SPEC_CLASSES = self.req_spec_classes
         FRAGMENT_DESC_FIELS = self.fragment_desc_files
 
@@ -110,7 +110,7 @@ class VTG(klever.core.components.Component):
 
     def __extract_template_plugin_descs(self, tmpl_descs):
         for tmpl_id, tmpl_desc in tmpl_descs.items():
-            self.logger.info('Extract options for plugins of template "{0}"'.format(tmpl_id))
+            self.logger.info(f'Extract options for plugins of template "{tmpl_id}"')
 
             if 'plugins' not in tmpl_desc:
                 raise ValueError('Template "{0}" has not mandatory attribute "plugins"'.format(tmpl_id))
@@ -121,18 +121,17 @@ class VTG(klever.core.components.Component):
                         'Description of template "{0}" plugin "{1}" has incorrect format'.format(tmpl_id, idx))
 
             self.logger.debug(
-                'Template "{0}" plugins are "{1}"'.format(tmpl_id,
-                                                          [plugin_desc['name'] for plugin_desc in
-                                                           tmpl_desc['plugins']]))
+                'Template "%s" plugins are "%s"', tmpl_id, [plugin_desc['name'] for plugin_desc in
+                                                            tmpl_desc['plugins']])
 
             # Get options for plugins specified in base template and merge them with the ones extracted above.
             if 'template' in tmpl_desc:
                 if tmpl_desc['template'] not in tmpl_descs:
                     raise ValueError(
                         'Template "{0}" of template "{1}" could not be found in specifications base'
-                            .format(tmpl_desc['template'], tmpl_id))
+                        .format(tmpl_desc['template'], tmpl_id))
 
-                self.logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+                self.logger.debug('Template "%s" template is "%s"', tmpl_id, tmpl_desc['template'])
 
                 for plugin_desc in tmpl_desc['plugins']:
                     for base_tmpl_plugin_desc in tmpl_descs[tmpl_desc['template']]['plugins']:
@@ -215,14 +214,13 @@ class VTG(klever.core.components.Component):
 
                 return res_req_spec_descs
             # Handle tree root.
-            else:
-                # Template can be specified for all requirement specifications.
-                root_tmpl_id = cur_req_spec_descs.get('template')
-                exist_tmpl(root_tmpl_id, cur_req_id)
-                if 'children' in cur_req_spec_descs:
-                    return get_req_spec_descs(cur_req_spec_descs['children'], '', root_tmpl_id)
-                else:
-                    raise KeyError('Specifications base does not describe any requirement specifications')
+            # Template can be specified for all requirement specifications.
+            root_tmpl_id = cur_req_spec_descs.get('template')
+            exist_tmpl(root_tmpl_id, cur_req_id)
+            if 'children' in cur_req_spec_descs:
+                return get_req_spec_descs(cur_req_spec_descs['children'], '', root_tmpl_id)
+
+            raise KeyError('Specifications base does not describe any requirement specifications')
 
         req_spec_descs = get_req_spec_descs(raw_req_spec_descs['requirement specifications'], '', None)
 
@@ -238,8 +236,8 @@ class VTG(klever.core.components.Component):
 
         check_req_spec_ids = sorted(check_req_spec_ids)
 
-        self.logger.debug('Following requirement specifications will be checked "{0}"'
-                          .format(', '.join(check_req_spec_ids)))
+        self.logger.debug('Following requirement specifications will be checked "%s"',
+                          ', '.join(check_req_spec_ids))
 
         unmatched_req_spec_id_patterns = set(self.conf['requirement specifications']).difference(
             matched_req_spec_id_patterns)
@@ -291,15 +289,15 @@ class VTG(klever.core.components.Component):
             })
 
         if self.conf['keep intermediate files']:
-            self.logger.debug('Create file "{0}" with descriptions of requirement specifications to be checked'
-                              .format('checked requirement specifications.json'))
+            self.logger.debug('Create file "%s" with descriptions of requirement specifications to be checked',
+                              'checked requirement specifications.json')
             with open('checked requirement specifications.json', 'w', encoding='utf-8') as fp:
                 json.dump(self.req_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def __classify_req_spec_descs(self):
         # Determine requirement specification classes.
         for req_desc in self.req_spec_descs:
-            hashes = dict()
+            hashes = {}
             for plugin in (p for p in req_desc['plugins'] if p['name'] in ['SA', 'EMG']):
                 hashes[plugin['name']] = plugin['options']
 
@@ -316,7 +314,7 @@ class VTG(klever.core.components.Component):
         self.req_spec_classes = {rules[0]['identifier']: {r['identifier']: r for r in rules}
                                  for rules in self.req_spec_classes.values()}
 
-        self.logger.info("Generated {} requirement classes from given descriptions".format(len(self.req_spec_classes)))
+        self.logger.info("Generated %s requirement classes from given descriptions", len(self.req_spec_classes))
 
     def __gradual_submit(self, items_queue, quota):
         submitted = 0
@@ -364,9 +362,9 @@ class VTG(klever.core.components.Component):
         # Statuses
         waiting = 0
         solving = 0
-        prepare = list()
-        atask_work_dirs = dict()
-        atask_tasks = dict()
+        prepare = []
+        atask_work_dirs = {}
+        atask_tasks = {}
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         keep_dirs = self.conf['keep intermediate files']
@@ -390,7 +388,8 @@ class VTG(klever.core.components.Component):
             total_tasks = len(self.fragment_desc_files) * len([1 for cl in self.req_spec_classes
                                                                for _ in self.req_spec_classes[cl]])
             # Submit the number of tasks
-            self.logger.info(f'Submit the total number of tasks expecting a single environment model per a fragment: {total_tasks}')
+            self.logger.info(
+                f'Submit the total number of tasks expecting a single environment model per a fragment: {total_tasks}')
             self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
             governer.set_total_tasks(total_tasks)
 
@@ -493,7 +492,8 @@ class VTG(klever.core.components.Component):
                                 else:
                                     # Add a solution and delete the task
                                     governer.add_solution(task)
-                                    self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], 'finished'))
+                                    self.mqs['finished and failed tasks'].put(
+                                        (self.conf['sub-job identifier'], 'finished'))
 
         # Close the queue
         self.mqs['prepare'].put(None)
@@ -510,11 +510,11 @@ class VTG(klever.core.components.Component):
 
 class VTGWL(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                    separate_from_parent, include_child_resources)
-        global REQ_SPEC_CLASSES, FRAGMENT_DESC_FIELS
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
+
         self.fragment_desc_files = FRAGMENT_DESC_FIELS
         self.req_spec_classes = REQ_SPEC_CLASSES
 
@@ -559,11 +559,11 @@ class VTGWL(klever.core.components.Component):
 
 class VTGW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
                  fragment_desc_files=None, task=None, resource_limits=None, rescheduling_attempt=None):
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources)
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
         self.out_abstract_task_desc_file = 'abstract tasks.json'
         self.final_abstract_task_desc_file = 'final abstract task.json'
@@ -591,7 +591,7 @@ class VTGW(klever.core.components.Component):
 
     def join(self, timeout=None, stopped=False):
         try:
-            ret = super(VTGW, self).join(timeout, stopped)
+            ret = super().join(timeout, stopped)
         finally:
             if not self.is_alive() and self.send_data:
                 prepared_data = self._get_prepared_data()
@@ -646,7 +646,7 @@ class VTGW(klever.core.components.Component):
                    # account when calculating Weaver resources since we wouldn't like to separately show resources
                    # consumed by workers. Moreover, we even wouldn't like to execute them in separate working
                    # directories like sub-jobs to simplify the workflow and debugging.
-                   include_child_resources=True if plugin_name != 'Weaver' else False)
+                   include_child_resources=plugin_name != 'Weaver')
         p.start()
         p.join()
 
@@ -677,11 +677,11 @@ class VTGW(klever.core.components.Component):
                  final_task_data['verifier'], final_task_data['additional sources'],
                  final_task_data['verification task files']], self.rescheduling_attempt])
 
-            self.logger.info("Submitted successfully verification task {} for solution".
-                             format(os.path.join(plugin_work_dir, 'task.json')))
+            self.logger.info("Submitted successfully verification task %s for solution",
+                             os.path.join(plugin_work_dir, 'task.json'))
         else:
-            self.logger.warning("There is no verification task generated by the last plugin, expect {}".
-                                format(os.path.join(plugin_work_dir, 'task.json')))
+            self.logger.warning("There is no verification task generated by the last plugin, expect %s",
+                                os.path.join(plugin_work_dir, 'task.json'))
 
     def _submit_attrs(self):
         files_list_files = []
@@ -758,7 +758,7 @@ class EMGW(VTGW):
         # Generate task descriptions for further tasks
         for task_desc in tasks:
             env_path = task_desc.get("environment model pathname")
-            env_attrs = tuple(sorted(task_desc.get("environment model attributes", dict()).items(), key=lambda x: x[0]))
+            env_attrs = tuple(sorted(task_desc.get("environment model attributes", {}).items(), key=lambda x: x[0]))
             create_task(task_desc, env_path, env_path, env_attrs)
 
         # Submit new tasks to the VTG
@@ -816,15 +816,15 @@ class PLUGINS(VTGW):
                             "compare": True
                         }
                     )
-        super(PLUGINS, self)._submit_attrs()
+        super()._submit_attrs()
 
     def _get_prepared_data(self):
         if os.path.isfile(os.path.join(self.work_dir, self.final_abstract_task_desc_file)):
             self.logger.debug(f"Task {self.task} is submitted to the VRP")
             return None
-        else:
-            self.logger.debug(f"Cannot find prepared verification task for {self.task}")
-            return type(self.task).__name__, tuple(self.task)
+
+        self.logger.debug(f"Cannot find prepared verification task for {self.task}")
+        return type(self.task).__name__, tuple(self.task)
 
     def _prepare_initial_task_desc(self):
         initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.initial_abstract_task_desc_file)
@@ -862,7 +862,7 @@ class PLUGINS(VTGW):
             try:
                 self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
             except klever.core.components.ComponentError:
-                self.logger.warning('Plugin {} failed'.format(plugin_desc['name']))
+                self.logger.warning('Plugin %s failed', plugin_desc['name'])
 
                 # Call the job hook
                 self.plugin_fail_processing()
@@ -882,7 +882,7 @@ class REPEAT(PLUGINS):
                 "value": str(self.rescheduling_attempt)
             }
         )
-        super(REPEAT, self)._submit_attrs()
+        super()._submit_attrs()
 
     def _get_plugins(self):
         return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1:]
@@ -892,6 +892,6 @@ class REPEAT(PLUGINS):
         plugin_desc = self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1]
 
         self.logger.info(f"Prepare repeating solution of {self.task}")
-        self.logger.info("Instead of running the {!r} plugin obtain results for the original run".
-                         format(plugin_desc['name']))
+        self.logger.info("Instead of running the %r plugin obtain results for the original run",
+                         plugin_desc['name'])
         os.symlink(initial_abstract_task_desc_file, self.initial_abstract_task_desc_file)

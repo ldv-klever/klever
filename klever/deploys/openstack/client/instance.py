@@ -96,8 +96,8 @@ class OSInstance:
                         self.logger.info('Instance "{0}" is active'.format(self.name))
                         self.instance = instance
 
-                        share = (self.args.os_network_type == 'external')
-                        self.floating_ip = self.client.assign_floating_ip(instance, share=share)
+                        share = self.args.os_network_type == 'external'
+                        self.floating_ip = self.client.assign_floating_ip(instance, share=share) # pylint: disable=attribute-defined-outside-init
 
                         self.logger.info(
                             'Wait for {0} seconds until operating system is started before performing other operations'
@@ -105,17 +105,17 @@ class OSInstance:
                         time.sleep(self.OPERATING_SYSTEM_STARTUP_DELAY)
 
                         return self
-                    elif instance.status == 'ERROR':
+                    if instance.status == 'ERROR':
                         self.logger.error('An error occurred during instance creation. '
                                           'Perhaps there are not enough resources available')
                         self.remove(instance)
                         sys.exit(errno.EAGAIN)
-                    else:
-                        timeout -= self.CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
-                                         .format(timeout))
-                        time.sleep(self.CREATION_CHECK_INTERVAL)
-                        instance = self.client.nova.servers.get(instance.id)
+
+                    timeout -= self.CREATION_CHECK_INTERVAL
+                    self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
+                                     .format(timeout))
+                    time.sleep(self.CREATION_CHECK_INTERVAL)
+                    instance = self.client.nova.servers.get(instance.id)
 
                 raise OSCreationTimeout
             except OSCreationTimeout:
@@ -165,7 +165,7 @@ class OSInstance:
 
         self.logger.info('Setup OpenStack keypair using specified private key "{}"'.format(private_key_file))
 
-        private_key = open(private_key_file, 'rb').read()
+        private_key = open(private_key_file, 'rb').read() # pylint: disable=consider-using-with
 
         try:
             public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
@@ -216,13 +216,13 @@ class OSInstance:
                     if image.status == 'active':
                         self.logger.info(f'Image "{self.name}" was created')
                         return
-                    else:
-                        timeout -= self.IMAGE_CREATION_CHECK_INTERVAL
-                        self.logger.info(
-                            f'Wait for {self.IMAGE_CREATION_CHECK_INTERVAL} seconds until image will be created'
-                            f' (remaining timeout is {timeout} seconds)'
-                        )
-                        time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
+
+                    timeout -= self.IMAGE_CREATION_CHECK_INTERVAL
+                    self.logger.info(
+                        f'Wait for {self.IMAGE_CREATION_CHECK_INTERVAL} seconds until image will be created'
+                        f' (remaining timeout is {timeout} seconds)'
+                    )
+                    time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
 
                 raise OSCreationTimeout
             except OSCreationTimeout:

@@ -55,8 +55,8 @@ class ScenarioRequirements(Requirements):
         if isinstance(model, ScenarioCollection) and model.savepoint:
             if self.relevant_savepoint != str(model.savepoint):
                 return False
-        else:
-            return passes
+
+        return passes
 
     def compatible_scenario(self, scenario):
         """
@@ -70,11 +70,11 @@ class ScenarioRequirements(Requirements):
             if isinstance(scenario, ScenarioWithRelevance):
                 return scenario.relevant_savepoint == self._relevant_savepoint or \
                        (scenario.savepoint and str(scenario.savepoint) == self._relevant_savepoint)
-            elif isinstance(scenario, Scenario):
-                return (not (str(scenario) in self.relevant_processes)) or \
+            if isinstance(scenario, Scenario):
+                return (not str(scenario) in self.relevant_processes) or \
                        (scenario.savepoint and str(scenario.savepoint) == self._relevant_savepoint)
-            else:
-                return not (str(scenario) in self.relevant_processes)
+
+            return not str(scenario) in self.relevant_processes
         return compatible
 
     @classmethod
@@ -120,7 +120,7 @@ class ScenarioWithRelevance(Scenario):
         new = ScenarioWithRelevance(self.process, self._relevant_savepoint, self._scenario_requirement,
                                     self.savepoint, self.name)
         new.actions = self.actions.clone()
-        new.__initial_action = new.actions.initial_action
+        new.__initial_action = new.actions.initial_action  # pylint: disable=unused-private-member
         return new
 
     def _broken_defined_processes(self, requirement, processes, model):
@@ -179,7 +179,7 @@ class ReqsExtractor(ScenarioExtractor):
             if len(selected) == 0:
                 raise ValueError(f"Cannot generate scenario for savepoint '{scenario.name}' as requirements are too "
                                  f"strong and do not allow finding a suitable path to a terminal action.")
-            elif len(selected) == 1:
+            if len(selected) == 1:
                 # We use a sequential combination here
                 parent = Concatenation()
                 scenario.actions.add_process_action(parent)
@@ -192,15 +192,15 @@ class ReqsExtractor(ScenarioExtractor):
                 self._fill_top_down(scenario, child, parent)
 
             return parent
-        else:
-            return super()._process_choice(scenario, behaviour, operator)
+
+        return super()._process_choice(scenario, behaviour, operator)
 
     def _get_scenarios_for_root_savepoints(self, root: BaseAction):
         # Process savepoints first
         first_actual = self._actions.first_actions(root)
         assert len(first_actual) == 1, 'Support only the one first action'
         actual = self._actions.behaviour(first_actual.pop())
-        assert len(actual) == 1, f'Support only the one first action behaviour'
+        assert len(actual) == 1, 'Support only the one first action behaviour'
         actual = actual.pop()
         if actual.description.savepoints:
             for savepoint in actual.description.savepoints:

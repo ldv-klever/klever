@@ -99,11 +99,11 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         init = source.get_macro(get_or_die(self.conf, 'init'))
         if init:
-            parameters = dict()
+            parameters = {}
             for path in init.parameters:
                 if len(init.parameters[path]) > 1:
                     raise ValueError("Cannot set two initialization functions for a file {!r}".format(path))
-                elif len(init.parameters[path]) == 1:
+                if len(init.parameters[path]) == 1:
                     parameters[path] = init.parameters[path][0][0]
 
             for module in (m for m in order_c_files if m in parameters):
@@ -113,11 +113,11 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         exitt = source.get_macro(get_or_die(self.conf, 'exit'))
         if exitt:
-            parameters = dict()
+            parameters = {}
             for path in exitt.parameters:
                 if len(exitt.parameters[path]) > 1:
                     raise KeyError("Cannot set two exit functions for a file {!r}".format(path))
-                elif len(exitt.parameters[path]) == 1:
+                if len(exitt.parameters[path]) == 1:
                     parameters[path] = exitt.parameters[path][0][0]
 
             for module in (m for m in reversed(order_c_files) if m in parameters):
@@ -130,7 +130,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             if get_or_die(self.conf, "add functions as initialization"):
                 extra = get_or_die(self.conf, "add functions as initialization")
             else:
-                extra = dict()
+                extra = {}
 
             for name in get_or_die(self.conf, 'kernel initialization'):
                 mc = source.get_macro(name)
@@ -287,7 +287,8 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         return ep
 
-    def __generate_alias(self, process, name, file, int_retval=False):
+    @staticmethod
+    def __generate_alias(process, name, file, int_retval=False):
         new_name = "emg_{}".format(name)
         code = [
             "{}();".format("return {}".format(name) if int_retval else name)

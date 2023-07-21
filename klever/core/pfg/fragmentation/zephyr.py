@@ -38,6 +38,3 @@ class Zephyr(FragmentationAlgorythm):
         program.create_fragment('zephyr', zephyr, add=True)
 
         self.logger.info('Created zephyr fragment')
-
-    def __init__(self, logger, conf, tactic, pf_dir):
-        super().__init__(logger, conf, tactic, pf_dir)

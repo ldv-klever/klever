@@ -39,8 +39,8 @@ class Program:
         self.logger = logger
         self.clade = clade
         self.source_paths = source_paths
-        self._files = dict()
-        self._fragments = dict()
+        self._files = {}
+        self._fragments = {}
         self.__divide(skip_missing_files)
         if not memory_efficient_mode:
             self.logger.info("Extract dependencies between files from the program callgraph")
@@ -137,7 +137,7 @@ class Program:
                  for kind in root_kinds}
 
         # Go over roots
-        result = dict()
+        result = {}
         for root_kind in root_kinds:
             for root_id, root_desc in roots[root_kind].items():
                 leaves = set()
@@ -176,8 +176,8 @@ class Program:
 
         if name not in self._fragments:
             raise ValueError("Cannot remove already missing fragment {!r}".format(fragment.name))
-        else:
-            del self._fragments[name]
+
+        del self._fragments[name]
 
     @property
     def files(self):
@@ -259,9 +259,9 @@ class Program:
         suitable_files = set()
         # Optimizations: collect in advance absolute file paths
         convert = self.clade.get_storage_path
-        reversed = {f.abs_path: f for f in self.files}
-        all_abs_files = set(reversed.keys())
-        all_abs_dirs = dict()
+        reversed_paths = {f.abs_path: f for f in self.files}
+        all_abs_files = set(reversed_paths.keys())
+        all_abs_dirs = {}
         for file in all_abs_files:
             dirname = os.path.dirname(file)
             if dirname not in all_abs_dirs:
@@ -285,7 +285,7 @@ class Program:
 
                     if file in all_abs_files:
                         matched_abs_files.add(file)
-                        suitable_files.add(reversed[file])
+                        suitable_files.add(reversed_paths[file])
                         if not suits:
                             matched.add(expr)
                             suits = True
@@ -295,7 +295,7 @@ class Program:
                             if file in matched_abs_files:
                                 continue
                             matched_abs_files.add(file)
-                            suitable_files.add(reversed[file])
+                            suitable_files.add(reversed_paths[file])
                             if not suits:
                                 matched.add(expr)
                                 suits = True
@@ -365,25 +365,25 @@ class Program:
                     files.add(file)
         return files
 
-    def collect_dependencies(self, files, filter_func=lambda x: True, depth=None, max=None):
+    def collect_dependencies(self, files, filter_func=lambda x: True, depth=None, max_files=None):
         """
         Function recursively searched files that provide functions to the given files.
 
         :param files: File objects.
         :param filter_func: Function that can filter files if necessary.
         :param depth: Max number of edges from one of the given file to a file that can be included. Or None.
-        :param max: Max number of files that can be added.
+        :param max_files: Max number of files that can be added.
         :return: A set of files with the given ones.
         """
         layer = files
         deps = set()
-        while layer and (depth is None or depth > 0) and (max is None or max > 0):
+        while layer and (depth is None or depth > 0) and (max_files is None or max_files > 0):
             new_layer = set()
             for file in layer:
                 deps.add(file)
-                if max:
-                    max -= 1
-                if max is not None and max == 0:
+                if max_files:
+                    max_files -= 1
+                if max_files is not None and max_files == 0:
                     break
 
                 for dep in file.successors:
@@ -420,8 +420,8 @@ class Program:
                         if skip_missing_files:
                             self.logger.warning(msg)
                             continue
-                        else:
-                            raise RuntimeError(msg)
+
+                        raise RuntimeError(msg)
 
                     file.cmd_id = identifier
                     file.cmd_type = desc['type']
@@ -430,15 +430,6 @@ class Program:
                     except (KeyError, IndexError):
                         file.size = 0
                     self._files[name] = file
-
-    def __check_cc(self, desc):
-        """
-        Sanity checks for CC commands.
-
-        :param desc: Dict from the commands graph.
-        """
-        if len(desc['out']) != 1:
-            raise NotImplementedError('CC build commands with more than one output file are not supported')
 
     def __establish_dependencies(self):
         """
@@ -459,12 +450,12 @@ class Program:
                     file_repr.add_export_function(func)
 
                 for called_definition_scope, called_functions in \
-                        ((s, d) for s, d in func_desc.get('calls', dict()).items()
+                        ((s, d) for s, d in func_desc.get('calls', {}).items()
                          if s != path and s != 'unknown' and s in self._files):
                     called_definition_file = self._files[called_definition_scope]
                     # Beware of such bugs in callgraph
                     for called_function in (c for c in called_functions
-                                            if fs.get(called_definition_scope, dict()).get(c, dict()).
+                                            if fs.get(called_definition_scope, {}).get(c, {}).
                                             get('type', 'static') != 'static'):
                         match_score = list(called_functions[called_function].values())[0]["match_type"]
                         file_repr.add_import_function(called_function, called_definition_file, match_score)

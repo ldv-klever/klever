@@ -51,8 +51,7 @@ def __extract_implementations(logger, collection, sa):
     entities = []
     logger.info("Import values from global variables initializations")
     for varname, var in ((varname, var) for varname in sa.source_variables for var in sa.get_source_variables(varname)):
-        if var and (isinstance(var.declaration, Structure) or isinstance(var.declaration, Array) or
-                    isinstance(var.declaration, Union)) and not isinstance(var.value, str):
+        if var and isinstance(var.declaration, (Structure, Array, Union)) and not isinstance(var.value, str):
             # Here we rely on fact that any file should suit
             entity = {
                 "path": var.initialization_file,
@@ -104,10 +103,10 @@ def check_relevant_interface(collection, declaration, category, connector):
         if d1 == d2:
             if (d2 == 'void *' or d1 == 'void *') and not category:
                 return False
-            else:
-                return True
-        else:
-            return False
+
+            return True
+
+        return False
 
     children = sortedcontainers.SortedSet()
     suits = collection.resolve_containers(declaration, category)
@@ -196,7 +195,7 @@ def __import_entities(collection, sa, entities):
                         new_desc["category"] = category
 
                     entities.append(new_desc)
-            elif isinstance(bt, Structure) or isinstance(bt, Union):
+            elif isinstance(bt, (Structure, Union)):
                 for entry in entity["description"]['value']:
                     if not entity["root type"] and not entity["root value"]:
                         new_root_type = bt

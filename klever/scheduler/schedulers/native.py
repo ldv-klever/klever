@@ -25,10 +25,10 @@ import signal
 import sys
 import time
 
-import klever.scheduler.schedulers as schedulers
-import klever.scheduler.schedulers.runners as runners
-import klever.scheduler.schedulers.resource_scheduler as resource_scheduler
-import klever.scheduler.utils as utils
+from klever.scheduler import schedulers
+from klever.scheduler.schedulers import runners
+from klever.scheduler.schedulers import resource_scheduler
+from klever.scheduler import utils
 
 
 class Native(runners.TryLessMemoryRunner):
@@ -39,10 +39,10 @@ class Native(runners.TryLessMemoryRunner):
     _node_name = None
     _cpu_cores = None
     _pool = None
-    _job_conf_prototype = dict()
+    _job_conf_prototype = {}
     _reserved = {"jobs": {}, "tasks": {}}
-    _job_processes = dict()
-    _task_processes = dict()
+    _job_processes = {}
+    _task_processes = {}
     __cached_tools_data = None
     __cached_nodes_data = None
     NODE_INIT_MAX_RETRIES = 50
@@ -55,7 +55,7 @@ class Native(runners.TryLessMemoryRunner):
 
     def __init__(self, conf, logger, work_dir, server):
         """Do native scheduler specific initialization"""
-        super(Native, self).__init__(conf, logger, work_dir, server)
+        super().__init__(conf, logger, work_dir, server)
         self._kv_url = None
         self._job_conf_prototype = None
         self._pool = None
@@ -68,7 +68,7 @@ class Native(runners.TryLessMemoryRunner):
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Native, self).init()
+        super().init()
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
@@ -104,12 +104,13 @@ class Native(runners.TryLessMemoryRunner):
             nodes = self._manager.active_nodes
             if len(nodes) == 1:
                 break
-            else:
-                node_init_retries += 1
-                if node_init_retries >= self.NODE_INIT_MAX_RETRIES:
-                    raise ValueError(f'Node was not initialised after {node_init_retries} retries')
-                self.logger.warning(f"Node was not initialized. Wait for {self.NODE_INIT_WAIT_INTERVAL}s")
-                time.sleep(self.NODE_INIT_WAIT_INTERVAL)
+
+            node_init_retries += 1
+            if node_init_retries >= self.NODE_INIT_MAX_RETRIES:
+                raise ValueError(f'Node was not initialised after {node_init_retries} retries')
+            self.logger.warning(f"Node was not initialized. Wait for {self.NODE_INIT_WAIT_INTERVAL}s")
+            time.sleep(self.NODE_INIT_WAIT_INTERVAL)
+
         self._node_name = nodes[0]
         data = self._manager.node_info(self._node_name)
         self._cpu_cores = data["CPU number"]
@@ -127,7 +128,7 @@ class Native(runners.TryLessMemoryRunner):
                 data = utils.extract_cpu_cores_info()
                 # Evaluate as a number of virtual cores. Allow 2 processes at least that hits when there is the only
                 # CPU core.
-                max_processes = max(2, int(max_processes * sum((len(data[a]) for a in data))))
+                max_processes = max(2, int(max_processes * sum((len(item) for a, item in data.items()))))
         else:
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
@@ -171,7 +172,7 @@ class Native(runners.TryLessMemoryRunner):
         self.server.submit_nodes(configurations, looping=True)
 
         # Terminate
-        super(Native, self).terminate()
+        super().terminate()
 
         # Be sure that workers are killed
         self._pool.shutdown(wait=False)
@@ -232,10 +233,6 @@ class Native(runners.TryLessMemoryRunner):
         self._prepare_solution(identifier, configuration['configuration'], mode='job')
         self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
         return self._pool.submit(self._execute, self._log_file, self._job_processes[identifier])
-
-    def flush(self):
-        """Start solution explicitly of all recently submitted tasks."""
-        super(Native, self).flush()
 
     def _process_task_result(self, identifier, future, description):
         """
@@ -319,7 +316,7 @@ class Native(runners.TryLessMemoryRunner):
         work_dir = os.path.join(self.work_dir, subdir, identifier)
         file_name = os.path.join(work_dir, 'client.json')
         args.extend(['--file', file_name])
-        self._reserved[subdir][identifier] = dict()
+        self._reserved[subdir][identifier] = {}
 
         if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang
@@ -377,7 +374,7 @@ class Native(runners.TryLessMemoryRunner):
             if len(client_conf["resource limits"]["CPU cores"]) == 0:
                 data = utils.extract_cpu_cores_info()
                 client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
-                    sum((len(data[a]) for a in data))
+                    sum((len(item) for a, item in data.items()))
             else:
                 client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
                     len(client_conf["resource limits"]["CPU cores"])
@@ -458,7 +455,7 @@ class Native(runners.TryLessMemoryRunner):
         self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
-                self._manager.release_resources(identifier, self._node_name, True if mode == 'job' else False,
+                self._manager.release_resources(identifier, self._node_name, mode == 'job',
                                                 reserved_space)
 
                 result = future.result()
@@ -490,11 +487,11 @@ class Native(runners.TryLessMemoryRunner):
                         match = re.search(r'WARNING - (.*)', msg)
                         if not match:
                             continue
-                        elif self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
+                        if self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
                             (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
                              any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if t in msg)):
                             continue
-                        elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                        if re.search(r'benchexec(.*) outputted to STDERR', msg):
                             continue
                         new_errors.append(msg)
                     errors = new_errors
@@ -559,11 +556,11 @@ class Native(runners.TryLessMemoryRunner):
             log("Future task {!r}: exit code of the process {!r} is {!r}".format(process.name, process.pid, str(ec)))
             if ec is not None:
                 return str(ec)
-            else:
-                error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
-                raise schedulers.SchedulerException(error_msg)
-        else:
-            raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
+
+            error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
+            raise schedulers.SchedulerException(error_msg)
+
+        raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
 
     @staticmethod
     def _process_starter(timeout, args):

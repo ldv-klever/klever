@@ -50,7 +50,7 @@ def model_comment(comment_type, text=None, other=None):
     if other and isinstance(other, dict):
         comment = other
     else:
-        comment = dict()
+        comment = {}
     comment = sortedcontainers.SortedDict(comment)
 
     comment['type'] = comment_type.upper()
@@ -70,4 +70,3 @@ def id_generator(start_from=0, cast=str):
     while True:
         yield cast(start_from)
         start_from += 1
-

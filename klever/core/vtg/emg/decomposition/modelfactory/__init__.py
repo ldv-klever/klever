@@ -96,7 +96,7 @@ def process_dependencies(process):
     :return: {p: {actions}}
     """
     # TODO: Remove it
-    dependencies_map = dict()
+    dependencies_map = {}
     for action in (a for a in process.actions.values() if a.requirements.relevant_processes):
         for name, v in action.requirements.items():
             dependencies_map.setdefault(name, set())
@@ -122,11 +122,11 @@ def check_process_deps_aginst_model(model, process):
     if not dependencies:
         return True
 
-    for required in dependencies:
-        if required in processes and dependencies[required].issubset(set(processes[required].actions.keys())):
+    for required, item in dependencies.items():
+        if required in processes and item.issubset(set(processes[required].actions.keys())):
             return True
-    else:
-        return False
+
+    return False
 
 
 class ModelFactory:
@@ -227,7 +227,8 @@ class ModelFactory:
                 self.logger.info("Skip cached model {!r}".format(model.attributed_name))
                 continue
 
-    def _process_copy(self, process: Process):
+    @staticmethod
+    def _process_copy(process: Process):
         clone = process.clone()
         return clone
 

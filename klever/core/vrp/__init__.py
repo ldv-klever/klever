@@ -21,7 +21,7 @@ import os
 import re
 import time
 import traceback
-import xml.etree.ElementTree as ElementTree
+from xml.etree import ElementTree
 import zipfile
 import multiprocessing
 
@@ -48,10 +48,9 @@ def __submit_common_attrs(context):
 
 class VRP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Requirement specification descriptions were already extracted when getting VTG callbacks.
-        self.__downloaded = dict()
         self.__workers = None
 
         # Read this in a callback
@@ -60,12 +59,12 @@ class VRP(klever.core.components.Component):
         self.program_fragment = None
 
         # Common initialization
-        super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
 
     def process_results(self):
         self.__workers = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
-        self.logger.info("Going to start {} workers to process results".format(self.__workers))
+        self.logger.info(f"Going to start {self.__workers} workers to process results")
 
         # Do result processing
         klever.core.utils.report(self.logger,
@@ -79,7 +78,7 @@ class VRP(klever.core.components.Component):
                                  self.conf['main working directory'])
 
         subcomponents = [('RPL', self.__result_processing)]
-        for i in range(self.__workers):
+        for _ in range(self.__workers):
             subcomponents.append(('RPWL', self.__loop_worker))
         self.launch_subcomponents(False, *subcomponents)
 
@@ -95,13 +94,13 @@ class VRP(klever.core.components.Component):
 
     def __result_processing(self):
         self.logger.info('Start waiting messages from VTG to track their statuses')
-        pending = dict()
+        pending = {}
         # todo: implement them in GUI
         solution_timeout = 1
         generation_timeout = 1
 
         source_paths = self.conf['working source trees']
-        self.logger.info('Source paths to be trimmed file names: {0}'.format(source_paths))
+        self.logger.info(f'Source paths to be trimmed file names: {source_paths}')
 
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
@@ -134,7 +133,7 @@ class VRP(klever.core.components.Component):
                 tasks_statuses = session.get_tasks_statuses()
                 for item in tasks_statuses:
                     task = str(item['id'])
-                    if task in pending.keys():
+                    if task in pending:
                         if item['status'] == 'FINISHED':
                             submit_processing_task('FINISHED', task)
                             del pending[task]
@@ -169,7 +168,7 @@ class VRP(klever.core.components.Component):
                 break
 
             status, data, attempt, source_paths = element
-            pf, rule_class, envmodel, requirement, _, envattrs = data[1]
+            pf, _, envmodel, requirement, _, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
             self.logger.info(f'Receive solution {result_key}')
             attrs = None
@@ -193,7 +192,7 @@ class VRP(klever.core.components.Component):
                 rp.join()
                 self.logger.info(f'Successfully processed {result_key}')
             except klever.core.components.ComponentError:
-                self.logger.debug("RP that processed {!r}, {!r} failed".format(pf, requirement))
+                self.logger.debug("RP that processed %r, %r failed", pf, requirement)
             finally:
                 self.logger.info(f'Submit solution for {result_key}')
                 solution = tuple(self.vals['task solution triples'].get(result_key))
@@ -215,7 +214,7 @@ class VRP(klever.core.components.Component):
 
 class RP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, source_paths=None,
                  element=None):
         # Read this in a callback
@@ -232,10 +231,9 @@ class RP(klever.core.components.Component):
         self.additional_srcs = None
         self.verification_task_files = None
         self.__exception = None
-        self.__qos_resource_limit = qos_resource_limits
         # Common initialization
-        super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                 separate_from_parent, include_child_resources)
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
 
         self.clean_dir = True
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -258,7 +256,7 @@ class RP(klever.core.components.Component):
         self.results_key = f'{self.program_fragment_id}:{self.envmodel}:{self.req_spec_id}'
         self.additional_srcs = additional_srcs
         self.verification_task_files = verification_task_files
-        self.logger.debug("Process results of task {}".format(task_id))
+        self.logger.debug(f"Process results of task {task_id}")
 
         klever.core.utils.save_program_fragment_description(program_fragment_desc, self.files_list_file)
 
@@ -335,7 +333,7 @@ class RP(klever.core.components.Component):
         else:
             error_trace_file = 'error trace.json'
 
-        self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
+        self.logger.info(f'Write processed witness to "{error_trace_file}"')
         with open(error_trace_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(error_trace, fp, self.conf['keep intermediate files'])
 
@@ -382,7 +380,7 @@ class RP(klever.core.components.Component):
         if "status" not in decision_results:
             raise KeyError("There is no solution status in BenchExec XML report")
 
-        self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
+        self.logger.info('Verification task decision status is "%s"', decision_results['status'])
 
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
         # not upload all witnesses that can be properly processed as well as information on all such failures.
@@ -405,7 +403,7 @@ class RP(klever.core.components.Component):
             self.verdict = 'safe'
         else:
             witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
-            self.logger.info("Found {} witnesses".format(len(witnesses)))
+            self.logger.info(f"Found {len(witnesses)} witnesses")
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
@@ -413,28 +411,26 @@ class RP(klever.core.components.Component):
                 self.verdict = 'unsafe'
 
                 # Surprisingly there may be no witnesses at all even when verifier reported unsafe.
-                if not len(witnesses) and re.search('false', decision_results['status']):
-                    try:
-                        raise RuntimeError('Verifier reported false without violation witnesses')
-                    except Exception as e:
-                        self.logger.warning('Failed to process witnesses:\n{}'.format(traceback.format_exc().rstrip()))
-                        self.verdict = 'non-verifier unknown'
-                        self.__exception = e
+                if not witnesses and re.search('false', decision_results['status']):
+                    self.logger.warning('Failed to process witnesses:\n%s', traceback.format_exc().rstrip())
+                    self.verdict = 'non-verifier unknown'
+                    self.__exception = RuntimeError('Verifier reported false without violation witnesses')
 
                 identifier = 1
                 for witness in witnesses:
                     try:
                         error_trace_file, attrs = self.process_witness(witness)
                         self.report_unsafe(error_trace_file, attrs, str(identifier))
-                    except Exception as e:
-                        self.logger.warning('Failed to process a witness:\n{}'
-                                            .format(traceback.format_exc().rstrip()))
+                    except Exception as e: # pylint: disable=broad-except
+                        self.logger.warning('Failed to process a witness:\n%s',
+                                            traceback.format_exc().rstrip())
                         self.verdict = 'non-verifier unknown'
 
                         if self.__exception:
                             try:
+                                # Bad code just to save the cause
                                 raise e from self.__exception
-                            except Exception as e:
+                            except Exception as e:  # pylint: disable=broad-except
                                 self.__exception = e
                         else:
                             self.__exception = e
@@ -451,8 +447,8 @@ class RP(klever.core.components.Component):
 
                     error_trace_file, attrs = self.process_witness(witnesses[0])
                     self.report_unsafe(error_trace_file, attrs)
-                except Exception as e:
-                    self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                except Exception as e:  # pylint: disable=broad-except
+                    self.logger.warning('Failed to process a witness:\n%s', traceback.format_exc().rstrip())
                     self.verdict = 'non-verifier unknown'
                     self.__exception = e
             elif not re.search('false', decision_results['status']):
@@ -593,7 +589,7 @@ class RP(klever.core.components.Component):
                      os.path.join(self.conf['main working directory'], self.coverage_info_file),
                      os.path.join(self.conf['main working directory'], coverage_info_dir),
                      self.verification_task_files)
-            except Exception as err:
+            except Exception as err: # pylint: disable=broad-except
                 exception = err
             else:
                 report['coverage'] = klever.core.utils.ArchiveFiles(['coverage'])
@@ -622,7 +618,7 @@ class RP(klever.core.components.Component):
         # Check verdict
         if exception and self.verdict != 'unknown':
             raise exception
-        elif exception:
+        if exception:
             self.logger.exception('Could not parse coverage')
 
     def __trim_file_names(self, file_names):

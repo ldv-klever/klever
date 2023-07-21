@@ -184,7 +184,7 @@ def start_jobs(core_obj, vals):
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 vals,
-                id='Job',
+                cur_id='Job',
                 work_dir=os.path.join(os.path.curdir, 'job'),
                 separate_from_parent=True,
                 include_child_resources=False,
@@ -242,14 +242,14 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
     def constructor(number):
         # Sub-job configuration is based on common sub-jobs configuration.
         sub_job_components_common_conf = copy.deepcopy(components_common_conf)
-        del (sub_job_components_common_conf['sub-jobs'])
+        del sub_job_components_common_conf['sub-jobs']
         sub_job_concrete_conf = klever.core.utils.merge_confs(sub_job_components_common_conf,
                                                               components_common_conf['sub-jobs'][number])
 
         job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
-            id='Sub-job-{0}'.format(number),
+            cur_id='Sub-job-{0}'.format(number),
             work_dir='sub-job-{0}'.format(number),
             attrs=[{
                 'name': 'Sub-job identifier',
@@ -323,11 +323,11 @@ def _vtg_plugin_callback(context):
 
 class REP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super(REP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
-        self.data = dict()
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                         separate_from_parent, include_child_resources)
+        self.data = {}
 
         self.mqs['verification statuses'] = multiprocessing.Queue()
         queues_to_terminate.append('verification statuses')
@@ -351,10 +351,10 @@ class REP(klever.core.components.Component):
                 # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
                 # tasks and directories add identifier suffix in addition.
                 test_id = os.path.join(sub_job_id, id_suffix)
-                self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
+                self.logger.info('Ideal/obtained verdict for test "%s" is "%s"/"%s"%s',
                     test_id, verification_result['ideal verdict'], verification_result['verdict'],
                     ' ("{0}")'.format(verification_result['comment'])
-                    if verification_result['comment'] else ''))
+                    if verification_result['comment'] else '')
                 results_dir = os.path.join('results', test_id)
                 data = {
                     'type': 'testing',
@@ -539,9 +539,9 @@ class Job(klever.core.components.Component):
         'VRP'
     ]
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, components_common_conf=None):
-        super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.common_components_conf = components_common_conf
 
@@ -554,7 +554,7 @@ class Job(klever.core.components.Component):
         self.component_processes = []
 
     def decide_job_or_sub_job(self):
-        self.logger.info('Decide job/sub-job "{0}"'.format(self.id))
+        self.logger.info(f'Decide job/sub-job "{self.id}"')
 
         # This is required to associate verification results with particular sub-jobs.
         # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
@@ -565,7 +565,7 @@ class Job(klever.core.components.Component):
             spec_set = self.common_components_conf['specifications set']
         else:
             raise KeyError('Specify attribute "specifications set" within job.json')
-        self.logger.debug('Specifications set is "{0}"'.format(spec_set))
+        self.logger.debug(f'Specifications set is "{spec_set}"')
 
         # Check that specifications set is supported.
         with open(self.common_components_conf['specifications base'], encoding='utf-8') as fp:
@@ -622,14 +622,14 @@ class Job(klever.core.components.Component):
             build_base = klever.core.utils.find_file_or_dir(self.logger,
                                                             self.common_components_conf['main working directory'],
                                                             self.common_components_conf['build base'])
-        except FileNotFoundError as e:
-            self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
+        except FileNotFoundError:
+            self.logger.warning('Failed to find build base:\n%s', traceback.format_exc().rstrip())
             try:
                 build_base = klever.core.utils.find_file_or_dir(
                     self.logger, self.common_components_conf['main working directory'],
                     os.path.join('build bases', self.common_components_conf['build base']))
-            except FileNotFoundError as e:
-                self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
+            except FileNotFoundError:
+                self.logger.warning('Failed to find build base:\n%s', traceback.format_exc().rstrip())
                 raise FileNotFoundError(
                     'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
                                                                             common_advice)) from None
@@ -637,11 +637,11 @@ class Job(klever.core.components.Component):
         # Extract build base from archive. There should not be any intermediate directories in archives.
         if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
             if tarfile.is_tarfile(build_base):
-                self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
+                self.logger.debug('Build base "%s" is provided in form of TAR archive', build_base)
                 with tarfile.open(build_base) as TarFile:
                     TarFile.extractall('build base')
             else:
-                self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
+                self.logger.debug('Build base "%s" is provided in form of ZIP archive', build_base)
                 with zipfile.ZipFile(build_base) as zfp:
                     zfp.extractall('build base')
 
@@ -657,7 +657,7 @@ class Job(klever.core.components.Component):
 
         # TODO: fix after https://github.com/17451k/clade/issues/108.
         if not os.path.isdir(build_base):
-            raise FileExistsError('Build base "{0}" is not a directory, {1}'
+            raise FileExistsError('Build base "{0}" {1} is not a directory, {2}'
                                   .format(build_base, extracted_from, common_advice))
 
         if not os.path.isfile(os.path.join(build_base, 'meta.json')):
@@ -667,8 +667,8 @@ class Job(klever.core.components.Component):
 
         self.common_components_conf['build base'] = build_base
 
-        self.logger.debug('Klever components will use build base "{0}"'
-                          .format(self.common_components_conf['build base']))
+        self.logger.debug('Klever components will use build base "%s"'
+                          , self.common_components_conf['build base'])
 
     # Klever will try to cut off either working source trees (if specified) or maximum common paths of CC/CL input files
     # and LD/Link output files (otherwise) from referred file names. Sometimes this is rather optional like for source
@@ -692,7 +692,7 @@ class Job(klever.core.components.Component):
                         if not in_file.startswith('/tmp') and in_file != '/dev/null':
                             in_files.append(os.path.join(cmd['cwd'], in_file))
             in_files_prefix = os.path.dirname(os.path.commonprefix(in_files))
-            self.logger.info('Common prefix of CC/CL input files is "{0}"'.format(in_files_prefix))
+            self.logger.info(f'Common prefix of CC/CL input files is "{in_files_prefix}"')
 
             out_files = []
             for cmd in self.clade.get_all_cmds_by_type("LD") + self.clade.get_all_cmds_by_type("Link"):
@@ -702,7 +702,7 @@ class Job(klever.core.components.Component):
                         if not out_file.startswith('/tmp') and out_file != '/dev/null':
                             out_files.append(os.path.join(cmd['cwd'], out_file))
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
-            self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))
+            self.logger.info(f'Common prefix of LD/Link output files is "{out_files_prefix}"')
 
             # Meaningful paths look like "/dir...".
             meaningful_paths = []
@@ -715,9 +715,9 @@ class Job(klever.core.components.Component):
             # At least consider build directory as working source tree if the automatic procedure fails.
             else:
                 self.logger.warning(
-                    'Consider build directory "{0}" as working source tree.'
+                    'Consider build directory "%s" as working source tree.'
                     'This may be dangerous and we recommend to specify appropriate working source trees manually!'
-                    .format(clade_meta['build_dir']))
+                    , clade_meta['build_dir'])
                 work_src_trees = [clade_meta['build_dir']]
 
         # Consider minimal path if it is common prefix for other ones. For instance, if we have "/dir1/dir2" and "/dir1"
@@ -728,8 +728,8 @@ class Job(klever.core.components.Component):
                 work_src_trees = [min_work_src_tree]
 
         self.logger.info(
-            'Working source trees to be used are as follows:\n{0}'
-            .format('\n'.join(['  {0}'.format(t) for t in work_src_trees])))
+            'Working source trees to be used are as follows:\n%s'
+            , '\n'.join(['  {0}'.format(t) for t in work_src_trees]))
         self.common_components_conf['working source trees'] = work_src_trees
 
     def __refer_original_sources(self, src_id):
@@ -749,7 +749,7 @@ class Job(klever.core.components.Component):
         for file_name in self.clade.src_info:
             self.mqs['file names'].put(file_name)
 
-        for i in range(self.workers_num):
+        for _ in range(self.workers_num):
             self.mqs['file names'].put(None)
 
     def __process_source_file(self):
@@ -778,7 +778,7 @@ class Job(klever.core.components.Component):
         self.logger.info('Get information on original sources for following visualization of uncovered source files')
 
         # For each source file we need to know the total number of lines and places where functions are defined.
-        src_files_info = dict()
+        src_files_info = {}
         for file_name, file_size in self.clade.src_info.items():
             src_file_name = klever.core.utils.make_relative_path(self.common_components_conf['working source trees'],
                                                                  file_name)
@@ -789,17 +789,17 @@ class Job(klever.core.components.Component):
 
             src_file_name = os.path.join('source files', src_file_name)
 
-            src_files_info[src_file_name] = list()
+            src_files_info[src_file_name] = []
 
             # Store source file size.
             src_files_info[src_file_name].append(file_size['loc'])
 
             # Store source file function definition lines.
-            func_def_lines = list()
+            func_def_lines = []
             funcs = self.clade.get_functions_by_file([file_name], False)
 
             if funcs:
-                for func_name, func_info in list(funcs.values())[0].items():
+                for _, func_info in list(funcs.values())[0].items():
                     func_def_lines.append(int(func_info['line']))
 
             src_files_info[src_file_name].append(sorted(func_def_lines))
@@ -829,7 +829,7 @@ class Job(klever.core.components.Component):
         self.mqs['file names'] = multiprocessing.Queue()
         self.workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf)
         subcomponents = [('PSFS', self.__process_source_files)]
-        for i in range(self.workers_num):
+        for _ in range(self.workers_num):
             subcomponents.append(('PSF', self.__process_source_file))
         self.launch_subcomponents(False, *subcomponents)
         self.mqs['file names'].close()
@@ -853,17 +853,17 @@ class Job(klever.core.components.Component):
             os.remove('original sources.zip')
 
     def __get_job_or_sub_job_components(self):
-        self.logger.info('Get components for sub-job "{0}"'.format(self.id))
+        self.logger.info(f'Get components for sub-job "{self.id}"')
 
         self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component)
                            for component in self.CORE_COMPONENTS]
 
-        self.logger.debug('Components to be launched: "{0}"'.format(
-            ', '.join([component.__name__ for component in self.components])))
+        self.logger.debug('Components to be launched: "%s"',
+            ', '.join([component.__name__ for component in self.components]))
 
     def launch_sub_job_components(self):
         """Has callbacks"""
-        self.logger.info('Launch components for sub-job "{0}"'.format(self.id))
+        self.logger.info(f'Launch components for sub-job "{self.id}"')
 
         for component in self.components:
             p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,

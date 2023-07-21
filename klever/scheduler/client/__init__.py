@@ -43,7 +43,7 @@ def run_benchexec(mode, file=None, configuration=None):
 
     if configuration and file:
         raise ValueError('Provide either file or configuration string')
-    elif file:
+    if file:
         with open(file, encoding="utf-8") as fh:
             conf = json.loads(fh.read())
     else:
@@ -95,21 +95,21 @@ def run_benchexec(mode, file=None, configuration=None):
     srv = None
     exit_code = 0
     try:
-        logger.info("Going to solve a verification {} with identifier {}".format(mode, conf['identifier']))
+        logger.info(f"Going to solve a verification {mode} with identifier {conf['identifier']}")
         if mode == "task":
             srv = Server(logger, conf["Klever Bridge"], os.curdir)
             srv.register()
         elif mode not in ('job', 'task'):
-            NotImplementedError("Provided mode {} is not supported by the client".format(mode))
+            raise NotImplementedError(f"Provided mode {mode} is not supported by the client")
 
         exit_code = solve(logger, conf, mode, srv)
-    except:
+    except: # pylint: disable=bare-except
         logger.warning(traceback.format_exc().rstrip())
         exit_code = 1
     finally:
         if not isinstance(exit_code, int):
             exit_code = 1
-        logger.info("Exiting with exit code {}".format(str(exit_code)))
+        logger.info(f"Exiting with exit code {str(exit_code)}")
         os._exit(exit_code)
 
 
@@ -132,8 +132,8 @@ def solve(logger, conf, mode='job', srv=None):
 
     if mode == 'job':
         return solve_job(logger, conf)
-    else:
-        return solve_task(logger, conf, srv)
+
+    return solve_task(logger, conf, srv)
 
 
 def solve_task(logger, conf, srv):
@@ -260,7 +260,7 @@ def prepare_task_arguments(logger, conf):
         args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], 'MB')[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        numerical, string = memory_units_converter(conf["resource limits"]['memory size'], 'MB')
+        numerical, _ = memory_units_converter(conf["resource limits"]['memory size'], 'MB')
         # We do not need using precision more than one MB but the function can return float which can confuse BenchExec
         args.extend(['--memorylimit', '{}MB'.format(int(numerical))])
 
@@ -369,54 +369,54 @@ def run(selflogger, args, conf, logger=None):
         if ec != 0:
             selflogger.info("Executor exited with non-zero exit code {}".format(ec))
         return ec
+
+    with open('client-log.log', 'a', encoding="utf-8") as ste, \
+            open('runexec stdout.log', 'w', encoding="utf-8") as sto:
+        ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=ste, stdout=sto)
+
+    # Runexec prints its warnings and ordinary log to STDERR, thus lets try to find warnings there and move them
+    # to critical log file
+    if os.path.isfile('client-log.log'):
+        with open('client-log.log', encoding="utf-8") as log:
+            for line in log.readlines():
+                # Warnings can be added to the file only from RunExec
+                if re.search(r'WARNING - (.*)', line):
+                    selflogger.warning(line.strip())
+                elif re.search(r'runexec: error: .*', line):
+                    selflogger.error(line.strip())
+
+    job_exit = None
+    if ec == 0 and os.path.isfile('runexec stdout.log'):
+        reason = None
+        selflogger.info("Get return code of the job since runexec successfully exited")
+        with open('runexec stdout.log', 'r', encoding="utf-8") as fp:
+            for line in fp.readlines():
+                key, value = line.split('=')
+                if key and value and key == 'returnvalue':
+                    job_exit = int(value)
+                    if job_exit > 255:
+                        # Be cool as Unix is
+                        job_exit = job_exit >> 8
+                elif key and value and key == 'terminationreason':
+                    reason = str(value).rstrip()
+
+        # Sometimes RunExec may decide to specify "memory" as terminationreason even though the corresponding
+        # process finishes successfully, i.e. returnvalue equals to 0. Treat these failures as normal termination.
+        if job_exit != 0 and reason:
+            selflogger.warning("RunExec set termination reason {!r}".format(reason))
+            # Do not overwrite termination reason from disk space controller.
+            if not os.path.exists('termination-reason.txt'):
+                with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
+                    if reason in ('cputime', 'memory'):
+                        fp.write("Process was terminated since it ran out of {} {}"
+                                 .format(reason, "(you may need to adjust job solution settings)"))
+                    else:
+                        fp.write("Process termination reason is: {}".format(reason))
+                    fp.flush()
+    if not os.path.isfile('runexec stdout.log') or job_exit is None:
+        selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
+        ec = 1
     else:
-        with open('client-log.log', 'a', encoding="utf-8") as ste, \
-                open('runexec stdout.log', 'w', encoding="utf-8") as sto:
-            ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=ste, stdout=sto)
+        ec = job_exit
 
-        # Runexec prints its warnings and ordinary log to STDERR, thus lets try to find warnings there and move them
-        # to critical log file
-        if os.path.isfile('client-log.log'):
-            with open('client-log.log', encoding="utf-8") as log:
-                for line in log.readlines():
-                    # Warnings can be added to the file only from RunExec
-                    if re.search(r'WARNING - (.*)', line):
-                        selflogger.warning(line.strip())
-                    elif re.search(r'runexec: error: .*', line):
-                        selflogger.error(line.strip())
-
-        job_exit = None
-        if ec == 0 and os.path.isfile('runexec stdout.log'):
-            reason = None
-            selflogger.info("Get return code of the job since runexec successfully exited")
-            with open('runexec stdout.log', 'r', encoding="utf-8") as fp:
-                for line in fp.readlines():
-                    key, value = line.split('=')
-                    if key and value and key == 'returnvalue':
-                        job_exit = int(value)
-                        if job_exit > 255:
-                            # Be cool as Unix is
-                            job_exit = job_exit >> 8
-                    elif key and value and key == 'terminationreason':
-                        reason = str(value).rstrip()
-
-            # Sometimes RunExec may decide to specify "memory" as terminationreason even though the corresponding
-            # process finishes successfully, i.e. returnvalue equals to 0. Treat these failures as normal termination.
-            if job_exit != 0 and reason:
-                selflogger.warning("RunExec set termination reason {!r}".format(reason))
-                # Do not overwrite termination reason from disk space controller.
-                if not os.path.exists('termination-reason.txt'):
-                    with open('termination-reason.txt', 'w', encoding='utf-8') as fp:
-                        if reason in ('cputime', 'memory'):
-                            fp.write("Process was terminated since it ran out of {} {}"
-                                     .format(reason, "(you may need to adjust job solution settings)"))
-                        else:
-                            fp.write("Process termination reason is: {}".format(reason))
-                        fp.flush()
-        if not os.path.isfile('runexec stdout.log') or job_exit is None:
-            selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
-            ec = 1
-        else:
-            ec = job_exit
-
-        return ec
+    return ec

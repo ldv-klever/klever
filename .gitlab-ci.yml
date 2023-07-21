@@ -17,10 +17,12 @@ unit-tests:
   script:
   - venv/bin/pytest klever
 
-# pylint:
-#   stage: checks
-#   script:
-#   - pylint $(git ls-files '*.py')
+pylint:
+  <<: *deps
+  stage: checks
+  script:
+  - venv/bin/python3 -m pip install pylint
+  - venv/bin/pylint $(git ls-files 'klever/*.py')
 
 .integration-tests: &integration-tests
   <<: *deps

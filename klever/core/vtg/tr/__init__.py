@@ -24,11 +24,6 @@ import klever.core.vtg.plugins
 
 class TR(klever.core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(TR, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                 separate_from_parent, include_child_resources)
-
     def render_templates(self):
         if 'template context' not in self.abstract_task_desc:
             self.logger.warning('Template context is not specified (nothing to do)')
@@ -60,7 +55,7 @@ class TR(klever.core.vtg.plugins.Plugin):
             )
 
             for tmpl in self.conf['templates']:
-                self.logger.info('Render template "{0}"'.format(tmpl))
+                self.logger.info(f'Render template "{tmpl}"')
 
                 # It is assumed that all templates have suffix ".tmpl" and some meaningful suffix before it, e.g. ".c"
                 # or ".aspect". Rendered templates will be stored into files without suffix ".tmpl" and one will be able
@@ -76,7 +71,7 @@ class TR(klever.core.vtg.plugins.Plugin):
                 self.abstract_task_desc['files'].append(
                     os.path.relpath(file, self.conf['main working directory']))
 
-                self.logger.debug('Rendered template was stored into file "{0}"'.format(file))
+                self.logger.debug(f'Rendered template was stored into file "{file}"')
 
             self.abstract_task_desc.pop('template context')
 

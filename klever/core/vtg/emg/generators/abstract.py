@@ -23,7 +23,7 @@ import sortedcontainers
 class AbstractGenerator:
     """Abstract generator"""
 
-    specifications_endings = dict()
+    specifications_endings = {}
 
     def __init__(self, logger, conf):
         self.logger = logger
@@ -74,7 +74,6 @@ class AbstractGenerator:
         :param file_name: String with a file name.
         :return:
         """
-        specification = specification
         with open(file_name, 'w', encoding='utf-8') as fp:
             self.logger.debug('Save specification %s' % file_name)
             json.dump(specification, fp, indent=2, sort_keys=True)

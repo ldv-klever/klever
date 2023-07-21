@@ -20,7 +20,7 @@ import json
 import copy
 import sortedcontainers
 
-import klever.core.vtg.emg.common.c as c
+from klever.core.vtg.emg.common import c
 from klever.core.vtg.emg.common import get_or_die, id_generator
 from klever.core.vtg.emg.common.process.actions import Receive, Block, Signal
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
@@ -29,9 +29,8 @@ from klever.core.vtg.emg.generators.linuxModule.interface import Implementation,
 from klever.core.vtg.emg.generators.linuxModule.process import CallRetval, Call, ExtendedAccess, \
     ExtendedProcessCollection
 
-
-_declarations = {'environment model': list()}
-_definitions = {'environment model': list()}
+_declarations = {'environment model': []}
+_definitions = {'environment model': []}
 _values_map = sortedcontainers.SortedDict()
 _f_identifiers = id_generator()
 _v_identifiers = id_generator()
@@ -75,7 +74,7 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # Simplify first and set ids then dump
     new_collection.establish_peers()
-    peers_cache = dict()
+    peers_cache = {}
     for process in new_collection.processes:
         _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_collection)
 
@@ -179,22 +178,22 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
         if peers:
             guards = []
 
-            for index in range(len(action.parameters)):
+            for index, param in enumerate(action.parameters):
                 # Determine dispatcher parameter
                 try:
                     interface = str(new_collection.get_common_parameter(action, process, index))
-                except RuntimeError:
-                    suits = peers_cache[str(process)].setdefault(action.name, list())
+                except RuntimeError as e:
+                    suits = peers_cache[str(process)].setdefault(action.name, [])
                     if len(suits) > index:
                         interface = suits[index]
                     else:
                         cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]]
                                           for a in peers_cache[p]} for p in peers_cache}
                         raise RuntimeError(
-                            f"Cannot find peers for '{str(process)}' and '{str(action)}' in '{str(cache_repr)}'")
+                            f"Cannot find peers for '{str(process)}' and '{str(action)}' in '{str(cache_repr)}'") from e
 
                 # Determine dispatch parameter
-                access = process.resolve_access(action.parameters[index], interface)
+                access = process.resolve_access(param, interface)
                 new_label = label_map[access.label.name][str(access.interface)]
                 new_expression = access.access_with_label(new_label)
                 action.parameters[index] = new_expression
@@ -211,16 +210,16 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
 
                 # Go through peers and set proper interfaces
                 for peer in peers:
-                    peers_cache.setdefault(str(peer.process), dict())
-                    peers_cache[str(peer.process)].setdefault(action.name, list())
+                    peers_cache.setdefault(str(peer.process), {})
+                    peers_cache[str(peer.process)].setdefault(action.name, [])
 
                     if len(peers_cache[str(peer.process)][action.name]) == index:
                         peers_cache[str(peer.process)][action.name].append(interface)
 
                     contr_peers = new_collection.peers(peer.process, action.name)
                     for pr in contr_peers:
-                        peers_cache.setdefault(str(pr.process), dict())
-                        peers_cache[str(pr.process)].setdefault(action.name, list())
+                        peers_cache.setdefault(str(pr.process), {})
+                        peers_cache[str(pr.process)].setdefault(action.name, [])
 
                         if len(peers_cache[str(pr.process)][action.name]) == index:
                             peers_cache[str(pr.process)][action.name].append(interface)
@@ -233,8 +232,8 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
         else:
             # Replace it with a stub
             new = process.actions.add_condition(action.name + '_replacement', [],
-                                        ["/* Skip signal {!r} as it has no peers */".format(action.name)],
-                                        "Stub instead of the {!r} signal.".format(action.name))
+                                                ["/* Skip signal {!r} as it has no peers */".format(action.name)],
+                                                "Stub instead of the {!r} signal.".format(action.name))
             process.actions.replace_action(action, new)
 
     # Remove callback actions
@@ -289,7 +288,7 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
         for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
             implementation = process.allowed_implementations[access][intf]
             file = implementation.initialization_file
-            if implementation.value not in _values_map.get(file, dict()):
+            if implementation.value not in _values_map.get(file, {}):
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
                 if svar and not (implementation.declaration.static or svar.declaration.static):
@@ -341,10 +340,9 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
     for label in process.unused_labels:
         del process.labels[label]
 
-    return
 
-
-def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers,
+                            param_identifiers):
     """
     This function takes an extended Process and converts the given Call action into a Condition object as a part of
     translation of an extended Process into a common one.
@@ -394,9 +392,9 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
     def match_parameters(callback_declaration):
         # Try to match action parameters
-        found_positions = dict()
-        for label_index in range(len(call.parameters)):
-            accss = process.resolve_access(call.parameters[label_index])
+        found_positions = {}
+        for label_index, param in enumerate(call.parameters):
+            accss = process.resolve_access(param)
             for acc in (a for a in accss if a.interface):
                 for position in (p for p in list(range(len(callback_declaration.points.parameters)))[label_index:]
                                  if p not in found_positions):
@@ -409,11 +407,10 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
         # Fulfil rest parameters
         pointer_params = []
         label_params = []
-        for index in range(len(callback_declaration.points.parameters)):
-            if not isinstance(callback_declaration.points.parameters[index], str) and index not in found_positions:
-                if not isinstance(callback_declaration.points.parameters[index], Primitive) and \
-                        not isinstance(callback_declaration.points.parameters[index], Pointer):
-                    param_signature = callback_declaration.points.parameters[index].take_pointer
+        for index, param in enumerate(callback_declaration.points.parameters):
+            if not isinstance(param, str) and index not in found_positions:
+                if not isinstance(param, Primitive) and not isinstance(param, Pointer):
+                    param_signature = param.take_pointer
                     pointer_params.append(index)
                     expression = "*%{}%"
                 else:
@@ -444,13 +441,14 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
             pre.trace_relevant = True
         if post:
             post_name = 'post_call_{}'.format(next(action_identifiers))
-            post = process.actions.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
+            post = process.actions.add_condition(post_name, [], post,
+                                                 "Callback {} postcondition.".format(format(call.name)))
             post.trace_relevant = True
 
         return pre, post
 
     def generate_function(callback_declaration, inv):
-        pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
+        _, label_parameters, external_parameters = match_parameters(callback_declaration)
         pre, post = manage_default_resources(label_parameters)
         return_expression = ret_expression()
 
@@ -462,7 +460,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
     def add_post_conditions():
         post_call = []
-        if access.interface and access.interface.interrupt_context:
+        if access.interface and access.interface.interrupt_context:  # pylint: disable=undefined-loop-variable
             post_call.append('$SWITCH_TO_PROCESS_CONTEXT();')
 
         if call.post_call:
@@ -478,7 +476,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
         if call.pre_call:
             callback_pre_call.extend(call.pre_call)
 
-        if access.interface and access.interface.interrupt_context:
+        if access.interface and access.interface.interrupt_context:  # pylint: disable=undefined-loop-variable
             callback_pre_call.append('$SWITCH_TO_IRQ_CONTEXT();')
 
         if callback_pre_call:
@@ -511,7 +509,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False
-            elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
+            elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True) \
                     and not (access.label.callback and len(access.label.interfaces) > 1) \
                     and not access.label.match_implemented:
                 # Call by pointer
@@ -539,7 +537,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                     invoke = None
 
         if invoke:
-            code, comments = list(), list()
+            code = []
             if not (isinstance(signature, Pointer) and isinstance(signature.points, Function)):
                 raise ValueError(f"Expect function pointer for '{str(access)}' but got '{str(signature)}'")
 
@@ -563,7 +561,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
             # Generate comment
             comment = call.comment.format(field, structure_name)
-            conditions = call.condition if call.condition and call.condition else list()
+            conditions = call.condition if call.condition and call.condition else []
 
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
@@ -576,7 +574,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
             # Insert new action and replace this one
             new = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),
-                                        conditions, code, comment)
+                                                conditions, code, comment)
             new.trace_relevant = True
 
             if generated_callbacks == 0:
@@ -601,7 +599,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
 
     if generated_callbacks == 0:
         # It is simply enough to delete the action or generate an empty action with a specific comment
-        code = list()
+        code = []
 
         # Make comments
         code.append('/* Skip callback without implementations */')
@@ -610,7 +608,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
             reinitialize_variables(code)
 
         n = process.actions.add_condition("{}_{}".format(call.name, next(action_identifiers)),
-                                  [], code, "No callbacks implemented to call here")
+                                          [], code, "No callbacks implemented to call here")
         process.actions.replace_action(call, n)
         n.statements = code
 
@@ -646,7 +644,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     instances_left = get_or_die(conf, "max instances number")
 
     # Returning values
-    model_fsa, callback_fsa = list(), list()
+    model_fsa, callback_fsa = [], []
 
     # Determine how many instances is required for a model
     for process in model.environment.values():
@@ -924,7 +922,7 @@ def _remove_statics(logger, sa, process):
             # Determine name
             if static:
                 name = sa.refined_name(implementation.value)
-                if declaration and name not in _values_map.get(file, dict()):
+                if declaration and name not in _values_map.get(file, {}):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
                         coll.setdefault(file, sortedcontainers.SortedDict())
@@ -989,8 +987,6 @@ def _remove_statics(logger, sa, process):
                 else:
                     logger.info("Do not generate wrappers for function {!r} as it is already processed".format(name))
 
-    return
-
 
 def _copy_process(process, instances_left):
     """
@@ -1005,7 +1001,7 @@ def _copy_process(process, instances_left):
 
     if instances_left == 0:
         raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
-    elif instances_left:
+    if instances_left:
         instances_left -= 1
 
     return inst
@@ -1076,13 +1072,13 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
             maps = [[access_map, sortedcontainers.SortedSet()]]
 
     # Then set the other values
-    for expression in access_map.keys():
-        for interface in access_map[expression].keys():
+    for expression, accesses in access_map.items():
+        for interface, access in accesses.items():
             intf_additional_maps = []
             # If container has values which depends on another container add a map with uninitialized value for the
             # container
-            if access_map[expression][interface] and [val for val in interface_to_value[interface]
-                                                      if interface_to_value[interface][val]]:
+            if access and [val for val in interface_to_value[interface]
+                                        if interface_to_value[interface][val]]:
                 new = [copy.deepcopy(maps[0][0]), copy.copy(maps[0][1])]
                 new[1].remove(new[0][expression][interface])
                 new[0][expression][interface] = None
@@ -1094,20 +1090,20 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
 
                     # Try to avoid repeating values
                     strict_suits = sorted(
-                                   [value for value in interface_to_value[interface]
-                                    if value not in total_chosen_values and
-                                    (not interface_to_value[interface][value] or
-                                     chosen_values.intersection(interface_to_value[interface][value]) or
-                                     [cv for cv in interface_to_value[interface][value]
-                                      if cv not in value_to_implementation and cv not in chosen_values])])
+                        [value for value in interface_to_value[interface]
+                         if value not in total_chosen_values and
+                         (not interface_to_value[interface][value] or
+                          chosen_values.intersection(interface_to_value[interface][value]) or
+                          [cv for cv in interface_to_value[interface][value]
+                           if cv not in value_to_implementation and cv not in chosen_values])])
                     if not strict_suits:
                         # If values are repeated just choose random one
                         suits = sorted(
-                                [value for value in interface_to_value[interface]
-                                 if not interface_to_value[interface][value] or
-                                 chosen_values.intersection(interface_to_value[interface][value]) or
-                                 ([cv for cv in interface_to_value[interface][value]
-                                   if cv not in value_to_implementation and cv not in chosen_values])])
+                            [value for value in interface_to_value[interface]
+                             if not interface_to_value[interface][value] or
+                             chosen_values.intersection(interface_to_value[interface][value]) or
+                             ([cv for cv in interface_to_value[interface][value]
+                               if cv not in value_to_implementation and cv not in chosen_values])])
                         if suits:
                             suits = [suits.pop()]
                     else:
@@ -1170,17 +1166,17 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
             maps.append([instance_map, used_values])
     else:
         # Prepare simplified map with values instead of Implementation objects
-        simplified_map = list()
+        simplified_map = []
         for smap, cv in maps:
             instance_desc = [sortedcontainers.SortedDict(), list(cv)]
 
-            for expression in smap.keys():
+            for expression, smaps in smap.items():
                 instance_desc[0][expression] = sortedcontainers.SortedDict()
-                for interface in smap[expression].keys():
-                    if smap[expression][interface]:
-                        instance_desc[0][expression][interface] = smap[expression][interface].value
+                for interface, item in smaps.items():
+                    if item:
+                        instance_desc[0][expression][interface] = item.value
                     else:
-                        instance_desc[0][expression][interface] = smap[expression][interface]
+                        instance_desc[0][expression][interface] = item
             simplified_map.append(instance_desc)
 
     return [m for m, cv in maps], simplified_map
@@ -1426,24 +1422,20 @@ def _from_same_container(a, b):
              False - no, the first value is from an another container.
     """
     types = [type(a) for a in a.sequence]
-    if int in types:
-        exist_array = True
-    else:
-        exist_array = False
 
-    if exist_array:
+    if int in types:
         if a.base_value and b.base_value and a.base_value == b.base_value:
             iterate = min(len(a.sequence), len(b.sequence))
             if iterate > 1:
                 for i in range(iterate):
                     if a.sequence[i] != b.sequence[i]:
                         return False
-                    elif isinstance(a.sequence[i], int):
+                    if isinstance(a.sequence[i], int):
                         return True
     else:
         if a.base_value and b.base_value and a.base_value == b.base_value:
             return True
-        elif a.base_value and not b.base_value and a.base_value == b.value:
+        if a.base_value and not b.base_value and a.base_value == b.value:
             return True
 
     return False

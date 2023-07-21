@@ -21,7 +21,7 @@ import signal
 import subprocess
 import sys
 
-import klever.scheduler.utils as utils
+from klever.scheduler import utils
 
 
 def prepare_node_info(node_info):

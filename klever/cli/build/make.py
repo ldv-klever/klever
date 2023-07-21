@@ -47,8 +47,8 @@ class MakeProgram(Program):
                 raise RuntimeError('Build failed')
 
             return r
-        else:
-            return execute_cmd(self.logger, *(cmd), cwd=self.work_src_tree, env=env, get_output=get_output)
+
+        return execute_cmd(self.logger, *(cmd), cwd=self.work_src_tree, env=env, get_output=get_output)
 
     @Program.build_wrapper
     def build(self):

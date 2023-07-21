@@ -88,7 +88,7 @@ class ExtendedProcessDecoder(CollectionDecoder):
                 for string in dic['interface']:
                     label.set_declaration(string, None)
             else:
-                TypeError('Expect list or string with interface identifier')
+                raise TypeError('Expect list or string with interface identifier')
 
         return label
 
@@ -98,7 +98,7 @@ class ExtendedProcessDecoder(CollectionDecoder):
         # Now we need to extract category from labels
         if not process.category:
             labels = filter(lambda x: x.interfaces, process.labels.values())
-            popular = dict()
+            popular = {}
             for interface in (i for l in labels for i in l.interfaces):
                 category, _ = interface.split('.')
                 popular.setdefault(category, 0)

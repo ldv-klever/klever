@@ -22,7 +22,7 @@ from klever.core.vtg.emg.translation.fsa_translator.common import initialize_aut
 
 
 def label_based_function(conf, analysis, automaton, cf, model=True):
-    v_code, f_code = list(), list()
+    v_code, f_code = [], []
 
     # Determine returning expression for reuse
     if not conf.get('direct control functions calls') and not model:
@@ -100,10 +100,10 @@ def __repeate_subprocess_var_name(automaton, behaviour):
     if len(behaviours) > 1:
         index = behaviours.index(behaviour)
         return f'emg_repeat_cnt_{behaviour.name}_{str(automaton)}_{index}'
-    elif len(behaviours) == 1:
+    if len(behaviours) == 1:
         return f'emg_repeat_cnt_{behaviour.name}_{str(automaton)}'
-    else:
-        raise NotImplementedError
+
+    raise NotImplementedError
 
 
 def __subprocess_code(automaton, initial_action):

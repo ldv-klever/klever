@@ -53,30 +53,30 @@ def _choose_separator(logger, conf):
     if conf.get('scenario separation') == 'linear':
         logger.info("Split processes into linear sequences of actions")
         return LinearStrategy(logger, conf)
-    elif conf.get('scenario separation') == 'savepoint_requirements':
+    if conf.get('scenario separation') == 'savepoint_requirements':
         logger.info("Split processes into scenarios according to requirements in savepoints")
         return ReqsStrategy(logger, conf)
-    else:
-        logger.info("Do not split processes at separation stage of model decomposition")
-        return SeparationStrategy(logger, conf)
+
+    logger.info("Do not split processes at separation stage of model decomposition")
+    return SeparationStrategy(logger, conf)
 
 
 def _choose_factory(logger, conf):
     if isinstance(conf.get('select scenarios'), str) and conf['select scenarios'] == 'use all scenarios combinations' :
         logger.info("Choose the combinatorial factory")
         return CombinatorialFactory(logger, conf)
-    elif isinstance(conf.get('select scenarios'), dict):
+    if isinstance(conf.get('select scenarios'), dict):
         if 'cover scenarios' not in conf['select scenarios']:
             raise ValueError("Provide configuration parameter 'cover scenarios' inside 'select scenarios'")
-        conf.update(conf.get('select scenarios', dict()))
+        conf.update(conf.get('select scenarios', {}))
         logger.info("Activate the selection of scenarios according to the provided configuration")
         return SelectiveFactory(logger, conf)
-    elif conf.get('select scenarios') == 'select savepoints':
+    if conf.get('select scenarios') == 'select savepoints':
         logger.info("Generate models according to requirements in savepoints")
         return SavepointsFactory(logger, conf)
-    else:
-        logger.info("Choose the default model factory")
-        return ModelFactory(logger, conf)
+
+    logger.info("Choose the default model factory")
+    return ModelFactory(logger, conf)
 
 
 class Decomposition:
@@ -89,7 +89,7 @@ class Decomposition:
         self.modelfactory = factory
 
     def __call__(self, *args, **kwargs):
-        processes_to_scenarios = dict()
+        processes_to_scenarios = {}
         self.logger.info("Generating models ...")
         for process in self.model.non_models.values():
             scenarios = list(self.separator(process, self.model))

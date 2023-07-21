@@ -102,7 +102,7 @@ class Session:
                     time.sleep(0.2)
                 else:
                     self.logger.warning('Aborting request to Bridge')
-                    return None
+        return None
 
     def get_archive(self, endpoint, archive=None):
         """
@@ -124,12 +124,10 @@ class Session:
                     for chunk in resp.iter_content(1024):
                         fp.write(chunk)
 
-                if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
+                if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip(): # pylint: disable=consider-using-with
                     self.logger.debug('Could not download ZIP archive')
                 else:
                     break
-            except BridgeError:
-                raise
             finally:
                 if resp:
                     resp.close()
@@ -173,5 +171,5 @@ class Session:
 
         if response:
             return response.json()
-        else:
-            return None
+
+        return None

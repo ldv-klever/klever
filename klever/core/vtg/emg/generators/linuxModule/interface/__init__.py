@@ -70,9 +70,6 @@ class Interface:
 
 class Container(Interface):
 
-    def __init__(self, category, identifier):
-        super(Container, self).__init__(category, identifier)
-
     def contains(self, target):
         if isinstance(target, Interface):
             target = target.declaration
@@ -89,7 +86,7 @@ class Container(Interface):
 class StructureContainer(Container):
 
     def __init__(self, category, identifier):
-        super(Container, self).__init__(category, identifier)
+        super().__init__(category, identifier)
         self.field_interfaces = sortedcontainers.SortedDict()
 
     @Interface.declaration.setter
@@ -103,7 +100,7 @@ class StructureContainer(Container):
 class ArrayContainer(Container):
 
     def __init__(self, category, identifier):
-        super(Container, self).__init__(category, identifier)
+        super().__init__(category, identifier)
         self.element_interface = None
 
     @Interface.declaration.setter
@@ -119,8 +116,8 @@ class Resource(Interface):
 class FunctionInterface(Interface):
 
     def __init__(self, category, identifier):
-        super(FunctionInterface, self).__init__(category, identifier)
-        self.param_interfaces = list()
+        super().__init__(category, identifier)
+        self.param_interfaces = []
         self.rv_interface = None
 
     def set_param_interface(self, index, interface):
@@ -137,7 +134,7 @@ class FunctionInterface(Interface):
 class Callback(FunctionInterface):
 
     def __init__(self, category, identifier):
-        super(Callback, self).__init__(category, identifier)
+        super().__init__(category, identifier)
         self.called = False
         self.interrupt_context = False
 
@@ -150,7 +147,7 @@ class Callback(FunctionInterface):
 class Implementation(Variable):
 
     def __init__(self, name, declaration, value, file, base_container=None, base_value=None, sequence=None):
-        super(Implementation, self).__init__(name, declaration)
+        super().__init__(name, declaration)
         self.value = value
         self.initialization_file = file
         self.base_container = base_container
@@ -173,13 +170,13 @@ class Implementation(Variable):
     def adjusted_value(self, declaration):
         if self._declaration == declaration:
             return self.value
-        elif self._declaration == declaration.take_pointer:
+        if self._declaration == declaration.take_pointer:
             return '*' + self.value
-        elif self._declaration.take_pointer == declaration:
+        if self._declaration.take_pointer == declaration:
             return '&' + self.value
-        elif isinstance(declaration, Pointer) and isinstance(self._declaration, Pointer) and \
+        if isinstance(declaration, Pointer) and isinstance(self._declaration, Pointer) and \
                 self._declaration == 'void *':
             return self.value
-        else:
-            raise ValueError("Cannot adjust declaration '{}' to declaration '{}' for value {!r}".
-                             format(self._declaration.to_string('%s'), declaration.to_string('%s'), self.value))
+
+        raise ValueError("Cannot adjust declaration '{}' to declaration '{}' for value {!r}".
+                         format(self._declaration.to_string('%s'), declaration.to_string('%s'), self.value))

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import distutils.dir_util
+import distutils.dir_util # pylint: disable=deprecated-module
 import hashlib
 import os
 import re
@@ -57,7 +57,7 @@ class Linux(MakeProgram):
     def _clean(self):
         self._make('mrproper')
 
-    def _configure(self):
+    def _configure(self, *args):
         self.logger.info('Configure Linux kernel')
 
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
@@ -94,7 +94,7 @@ class Linux(MakeProgram):
 
         return super()._make(*target, **kwargs)
 
-    def _build(self):
+    def _build(self, *target):
         self.logger.info('Build Linux kernel')
 
         # Build Linux kernel if necessary.
@@ -212,7 +212,7 @@ class Linux(MakeProgram):
 
         if not work_src_tree_root:
             raise ValueError(f'Could not find Makefile in working source tree "{work_src_tree}"')
-        elif not os.path.samefile(work_src_tree_root, work_src_tree):
+        if not os.path.samefile(work_src_tree_root, work_src_tree):
             self.logger.debug(f'Move contents of "{work_src_tree_root}" to "{work_src_tree}"')
 
             for path in os.listdir(work_src_tree_root):
@@ -234,7 +234,7 @@ class Linux(MakeProgram):
             for j, modules2 in enumerate(self.target_program_desc['loadable kernel modules']):
                 if i != j and modules1 == modules2:
                     raise ValueError(f'Modules "{modules1}" are duplicated')
-                elif i != j and (not re.search(r'\.ko$', modules1) or not re.search(r'\.ko$', modules2)):
+                if i != j and (not re.search(r'\.ko$', modules1) or not re.search(r'\.ko$', modules2)):
                     # Get rid of file names, remain just directories.
                     modules1_dir = os.path.dirname(modules1) \
                         if re.search(r'\.ko$', modules1) else modules1

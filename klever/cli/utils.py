@@ -31,8 +31,9 @@ def execute_cmd(logger, *args, **kwargs):
 
     if get_output:
         return subprocess.check_output(args, **kwargs).decode('utf-8').rstrip().split('\n')
-    else:
-        subprocess.check_call(args, **kwargs)
+
+    subprocess.check_call(args, **kwargs)
+    return None
 
 
 def get_logger(name):
@@ -53,9 +54,9 @@ def get_password(password):
         return password
     if sys.stdin.isatty():
         return getpass.getpass(PROMPT)
-    else:
-        print(PROMPT, end='', flush=True)
-        return sys.stdin.readline().rstrip()
+
+    print(PROMPT, end='', flush=True)
+    return sys.stdin.readline().rstrip()
 
 
 def make_relative_path(dirs, file_or_dir, absolutize=False):
@@ -88,7 +89,7 @@ def make_relative_path(dirs, file_or_dir, absolutize=False):
             return file_or_dir
 
     # Find and return if so path relative to the longest directory.
-    for d in sorted(dirs, key=lambda t: len(t), reverse=True):
+    for d in sorted(dirs, key=len, reverse=True):
         # TODO: commonpath was supported just in Python 3.5.
         if os.path.commonpath([file_or_dir, d]) == d:
             return os.path.relpath(file_or_dir, d)

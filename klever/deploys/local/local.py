@@ -320,7 +320,7 @@ class Klever:
             sys.exit(errno.EINVAL)
 
         with open(self.args.deployment_configuration_file) as fp:
-            self.deploy_conf = json.load(fp)
+            self.deploy_conf = json.load(fp) # pylint: disable=attribute-defined-outside-init
 
         self.logger.info('Create deployment directory')
         os.makedirs(self.args.deployment_directory, exist_ok=True)
@@ -371,7 +371,7 @@ class Klever:
             sys.exit(errno.EINVAL)
 
         with open(self.args.deployment_configuration_file) as fp:
-            self.deploy_conf = json.load(fp)
+            self.deploy_conf = json.load(fp) # pylint: disable=attribute-defined-outside-init
 
         self._install_or_update_deps()
         self._pre_install_or_update()
@@ -497,7 +497,7 @@ class Klever:
             # Use md5 checksum of the archive as version
             output = execute_cmd(self.logger, 'md5sum', klever_build_base_path, stderr=subprocess.DEVNULL,
                                  get_output=True).rstrip()
-            version = output.split(' ')[0]
+            version = output.split(' ', maxsplit=1)[0]
         elif os.path.isdir(klever_build_base_path):
             # Use unique identifier of the build base as version
             try:
@@ -551,8 +551,6 @@ class Klever:
 
 
 class KleverDevelopment(Klever):
-    def __init__(self, args, logger):
-        super().__init__(args, logger)
 
     def install(self):
         # For installation of Klever addons it is necessary to execute just some preliminary actions.
@@ -585,9 +583,6 @@ class KleverProduction(Klever):
     # This allows to install development version of schedulers within deploys.local.local.KleverTesting without
     # redefining methods.
     _IS_DEV = False
-
-    def __init__(self, args, logger):
-        super().__init__(args, logger)
 
     def install(self):
         self._pre_install()

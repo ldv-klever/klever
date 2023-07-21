@@ -28,7 +28,7 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 class SimplestTranslator(FSATranslator):
 
     def _relevant_checks(self, relevant_automata):
-        return list()
+        return []
 
     def _dispatch(self, action, automaton):
         """
@@ -45,7 +45,7 @@ class SimplestTranslator(FSATranslator):
                  [list of strings with boolean conditional expressions which guard code block entering],
                  [list of strings with model comments which embrace the code block]
         """
-        code, v_code, conditions, comments = list(), list(), list(), list()
+        code, v_code, conditions, comments = [], [], [], []
 
         # Determine peers to receive the signal
         automata_peers = sortedcontainers.SortedDict()
@@ -88,9 +88,6 @@ class SimplestTranslator(FSATranslator):
                     if len(checks) > 0:
                         code.append('ldv_assume({});'.format(' || '.join(checks)))
 
-            # Generate artificial function
-            body = []
-
             # Check dispatch type
             replicative = False
             for a_peer in automata_peers:
@@ -103,10 +100,10 @@ class SimplestTranslator(FSATranslator):
             function_parameters = []
 
             # Add parameters
-            for index in range(len(action.parameters)):
+            for param in action.parameters:
                 # Determine dispatcher parameter
                 # We expect strictly one
-                dispatcher_access = automaton.process.resolve_access(action.parameters[index])
+                dispatcher_access = automaton.process.resolve_access(param)
                 variable = automaton.determine_variable(dispatcher_access.label)
                 function_parameters.append(variable)
 
@@ -164,22 +161,21 @@ class SimplestTranslator(FSATranslator):
         for a_peer in (a for a in automata_peers if automata_peers[a]['actions']):
             if replicative:
                 for r_action in automata_peers[a_peer]['actions']:
-                    block = list()
+                    block = []
                     if r_action.replicative:
                         call = '{}({});'.format(self._control_function(a_peer).name,
                                                 ', '.join(v.name for v in function_parameters))
                         block.append(call)
                         blocks.append(block)
                         break
-                    else:
-                        self._logger.warning(
-                            'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
-                            .format(r_action.name, a_peer.process.name, a_peer.process.category))
+                    self._logger.warning(
+                        'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
+                        .format(r_action.name, a_peer.process.name, a_peer.process.category))
 
         return pre, blocks, post
 
     def _receive(self, action, automaton):
-        code, v_code, conditions, comments = super(SimplestTranslator, self)._receive(action, automaton)
+        code, v_code, conditions, comments = super()._receive(action, automaton)
 
         automata_peers = {}
         action_peers = self._collection.peers(automaton.process, {str(action)})
@@ -233,7 +229,7 @@ class SimplestTranslator(FSATranslator):
 
         # Generate function body
         label_based_function(self._conf, self._source, automaton, cf,
-                             True if automaton in self._model_fsa else False)
+                             automaton in self._model_fsa)
 
         # Add function to source code to print
         self._cmodel.add_function_definition(cf)
@@ -241,7 +237,6 @@ class SimplestTranslator(FSATranslator):
         if automaton in self._model_fsa:
             for file in self._source.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
-        return
 
     def _control_function(self, automaton):
         """
@@ -255,31 +250,31 @@ class SimplestTranslator(FSATranslator):
         if str(automaton) not in self._control_functions:
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
-                return super(SimplestTranslator, self)._control_function(automaton)
+                return super()._control_function(automaton)
+
+            name = f'emg_{automaton.process.category}_{automaton.process.name}'
+
+            receives = [r for r in automaton.process.actions.filter(include={Receive}) if r.replicative]
+            if len(receives) == 0:
+                # This is the main process
+                declaration = 'void f(void)'
+            elif len(receives) > 1:
+                raise RuntimeError(f'Process {str(automaton.process)} has more than the one receive signal which'
+                                   f'is not supported by the translator. Choose an another one.')
             else:
-                name = f'emg_{automaton.process.category}_{automaton.process.name}'
+                action = receives.pop()
+                param_declarations = []
 
-                receives = [r for r in automaton.process.actions.filter(include={Receive}) if r.replicative]
-                if len(receives) == 0:
-                    # This is the main process
-                    declaration = f'void f(void)'
-                elif len(receives) > 1:
-                    raise RuntimeError(f'Process {str(automaton.process)} has more than the one receive signal which'
-                                       f'is not supported by the translator. Choose an another one.')
-                else:
-                    action = receives.pop()
-                    param_declarations = []
-
-                    for index, param in enumerate(action.parameters):
-                        receiver_access = automaton.process.resolve_access(param)
-                        var = automaton.determine_variable(receiver_access.label)
-                        param_declarations.append(var.declaration.to_string('', typedef='complex_and_params',
-                                                  scope={automaton.process.file}))
-                    args = ', '.join(param_declarations)
-                    declaration = f'void f({args})'
-                cf = Function(name, declaration)
-                cf.definition_file = automaton.process.file
-                self._control_functions[automaton] = cf
+                for param in action.parameters:
+                    receiver_access = automaton.process.resolve_access(param)
+                    var = automaton.determine_variable(receiver_access.label)
+                    param_declarations.append(var.declaration.to_string('', typedef='complex_and_params',
+                                              scope={automaton.process.file}))
+                args = ', '.join(param_declarations)
+                declaration = f'void f({args})'
+            cf = Function(name, declaration)
+            cf.definition_file = automaton.process.file
+            self._control_functions[automaton] = cf
         return self._control_functions[automaton]
 
     def _entry_point(self):

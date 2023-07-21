@@ -32,10 +32,10 @@ def add_to_coverage(merged_coverage_info, coverage_info):
     for file_name, file_coverage_info in coverage_info.items():
         merged_coverage_info.setdefault(file_name, {
             'total functions': coverage_info[file_name]['total functions'],
-            'covered lines': dict(),
-            'covered functions': dict(),
-            'covered function names': list(),
-            'notes': dict()
+            'covered lines': {},
+            'covered functions': {},
+            'covered function names': [],
+            'notes': {}
         })
 
         for kind in ('covered lines', 'covered functions'):
@@ -91,14 +91,14 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                 else:
                     merged_coverage_info[file_name]['notes'][line] = {'kind': 'Verifier operation statistics',
                                                                       'text': merged_verifier_op_stats}
-'''
-For instance, merging:
-    "1 stops for total time 14 ms"
-with:
-    "1 stops for total time 4 ms"
-should result in:
-    "2 stops for total time 18 ms"
-'''
+
+# For instance, merging:
+#     "1 stops for total time 14 ms"
+# with:
+#     "1 stops for total time 4 ms"
+# should result in:
+#     "2 stops for total time 18 ms"
+
 op_stats_regexp = re.compile(r'^(\d+) stops for total time (\d+) ms$')
 def merge_verifier_op_stats(op_stats1, op_stats2):
     if not op_stats1 and not op_stats2:
@@ -126,14 +126,13 @@ def merge_verifier_op_stats(op_stats1, op_stats2):
 
     return "{0} stops for total time {1} ms".format(int(stops1_num) + int(stops2_num), int(time1) + int(time2))
 
-'''
-For instance, merging:
-    "node = {[11..13], [15..18], 111, 116}; size = {[1..3], [5..8], 11, 16}"
-with:
-    "node = {14, 111, 114, 115, 117, 119}; size = {4, 11, 14, 15, 17, 19}"
-should result in:
-    "node = {[11..18], 111, [114..117], 119}; size = {[1..8], 11, [14..17], 19}"
-'''
+# For instance, merging:
+#     "node = {[11..13], [15..18], 111, 116}; size = {[1..3], [5..8], 11, 16}"
+# with:
+#     "node = {14, 111, 114, 115, 117, 119}; size = {4, 11, 14, 15, 17, 19}"
+# should result in:
+#     "node = {[11..18], 111, [114..117], 119}; size = {[1..8], 11, [14..17], 19}"
+
 var_val_ranges_regexp = re.compile(r'^([^=]+)= {(.+)}$')
 val_range_regexp = re.compile(r'^\[(-?\d+)\.\.(-?\d+)\]$')
 def merge_verifier_assumptions(assumptions1, assumptions2):
@@ -248,8 +247,8 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
     # later.
     coverage_stats = {
         'format': coverage_format_version,
-        'coverage statistics': dict(),
-        'data statistics': dict()
+        'coverage statistics': {},
+        'data statistics': {}
     }
 
     for file_name, file_coverage_info in merged_coverage_info.items():
@@ -334,23 +333,23 @@ class JCR(klever.core.components.Component):
 
     COVERAGE_FILE_NAME = "cached coverage.json"
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir,
-                                  attrs, separate_from_parent, include_child_resources)
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir,
+                         attrs, separate_from_parent, include_child_resources)
 
         # This function adds callbacks and it should work until we call it in the new process
         self.mqs['req spec ids and coverage info files'] = multiprocessing.Queue()
         queues_to_terminate.append('req spec ids and coverage info files')
-        self.coverage = dict()
+        self.coverage = {}
 
     def collect_total_coverage(self):
         self.logger.debug("Begin collecting coverage")
 
-        total_coverage_infos = dict()
+        total_coverage_infos = {}
         arcfiles = {}
         os.mkdir('total coverages')
-        counters = dict()
+        counters = {}
         try:
             while True:
                 coverage_info = self.mqs['req spec ids and coverage info files'].get()
@@ -362,12 +361,12 @@ class JCR(klever.core.components.Component):
                     break
 
                 sub_job_id = coverage_info['sub-job identifier']
-                self.logger.debug('Get coverage for sub-job {!r}'.format(sub_job_id))
+                self.logger.debug('Get coverage for sub-job %r', sub_job_id)
 
                 if 'coverage info file' in coverage_info:
                     if sub_job_id not in total_coverage_infos:
-                        total_coverage_infos[sub_job_id] = dict()
-                        arcfiles[sub_job_id] = dict()
+                        total_coverage_infos[sub_job_id] = {}
+                        arcfiles[sub_job_id] = {}
                     req_spec_id = coverage_info['req spec id']
                     total_coverage_infos[sub_job_id].setdefault(req_spec_id, {})
                     arcfiles[sub_job_id].setdefault(req_spec_id, {})
@@ -386,7 +385,7 @@ class JCR(klever.core.components.Component):
                             arcfiles[sub_job_id][req_spec_id][file_coverage_info['original source file name']] = file
                         del loaded_coverage_info
 
-                        counters.setdefault(sub_job_id, dict())
+                        counters.setdefault(sub_job_id, {})
                         counters[sub_job_id].setdefault(req_spec_id, 0)
                         counters[sub_job_id][req_spec_id] += 1
                         if counters[sub_job_id][req_spec_id] >= 10:
@@ -395,12 +394,12 @@ class JCR(klever.core.components.Component):
                             self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
                             counters[sub_job_id][req_spec_id] = 0
                     else:
-                        self.logger.warning("There is no coverage file {!r}".
-                                            format(coverage_info['coverage info file']))
+                        self.logger.warning("There is no coverage file %r".
+                                            coverage_info['coverage info file'])
                 elif sub_job_id in total_coverage_infos:
-                    self.logger.debug('Calculate total coverage for job {!r}'.format(sub_job_id))
+                    self.logger.debug('Calculate total coverage for job %r', sub_job_id)
 
-                    total_coverages = dict()
+                    total_coverages = {}
                     total_coverage_dirs = []
 
                     # This is ugly. But this should disappear after implementing TODO at klever.core.job.start_jobs.
@@ -489,10 +488,10 @@ class JCR(klever.core.components.Component):
             with open(file_name, 'r', encoding='utf-8') as fp:
                 large_cache = json.load(fp)
         else:
-            large_cache = dict()
+            large_cache = {}
 
-        cache.setdefault(sub_job_id, dict())
-        cache[sub_job_id].setdefault(requirement, dict())
+        cache.setdefault(sub_job_id, {})
+        cache[sub_job_id].setdefault(requirement, {})
 
         for file_name in large_cache:
             # todo: This code is close to function add_to_coverage
@@ -500,7 +499,7 @@ class JCR(klever.core.components.Component):
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
                 'covered functions': {},
-                'covered function names': list(),
+                'covered function names': [],
                 'notes': {}
             })
 
@@ -515,8 +514,8 @@ class JCR(klever.core.components.Component):
 
     def __save_data(self, cache, sub_job_id, requirement):
         file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
-        cache.setdefault(sub_job_id, dict())
-        cache[sub_job_id].setdefault(requirement, dict())
+        cache.setdefault(sub_job_id, {})
+        cache[sub_job_id].setdefault(requirement, {})
         with open(file_name, 'w', encoding='utf-8') as fp:
             json.dump(cache[sub_job_id][requirement], fp)
 
@@ -570,7 +569,7 @@ class LCOV:
 
     def parse(self):
         if not os.path.isfile(self.coverage_file):
-            raise Exception('There is no coverage file {0}'.format(self.coverage_file))
+            raise Exception('There is no coverage file {0}'.format(self.coverage_file))  #pylint: disable=broad-exception-raised
 
         # Parse coverage file.
         coverage_info = {}

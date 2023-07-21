@@ -44,8 +44,8 @@ for tp in CALLBACK_KINDS:
         if hasattr(sys.modules[decorated_function.__module__], callback_function_name):
             raise KeyError("Cannot create callback {!r} in {!r}".
                            format(callback_function_name, decorated_function.__module__))
-        else:
-            setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
+
+        setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
 
         return decorated_function
 
@@ -264,8 +264,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
             if len(components) == 0 and len(elements) == 0:
                 if not active:
                     break
-                else:
-                    time.sleep(sleep_interval)
+
+                time.sleep(sleep_interval)
     finally:
         for p in components:
             if p.is_alive():
@@ -322,14 +322,14 @@ class CallbacksCaller:
                 return ret
 
             return callbacks_caller
-        else:
-            return attr
+
+        return attr
 
 
 class Component(multiprocessing.Process, CallbacksCaller):
     MAX_ID_LEN = 200
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -349,7 +349,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.name = type(self).__name__.replace('KleverSubcomponent', '')
         # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
-        self.id = os.path.join(parent_id, id if id else self.name)
+        self.id = os.path.join(parent_id, cur_id if cur_id else self.name)
 
         # Component identifiers are used either directly or with some quite restricted suffixes as report identifiers.
         # Bridge limits the latter with 255 symbols. Unfortunately, it does not log identifiers that cause troubles.
@@ -381,7 +381,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # Component working directory will be created in parent process.
         if self.separate_from_parent and not os.path.isdir(self.work_dir):
             self.logger.info(
-                'Create working directory "{0}" for component "{1}"'.format(self.work_dir, self.name))
+                f'Create working directory "{self.work_dir}" for component "{self.name}"')
             os.makedirs(self.work_dir.encode('utf-8'))
 
         # Actually start process.
@@ -405,7 +405,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         signal.signal(signal.SIGUSR1, self.__stop)
 
         if self.separate_from_parent:
-            self.logger.info('Change working directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
+            self.logger.info(f'Change working directory to "{self.work_dir}" for component "{self.name}"')
             os.chdir(self.work_dir)
 
         # Try to launch component.
@@ -485,7 +485,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         finally:
             # Clean dir if needed
             if self.clean_dir and not self.conf['keep intermediate files']:
-                self.logger.debug('Going to clean {0}'.format(os.path.abspath('.')))
+                self.logger.debug('Going to clean %s', os.path.abspath('.'))
                 for to_del in os.listdir('.'):
                     if to_del in self.excluded_clean:
                         continue
@@ -496,7 +496,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             if stopped or exception:
                 # Treat component stopping as normal termination.
                 exit_code = os.EX_SOFTWARE if exception else os.EX_OK
-                self.logger.info('Exit with code "{0}"'.format(exit_code))
+                self.logger.info(f'Exit with code "{exit_code}"')
                 # Do not perform any pre-exit operations like waiting for reading filled queues since this can lead to
                 # deadlocks.
                 os._exit(exit_code)
@@ -505,7 +505,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         return '' if self.separate_from_parent else '[{0}] '.format(self.name)
 
     def stop(self):
-        self.logger.info('Stop component "{0}"'.format(self.name))
+        self.logger.info(f'Stop component "{self.name}"')
 
         # We need to send some signal to do interrupt execution of component. Otherwise it will continue its execution.
         os.kill(self.pid, signal.SIGUSR1)
@@ -513,9 +513,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.join(stopped=True)
 
     def __stop(self, signum, frame):
-        self.logger.info('{0}Stop all children'.format(self.__get_subcomponent_name()))
+        self.logger.info('%s Stop all children', self.__get_subcomponent_name())
         for child in multiprocessing.active_children():
-            self.logger.info('{0}Stop child "{1}"'.format(self.__get_subcomponent_name(), child.name))
+            self.logger.info('%s Stop child "%s"', self.__get_subcomponent_name(), child.name)
             os.kill(child.pid, signal.SIGUSR1)
             # Such the errors can happen here most likely just when unexpected exceptions happen when exiting
             # component. These exceptions are likely printed to logs but don't become unknown reports. In addition
@@ -527,7 +527,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             except ComponentError:
                 pass
 
-        self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
+        self.logger.error('%s Stop since some other component(s) likely failed', self.__get_subcomponent_name())
 
         self.__finalize(stopped=True)
 
@@ -536,13 +536,15 @@ class Component(multiprocessing.Process, CallbacksCaller):
         multiprocessing.Process.join(self, timeout)
 
         if stopped:
-            self.logger.debug('Do not panic since component "{0}" was stopped by us'.format(self.name))
+            self.logger.debug(f'Do not panic since component "{self.name}" was stopped by us')
             return 0
 
         # Examine component exit code in parent process.
         if self.exitcode:
-            self.logger.warning('Component "{0}" exited with "{1}"'.format(self.name, self.exitcode))
+            self.logger.warning(f'Component "{self.name}" exited with "{self.exitcode}"')
             raise ComponentError('Component "{0}" failed'.format(self.name))
+
+        return 0
 
     def function_to_subcomponent(self, include_child_resources, name, executable):
         """
@@ -553,7 +555,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         :param executable: Function or Class.
         :return: Component
         """
-        if isinstance(executable, types.MethodType) or isinstance(executable, types.FunctionType):
+        if isinstance(executable, (types.MethodType, types.FunctionType)):
             subcomponent_class = types.new_class(name, (type(self),))
             setattr(subcomponent_class, 'main', executable)
         else:
@@ -568,7 +570,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             # Do not try to separate these subcomponents from their parents - it is a true headache.
             # We always include child resources into resources of these components since otherwise they will
             # disappear from resources statistics.
-            if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
+            if isinstance(subcomponent, (list, tuple)):
                 name = 'KleverSubcomponent' + subcomponent[0] + str(index)
                 executable = subcomponent[1]
             else:

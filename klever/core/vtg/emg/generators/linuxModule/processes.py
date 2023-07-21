@@ -64,7 +64,7 @@ def __select_processes_and_models(logger, conf, interfaces, collection):
             if uncalled_callbacks and not conf.get('ignore missed callbacks', True):
                 raise RuntimeError("There are callbacks from category {!r} which are not called at all in the "
                                    "model: {}".format(category, ', '.join(map(str, uncalled_callbacks))))
-            elif uncalled_callbacks:
+            if uncalled_callbacks:
                 logger.warning("There are callbacks from category {!r} which are not called at all in the "
                                "model: {}. Disable option 'ignore missed callbacks' in intermediate model "
                                "configuration properties if you would like to terminate.".
@@ -166,13 +166,13 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
 
     # Now filter processes to take into account dependencies
     to_remove = set()
-    for nname in (n for n in signal_maps if len(signal_maps[n]['send']) > 0):
+    for nname in (n for n, item in signal_maps.items() if len(item['send']) > 0):
         for dependant in signal_maps[nname]['receive']:
             to_remove.add(dependant)
     if len(to_remove) < len(list(estimations.keys())):
         # Do not remove them all!
         logger.debug("Going to remove the following signal depending processes: {}".
-                     format(', '.format(list(to_remove))))
+                     format(', '.join(list(to_remove))))
         estimations = {n: estimations[n] for n in estimations if n not in to_remove}
     else:
         logger.warning('Loop dependencies between processes: {}'.format(', '.join(list(to_remove))))
@@ -202,21 +202,21 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
     if not best_process:
         raise RuntimeError("Cannot find suitable process in event categories specification for category {!r}"
                            .format(category))
-    else:
-        new = __add_process(logger, conf, interfaces, best_process, chosen, category, False, best_map)
-        new.category = category
-        logger.debug("Finally choose process {!r} for category {!r} as the best one".
-                     format(best_process.name, category))
-        for tag in best_map:
-            if isinstance(best_map[tag], list) and best_map[tag]:
-                value = ', '.join(best_map[tag])
-            elif isinstance(best_map[tag], list):
-                value = None
-            else:
-                value = str(best_map[tag])
-            if value is not None:
-                logger.debug(f"{tag.capitalize()}: {value}")
-        return new
+
+    new = __add_process(logger, conf, interfaces, best_process, chosen, category, False, best_map)
+    new.category = category
+    logger.debug("Finally choose process {!r} for category {!r} as the best one".
+                 format(best_process.name, category))
+    for tag in best_map:
+        if isinstance(best_map[tag], list) and best_map[tag]:
+            value = ', '.join(best_map[tag])
+        elif isinstance(best_map[tag], list):
+            value = None
+        else:
+            value = str(best_map[tag])
+        if value is not None:
+            logger.debug(f"{tag.capitalize()}: {value}")
+    return new
 
 
 def __establish_signal_peers(logger, conf, interfaces, process, chosen, collection):
@@ -236,7 +236,7 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
                 raise ValueError('Process {!r} is a possible peer for {!r} but it allows adding to several '
                                  'possible categories which is too mush: {}'.
                                  format(candidate.name, process.name, ', '.join(categories)))
-            elif len(categories) == 1:
+            if len(categories) == 1:
                 category = list(categories)[0]
                 label_map = __match_labels(logger, interfaces, chosen, candidate, category)
             elif len(categories) == 0:
@@ -275,7 +275,7 @@ def __match_labels(logger, interfaces, chosen, process, category):
     nc = __find_native_categories(process)
     ni = set()
     for label, intf in ((process.labels[n], i) for n in process.labels for i in process.labels[n].interfaces):
-        intf_category, short_identifier = intf.split(".")
+        intf_category, _ = intf.split(".")
 
         if (intf in interfaces.interfaces or interfaces.is_removed_intf(intf)) and intf_category == category:
             ni.add(intf)
@@ -334,8 +334,7 @@ def __match_labels(logger, interfaces, chosen, process, category):
                     if intfs and isinstance(intfs[-1], Callback):
                         callbacks.append(intfs[-1])
             elif label.name in label_map["matched labels"] and label.callback:
-                if isinstance(label_map["matched labels"][label.name], set) or \
-                        isinstance(label_map["matched labels"][label.name], sortedcontainers.SortedSet):
+                if isinstance(label_map["matched labels"][label.name], (set, sortedcontainers.SortedSet)):
                     callbacks.extend([interfaces.get_or_restore_intf(name) for name in
                                       label_map["matched labels"][label.name]
                                       if name in interfaces.interfaces or interfaces.is_deleted_intf(name)])
@@ -483,7 +482,7 @@ def __find_native_categories(process):
     nc = set()
     for label in (process.labels[name] for name in process.labels.keys()):
         for intf in label.interfaces:
-            intf_category, short_identifier = intf.split(".")
+            intf_category, _ = intf.split(".")
             nc.add(intf_category)
     return nc
 
@@ -602,7 +601,7 @@ def __resolve_accesses(logger, chosen, interfaces):
 
             if not label:
                 raise ValueError(f"Expect a label in '{access}' access in process '{process.name}' description")
-            elif label.interfaces:
+            if label.interfaces:
                 for interface in label.interfaces:
                     new = ExtendedAccess(access)
                     new.label = label
@@ -684,8 +683,8 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
     # todo: get rid of leading dot and support arrays
     if len(tail) == 1:
         raise RuntimeError("Cannot resolve interface for access '{}'".format(tail_string))
-    else:
-        tail = tail[1:]
+
+    tail = tail[1:]
 
     if issubclass(type(interface), Interface):
         matched = [interface]
@@ -713,11 +712,11 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
 
             if len(intf) == 0:
                 return None
+
+            if index == (len(tail) - 1) or isinstance(intf[-1], Container):
+                matched.append(intf[-1])
             else:
-                if index == (len(tail) - 1) or isinstance(intf[-1], Container):
-                    matched.append(intf[-1])
-                else:
-                    return None
+                return None
         else:
             return None
 
@@ -763,5 +762,3 @@ def __refine_processes(logger, chosen):
             logger.info("Remove process {!r} as it cannot be registered".format(str(p)))
             del chosen.environment[p]
         chosen.establish_peers()
-
-    return

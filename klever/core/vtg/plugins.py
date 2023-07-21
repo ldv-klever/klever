@@ -30,11 +30,11 @@ class Plugin(klever.core.components.Component):
             os.path.join(self.conf['main working directory'], self.conf['in abstract task desc file']))
         with open(in_abstract_task_desc_file, encoding='utf-8') as fp:
             self.abstract_task_desc = json.load(fp)
-        super(Plugin, self).run()
+        super().run()
         out_abstract_task_desc_file = os.path.relpath(
             os.path.join(self.conf['main working directory'], self.conf['out abstract task desc file']))
         self.logger.info(
-            'Put modified abstract verification task description to file "{0}"'.format(out_abstract_task_desc_file))
+            'Put modified abstract verification task description to file "%s"', out_abstract_task_desc_file)
         with open(out_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(self.abstract_task_desc, fp, self.conf['keep intermediate files'])
         self.logger.info('Plugin has finished')

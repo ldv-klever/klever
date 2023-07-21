@@ -17,8 +17,8 @@
 
 import re
 import sortedcontainers
-import ply.lex as lex
-import ply.yacc as yacc
+from ply import lex
+from ply import yacc
 
 __parser = None
 __lexer = None
@@ -325,13 +325,13 @@ def p_complete_struct_specifier(p):
 def p_attribute_dict(p):
     """
     attribute_dict : attribute attribute_dict
-                   | attribute 
+                   | attribute
     """
     attribute, *attr_dict = p[1:]
     if attr_dict:
         attr_dict, = attr_dict
     else:
-        attr_dict = dict()
+        attr_dict = {}
     attr_dict.update(attribute)
     p[0] = attr_dict
 
@@ -354,7 +354,7 @@ def p_attribute(p):
 def p_inside_attr_list(p):
     """
     inside_attr_list : inside_attr COMMA inside_attr_list
-                     | inside_attr 
+                     | inside_attr
     """
     inside_attr, *rest = p[1:]
     if rest:
@@ -367,9 +367,9 @@ def p_inside_attr_list(p):
 
 def p_inside_attr(p):
     """
-    inside_attr : IDENTIFIER PARENTH_OPEN attr_param_list PARENTH_CLOSE 
+    inside_attr : IDENTIFIER PARENTH_OPEN attr_param_list PARENTH_CLOSE
                 | IDENTIFIER PARENTH_OPEN PARENTH_CLOSE
-                | IDENTIFIER 
+                | IDENTIFIER
     """
     name, *rest = p[1:]
     params = None
@@ -402,11 +402,11 @@ def p_attr_param(p):
                | IDENTIFIER
                | NUMBER
     """
-    tokens = p[1:]
-    if len(tokens) == 1:
-        p[0] = tokens[0]
+    new_tokens = p[1:]
+    if len(new_tokens) == 1:
+        p[0] = new_tokens[0]
     else:
-        _, token, _ = tokens
+        _, token, _ = new_tokens
         p[0] = f'"{token}"'
 
 
@@ -431,7 +431,7 @@ def p_struct_declaration(p):
 def p_union_specifier(p):
     """
     union_specifier : union_partial_complex_specifier attribute_dict
-                    | union_partial_complex_specifier 
+                    | union_partial_complex_specifier
                     | union_partial_simple_specifier
     """
     union_specifier, *rest = p[1:]
@@ -501,7 +501,7 @@ def p_typedef(p):
     typedef : IDENTIFIER attribute_dict
             | IDENTIFIER
     """
-    identifier, *attrs = p[1:]
+    identifier, *attrs = p[1:]  # pylint: disable=unused-variable
     p[0] = {
         'class': 'typedef',
         'name': identifier
@@ -707,7 +707,7 @@ def _declaration_processing(p):
 
             current_ast['specifiers'] = declaration['specifiers']
             del declaration['specifiers']
-            
+
     p[0] = declaration
 
 
@@ -737,7 +737,7 @@ def _declarator_processing(p):
             # Increase pointer counter if necessary
             declarator[0].setdefault('pointer', 0)
             declarator[0]['pointer'] += pointer
-                
+
     p[0] = declarator
 
 
@@ -767,7 +767,7 @@ def direct_declarator_processing(p):
                     top = function_parameters_list[0]
 
                     if len(function_parameters_list) == 1 and isinstance(top, dict) and \
-                            top.get('type specifier', dict()).get('name') == 'void' and 'declarator' not in top:
+                            top.get('type specifier', {}).get('name') == 'void' and 'declarator' not in top:
                         # Detect void
                         declarator[0]['function arguments'] = []
                     else:
@@ -782,7 +782,7 @@ def direct_declarator_processing(p):
                     declarator.insert(0, {'arrays': array_list})
                 else:
                     declarator[0]['arrays'] = array_list
-    
+
     p[0] = declarator
 
 
@@ -806,9 +806,6 @@ def parse_declaration(string):
     :param string: C declaration string.
     :return: Obtained abstract syntax tree.
     """
-    global __parser
-    global __lexer
-
     if not __parser:
         setup_parser()
 

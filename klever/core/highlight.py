@@ -17,7 +17,7 @@
 
 import re
 from pygments import lex
-from pygments.lexers import CLexer
+from pygments.lexers import CLexer  #pylint:disable=no-name-in-module
 from pygments.token import Comment, Error, Keyword, Literal, Name, Operator, Punctuation, Text
 
 
@@ -33,7 +33,7 @@ class Highlight:
         self.cur_start_offset = 0
 
         # List of entities (each represented as kind, line number, start and end offsets) to be highlighted
-        self.highlights = list()
+        self.highlights = []
 
         # Workaround for missed "\n" at the beginning of source file that do not become tokens.
         self.initial_new_lines_numb = 0
@@ -49,8 +49,8 @@ class Highlight:
             self.cur_line_numb += 1
             self.cur_start_offset = 0
             return True
-        else:
-            return False
+
+        return False
 
     # Simple token highlighting.
     def highlight_token(self, token_type, token_len, split=False, token_text=None):
@@ -137,23 +137,20 @@ class Highlight:
                 Operator
             ):
                 self.highlight_token(token_type, token_len)
-                continue
             # Trailing "\n" may be included into single line comment and preprocessor directives.
-            elif token_type in (
+            if token_type in (
                 Comment,
                 Comment.Preproc,
                 Comment.Single
             ):
-                split = True if token_type == Comment.Preproc else False
+                split = token_type == Comment.Preproc
                 if token_text[-1] == '\n':
                     self.highlight_token(token_type, token_len - 1, split, token_text if split else None)
                     self.go_to_next_line()
-                    continue
                 else:
                     self.highlight_token(token_type, token_len, split, token_text if split else None)
-                    continue
             # Multiline comments include "\n".
-            elif token_type is Comment.Multiline:
+            if token_type is Comment.Multiline:
                 cur_end_offset = self.cur_start_offset
 
                 for c in token_text:
@@ -167,29 +164,24 @@ class Highlight:
 
                 # Add last multiline comment line.
                 self.highlight_token(token_type, cur_end_offset - self.cur_start_offset)
-                continue
             # There is no special highlighting for punctuation.
-            elif token_type is Punctuation:
+            if token_type is Punctuation:
                 # Update current start offset for following tokens.
                 self.cur_start_offset += token_len
-                continue
             # There is no special highlighting for text but there may be one or more "\n" at the beginning, in the
             # middle or at the end.
-            elif token_type is Text or token_type is Text.Whitespace:
+            if token_type is Text or token_type is Text.Whitespace:
                 for c in token_text:
                     if not self.go_to_next_line(c):
                         # Update current start offset for following tokens.
                         self.cur_start_offset += 1
 
-                continue
             # We can not do anything with lexer failures.
-            elif token_type is Error:
+            if token_type is Error:
                 # Update current start offset for following tokens.
                 self.cur_start_offset += token_len
-                continue
             else:
                 self.logger.warning("Does not support token \"{0}\" of type \"{1}\"".format(token_text, token_type))
-                continue
 
     # In klever.core.highlight.Highlight#highlight we assume that highlighted entity locations do not overlap. But there
     # may be other more important sources for highlighting, e.g. for cross referencing, so, we may need to remove
@@ -199,11 +191,11 @@ class Highlight:
         # Store highlights to be removed and remove them later at once rather than create new list of highlights each
         # time when some highlights should be removed. This should work much faster since we expect that there are very
         # many highlights and just few highlights should be removed
-        highlights_to_be_removed = list()
+        highlights_to_be_removed = []
         # Sometimes rather than to remove highlights completely we will remain some parts of them. For instance, this
         # is vital for macro definitions each of which corresponds to the only highlights list element and which can
         # include macro expansion reference from in the middle.
-        highlights_to_be_added = list()
+        highlights_to_be_added = []
         for extra_highlight in extra_highlights:
             extra_highlight_line_numb, extra_highlight_start_offset, extra_highlight_end_offset = extra_highlight[1:]
 

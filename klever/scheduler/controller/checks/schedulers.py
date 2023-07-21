@@ -18,9 +18,10 @@ import os
 import json
 import subprocess
 import logging
+import sys
 
-import klever.scheduler.utils.bridge as bridge
-import klever.scheduler.utils.consul as consul
+from klever.scheduler.utils import bridge
+from klever.scheduler.utils import consul
 
 
 def set_status(logger, st, conf):
@@ -64,11 +65,11 @@ def main():
             consul_client.kv_put("schedulers", json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4))
         except (AttributeError, KeyError):
             print('Key-value storage is not ready yet')
-            exit(1)
+            sys.exit(1)
         set_status(logging, status, conf)
 
     # Sign out
-    exit(0)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

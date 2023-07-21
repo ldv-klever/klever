@@ -46,7 +46,7 @@ class Cd:
         os.chdir(self.prev_path)
 
 
-class LockedOpen(object):
+class LockedOpen:
     def __init__(self, file, *args, **kwargs):
         self.file = file
         self.args = args
@@ -129,8 +129,8 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
                                               ' '.join('"{0}"'.format(arg) for arg in escaped_args)))
 
     if enforce_limitations:
-        soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
-        soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
+        _, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
+        _, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
         logger.debug('Got the following limitations: CPU time = {}s, memory = {}B'.format(cpu_time_limit, memory_limit))
 
     p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
@@ -179,7 +179,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
         sys.exit(1)
     elif collect_all_stdout:
         return out_q.output
-
+    return None
 
 def reliable_rmtree(logger, directory):
     try:
@@ -216,7 +216,7 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         if os.path.isfile(found_file_or_dir):
             logger.debug('Find file "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
             return found_file_or_dir
-        elif os.path.isdir(found_file_or_dir):
+        if os.path.isdir(found_file_or_dir):
             logger.debug('Find directory "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
             return found_file_or_dir
 
@@ -292,7 +292,7 @@ def get_logger(name, conf):
                  extensions are thrown away and name is converted to uppercase).
     :param conf: a logger configuration.
     """
-    name, ext = os.path.splitext(name)
+    name, _ = os.path.splitext(name)
     logger = logging.getLogger(name.upper())
     # Actual levels will be set for logger handlers.
     logger.setLevel(logging.DEBUG)
@@ -300,10 +300,10 @@ def get_logger(name, conf):
     pref_logger_conf = None
     for pref_logger_conf in conf['loggers']:
         if pref_logger_conf['name'] == name:
-            pref_logger_conf = pref_logger_conf
+            pref_logger_conf = pref_logger_conf  # pylint: disable=self-assigning-variable
             break
-        elif pref_logger_conf['name'] == 'default':
-            pref_logger_conf = pref_logger_conf
+        if pref_logger_conf['name'] == 'default':
+            pref_logger_conf = pref_logger_conf  # pylint: disable=self-assigning-variable
 
     if not pref_logger_conf:
         raise KeyError('Neither "default" nor tool specific logger "{0}" is specified'.format(name))
@@ -401,7 +401,7 @@ def get_parallel_threads_num(logger, conf, action=None):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * number_of_cores:
+    if parallel_threads_num > 2 * number_of_cores:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'
             .format(parallel_threads_num, action))
@@ -418,12 +418,12 @@ def merge_confs(a, b):
             # Perform sanity checks.
             if not isinstance(key, str):
                 raise KeyError('Key is not string (its type is "{0}")'.format(type(key).__name__))
-            elif not isinstance(a[key], type(b[key])):
+            if not isinstance(a[key], type(b[key])):
                 raise ValueError(
                     'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
                                                                                                      type(b[key])))
             # Recursively walk through sub-dictionaries.
-            elif isinstance(a[key], dict):
+            if isinstance(a[key], dict):
                 merge_confs(a[key], b[key])
             # Update key value from b to a for all other types (numbers, strings, lists).
             else:
@@ -435,7 +435,7 @@ def merge_confs(a, b):
 
 
 class ArchiveFiles:
-    def __init__(self, files_and_dirs, arcnames={}):
+    def __init__(self, files_and_dirs, arcnames={}):  # pylint: disable=dangerous-default-value
         self.files_and_dirs = files_and_dirs
         self.arcnames = arcnames
         self.archive = None
@@ -452,7 +452,7 @@ class ArchiveFiles:
                         zfp.write(file_or_dir, arcname=arcname)
                     # Archive all files from directory cutting that directory from file names.
                     elif os.path.isdir(file_or_dir):
-                        for root, dirs, files in os.walk(file_or_dir):
+                        for root, _, files in os.walk(file_or_dir):
                             for file in files:
                                 file = os.path.join(root, file)
                                 zfp.write(file, arcname=make_relative_path([file_or_dir], file))
@@ -463,11 +463,11 @@ class ArchiveFiles:
 
 
 class ExtendedJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, ArchiveFiles):
-            return os.path.basename(obj.archive)
+    def default(self, o):
+        if isinstance(o, ArchiveFiles):
+            return os.path.basename(o.archive)
 
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
 
 
 # Check that all attribute names/values are less than 64/255 characters.
@@ -536,7 +536,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         elem = process_queue.pop(0)
         if isinstance(elem, dict):
             process_queue.extend(elem.values())
-        elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
+        elif isinstance(elem, (list, tuple, set)):
             process_queue.extend(elem)
         elif isinstance(elem, ArchiveFiles):
             logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
@@ -629,8 +629,8 @@ def __converter(value, table, kind, outunit):
         regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
         if not regex.search(value):
             raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
-        else:
-            value, inunit = regex.search(value).groups()
+
+        value, inunit = regex.search(value).groups()
     else:
         inunit = ''
     # Check values

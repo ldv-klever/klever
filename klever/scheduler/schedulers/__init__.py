@@ -22,6 +22,7 @@ import queue
 import logging
 import traceback
 import threading
+import sys
 
 from klever.scheduler.server import Server
 from klever.scheduler.utils.bridge import BridgeError
@@ -30,15 +31,13 @@ from klever.scheduler.utils import sort_priority, time_units_converter, memory_u
 
 class SchedulerException(RuntimeError):
     """Exception is used to determine when task or job fails but not scheduler."""
-    pass
 
 
 class ListeningThread(threading.Thread):
-
     conf = None
 
     def __init__(self, local_queue, accept_jobs, accept_tag, cnf=None):
-        super(ListeningThread, self).__init__()
+        super().__init__()
         self._is_interrupted = False
         self.accept_jobs = accept_jobs
         self.accept_tag = accept_tag
@@ -57,7 +56,7 @@ class ListeningThread(threading.Thread):
         )
         channel = connection.channel()
         channel.queue_declare(queue=self.conf["name"], durable=True)
-        for method, properties, body in channel.consume(self.conf["name"], inactivity_timeout=1):
+        for method, _, body in channel.consume(self.conf["name"], inactivity_timeout=1):
             if self._is_interrupted:
                 break
             if not body or not method:
@@ -158,7 +157,7 @@ class Scheduler:
         """
 
         def nth_iteration(n):
-            return True if iteration_number % n == 0 else False
+            return iteration_number % n == 0
 
         self.logger.info("Start scheduler loop")
         iteration_number = 0
@@ -177,7 +176,7 @@ class Scheduler:
                     kind, identifier, status, _ = msg.decode('utf-8').split(' ')
                     if kind == 'job':
                         self.logger.debug("New status of job {!r} is {!r}".format(identifier, status))
-                        sch_status = self._jobs.get(identifier, dict()).get('status', None)
+                        sch_status = self._jobs.get(identifier, {}).get('status', None)
                         status = self._job_status(status)
 
                         if status == 'PENDING':
@@ -223,7 +222,7 @@ class Scheduler:
                         else:
                             raise NotImplementedError('Unknown job status {!r}'.format(status))
                     else:
-                        sch_status = self._tasks.get(identifier, dict()).get('status', None)
+                        sch_status = self._tasks.get(identifier, {}).get('status', None)
 
                         if status == 'PENDING':
                             if identifier in self._tasks and sch_status not in ('PROCESSING', 'PENDING'):
@@ -256,9 +255,11 @@ class Scheduler:
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
                         desc["status"] = "PROCESSING"
                     elif desc['status'] == 'PROCESSING' and \
-                        self.runner.process_job_result(
-                            job_id, desc, [tid for tid in self._tasks if desc["status"] in ["PENDING", "PROCESSING"]
-                                                                         and self._tasks[tid]["description"]["job id"] == job_id]):
+                            self.runner.process_job_result(
+                                job_id, desc,
+                                [tid for tid, item in self._tasks.items() if desc["status"] in ["PENDING", "PROCESSING"]
+                                                                             and item["description"][
+                                                                                 "job id"] == job_id]):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
                             self.server.submit_job_status(job_id, self._job_status('SOLVED'))
                         elif desc.get('error'):
@@ -315,9 +316,11 @@ class Scheduler:
 
                 if submit:
                     # Update resource limitations before scheduling
-                    messages = dict()
-                    for i, desc in ((i, self._tasks[i]) for i in self._tasks
-                                    if self._tasks[i]["status"] == "PENDING"):
+                    messages = {}
+                    # Avoid concurrent modification
+                    pending_tasks = ((i, desc) for i, desc in self._tasks.items()
+                                     if desc["status"] == "PENDING")
+                    for i, desc in list(pending_tasks):
                         messages[i] = self.runner.prepare_task(i, desc)
                         if not messages[i]:
                             self.server.submit_task_error(i, desc['error'])
@@ -336,17 +339,17 @@ class Scheduler:
                                          format(len(tasks_to_start), len(jobs_to_start)))
                         self.logger.info("There are {} pending and {} solving jobs".format(
                             len(pending_jobs),
-                            len({j for j in self._jobs if self._jobs[j]['status'] == 'PROCESSING'})))
+                            len({j for j, desc in self._jobs.items() if desc['status'] == 'PROCESSING'})))
                         self.logger.info("There are {} pending and {} solving tasks".format(
                             len(pending_tasks),
-                            len({t for t in self._tasks if self._tasks[t]['status'] == 'PROCESSING'})))
+                            len({t for t, desc in self._tasks.items() if desc['status'] == 'PROCESSING'})))
 
                         for job_id in jobs_to_start:
                             started = self.runner.solve_job(job_id, self._jobs[job_id])
                             if started and self._jobs[job_id]['status'] not in ('PENDING', 'PROCESSING'):
                                 raise RuntimeError('Expect that status of started job {!r} is solving but it has status'
                                                    ' {!r}'.format(self._jobs[job_id]['status'], job_id))
-                            elif not started and self._jobs[job_id]['status'] == 'ERROR':
+                            if not started and self._jobs[job_id]['status'] == 'ERROR':
                                 self.server.submit_job_error(job_id, self._jobs[job_id]['error'])
                                 if job_id in self._jobs:
                                     del self._jobs[job_id]
@@ -360,7 +363,7 @@ class Scheduler:
                             if started and self._tasks[task_id]['status'] != 'PROCESSING':
                                 raise RuntimeError('Expect that status of started task is PROCESSING but it is {!r} '
                                                    'for {!r}'.format(self._tasks[task_id]['status'], task_id))
-                            elif started and self._tasks[task_id]['status'] == 'PROCESSING':
+                            if started and self._tasks[task_id]['status'] == 'PROCESSING':
                                 if not self._tasks[task_id].get("rescheduled"):
                                     self.server.submit_task_status(task_id, 'PROCESSING')
                             elif not started and self._tasks[task_id]['status'] == 'PROCESSING':
@@ -373,7 +376,7 @@ class Scheduler:
 
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
-                            len([True for i in self._tasks if self._tasks[i]["status"] == "PROCESSING"]) > 0:
+                            len([True for i, desc in self._tasks.items() if desc["status"] == "PROCESSING"]) > 0:
                         self.runner.flush()
 
                 # Periodically check for jobs and task that have an unexpected status. This should help notice bugs
@@ -387,7 +390,7 @@ class Scheduler:
                 self.terminate()
                 self._listening_thread.stop()
                 self._listening_thread.join()
-                exit(137)
+                sys.exit(137)
             except Exception:
                 exception_info = 'An error occurred:\n{}'.format(traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
@@ -399,7 +402,7 @@ class Scheduler:
                     time.sleep(30)
                     self.init_scheduler()
                 else:
-                    exit(1)
+                    sys.exit(1)
 
     @staticmethod
     def __add_missing_restrictions(collection):
@@ -425,12 +428,13 @@ class Scheduler:
                 collection[tag] = memory_units_converter(collection[tag])[0]
             for tag in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
                 collection[tag] = time_units_converter(collection[tag])[0]
-        except Exception:
-            raise SchedulerException('Cannot interpret {} resource limitations: {!r}'.format(tag, collection[tag]))
+        except Exception as exc:
+            raise SchedulerException(
+                'Cannot interpret {} resource limitations: {!r}'.format(tag, collection[tag])) from exc
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
-        running_jobs = [job_id for job_id in self._jobs if self._jobs[job_id]["status"] in ["PENDING", "PROCESSING"]]
+        running_jobs = [job_id for job_id, desc in self._jobs.items() if desc["status"] in ["PENDING", "PROCESSING"]]
 
         # First, stop jobs
         for job_id, item in [(job_id, self._jobs[job_id]) for job_id in running_jobs]:
@@ -438,8 +442,8 @@ class Scheduler:
             self.runner.cancel_job(job_id, item, relevant_tasks)
 
         # Note here that some schedulers can solve tasks of jobs which run elsewhere
-        for task_id, item in [(task_id, self._tasks[task_id]) for task_id in self._tasks
-                              if self._tasks[task_id]["status"] in ["PENDING", "PROCESSING"]]:
+        for task_id, item in [(task_id, item) for task_id, item in self._tasks.items()
+                              if item["status"] in ["PENDING", "PROCESSING"]]:
             self.runner.cancel_task(task_id, item)
 
         # Terminate tasks
@@ -463,7 +467,7 @@ class Scheduler:
             if not job_conf:
                 self.server.submit_job_error(identifier, 'Failed to download configuration')
                 return
-            elif 'tasks' not in job_conf:
+            if 'tasks' not in job_conf:
                 self.server.submit_job_error(identifier, 'Job has not tasks.json file with resource limits')
                 return
 
@@ -549,9 +553,9 @@ class Scheduler:
         :param job_id: Relevant job identifier.
         :return: List of dictionaries.
         """
-        return [self._tasks[tid] for tid in self._tasks
-                if self._tasks[tid]["status"] in ["PENDING", "PROCESSING"]
-                and self._tasks[tid]["description"]["job id"] == job_id]
+        return [desc for tid, desc in self._tasks.items()
+                if desc["status"] in ["PENDING", "PROCESSING"]
+                and desc["description"]["job id"] == job_id]
 
     def cancel_all_tasks(self):
         """Cancel and delete all jobs and tasks before terminating or restarting scheduler."""
@@ -601,6 +605,5 @@ class Scheduler:
         if len(status) == 1:
             # This is digital status and we can return the word
             return job_map[status]
-        else:
-            # Else
-            return tuple(job_map.keys())[tuple(job_map.values()).index(status)]
+        # Else
+        return tuple(job_map.keys())[tuple(job_map.values()).index(status)]

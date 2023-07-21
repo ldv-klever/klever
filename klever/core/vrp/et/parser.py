@@ -27,7 +27,7 @@ class ErrorTraceParser:
     WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
     # There may be several violation witnesses that refer to the same program file (CIL file), so, it is a good optimization
     # to parse it once.
-    PROGRAMFILE_LINE_MAP = dict()
+    PROGRAMFILE_LINE_MAP = {}
     PROGRAMFILE_CONTENT = ''
     FILE_NAMES = collections.OrderedDict()
 
@@ -74,8 +74,8 @@ class ErrorTraceParser:
         for data in graph.findall('graphml:data', self.WITNESS_NS):
             if 'klever-attrs' in data.attrib and data.attrib['klever-attrs'] == 'true':
                 self.error_trace.add_attr(data.attrib['key'], data.text,
-                                          True if data.attrib['associate'] == 'true' else False,
-                                          True if data.attrib['compare'] == 'true' else False)
+                                          data.attrib['associate'] == 'true',
+                                          data.attrib['compare'] == 'true')
 
             # TODO: at the moment violation witnesses do not support multiple program files.
             if data.attrib['key'] == 'programfile':
@@ -118,8 +118,8 @@ class ErrorTraceParser:
                 self.error_trace.programfile_content = ErrorTraceParser.PROGRAMFILE_CONTENT
 
     def __parse_witness_nodes(self, graph):
-        sink_nodes_map = dict()
-        unsupported_node_data_keys = dict()
+        sink_nodes_map = {}
+        unsupported_node_data_keys = {}
         nodes_number = 0
 
         for node in graph.findall('graphml:node', self.WITNESS_NS):
@@ -159,7 +159,7 @@ class ErrorTraceParser:
         return sink_nodes_map
 
     def __parse_witness_edges(self, graph, sink_nodes_map):
-        unsupported_edge_data_keys = dict()
+        unsupported_edge_data_keys = {}
 
         # Use maps for source files and functions as for nodes. Add artificial map to 0 for default file without
         # explicitly specifying its path.
@@ -199,7 +199,7 @@ class ErrorTraceParser:
                     endoffset = int(data.text)
                 elif data_key == 'startline':
                     startline = int(data.text)
-                elif data_key == 'enterFunction' or data_key == 'returnFrom' or data_key == 'assumption.scope':
+                elif data_key in ['enterFunction', 'returnFrom', 'assumption.scope']:
                     self.error_trace.add_function(data.text)
                     if data_key == 'enterFunction':
                         _edge['enter'] = self.error_trace.resolve_function_id(data.text)
@@ -217,7 +217,7 @@ class ErrorTraceParser:
                     else:
                         _edge['assumption scope'] = self.error_trace.resolve_function_id(data.text)
                 elif data_key == 'control':
-                    control = True if data.text == 'condition-true' else False
+                    control = data.text == 'condition-true'
                     _edge['condition'] = True
                 elif data_key == 'assumption':
                     _edge['assumption'] = data.text
@@ -233,7 +233,7 @@ class ErrorTraceParser:
                             _edge['notes'] = []
                         _edge['notes'].append({
                             'level': int(m.group(1)),
-                            'hide': False if m.group(2) == 'false' else True,
+                            'hide': m.group(2) != 'false',
                             'text': m.group(3).replace('\\\"', '\"')
                         })
                     else:

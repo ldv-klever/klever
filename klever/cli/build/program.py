@@ -24,7 +24,7 @@ from klever.cli.utils import execute_cmd
 
 
 class Program:
-    _CLADE_CONF = dict()
+    _CLADE_CONF = {}
     _CLADE_PRESET = "base"
 
     def __init__(self, logger, target_program_desc):
@@ -50,7 +50,7 @@ class Program:
 
         # Clade API object
         clade_conf = dict(self._CLADE_CONF)
-        clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
+        clade_conf.update(self.target_program_desc.get('extra Clade options', {}))
         # Testing and validation build bases are pretty small, so we can request Clade to generate graphs for them.
         clade_conf.update({
             'CmdGraph.as_picture': True,
@@ -65,9 +65,9 @@ class Program:
         o = urllib.parse.urlparse(self.work_src_tree)
         if o[0] in ('http', 'https', 'ftp'):
             raise NotImplementedError('Source code is provided in unsupported form of a remote archive')
-        elif o[0] == 'git':
+        if o[0] == 'git':
             raise NotImplementedError('Source code is provided in unsupported form of a remote Git repository')
-        elif o[0]:
+        if o[0]:
             raise ValueError('Source code is provided in unsupported form "{0}"'.format(o[0]))
 
         if os.path.isfile(self.work_src_tree):

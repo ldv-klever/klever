@@ -44,10 +44,10 @@ def is_not_null_function(declaration, value):
     """
     check = re.compile(r'[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
     if (isinstance(declaration, Function) or
-       (isinstance(declaration, Pointer) and isinstance(declaration.points, Function))) and check.fullmatch(value):
+        (isinstance(declaration, Pointer) and isinstance(declaration.points, Function))) and check.fullmatch(value):
         return False
-    else:
-        return True
+
+    return True
 
 
 def extract_name(declaration):
@@ -60,16 +60,16 @@ def extract_name(declaration):
     if isinstance(declaration, str):
         try:
             ast = parse_declaration(declaration)
-        except Exception:
-            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
+        except Exception as e:
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration)) from e
     else:
         ast = declaration
 
     if 'declarator' in ast and len(ast['declarator']) > 0 and 'identifier' in ast['declarator'][-1] and \
             ast['declarator'][-1]['identifier']:
         return ast['declarator'][-1]['identifier']
-    else:
-        return None
+
+    return None
 
 
 def import_typedefs(tds, dependencies):
@@ -80,8 +80,6 @@ def import_typedefs(tds, dependencies):
     :param dependencies: Dictionary with {dep->{C files}} structure.
     :return: None
     """
-    global _typedefs
-    global _type_collection
 
     def add_file(typeast, typename, filename):
         if name in _typedefs:
@@ -93,12 +91,12 @@ def import_typedefs(tds, dependencies):
     for dep, decl in ((dep, decl) for dep in sorted(tds.keys()) for decl in tds[dep]):
         try:
             ast = parse_declaration(decl)
-        except Exception:
-            raise ValueError(f"Cannot parse typedef declaration: '{decl}'")
+        except Exception as e:
+            raise ValueError(f"Cannot parse typedef declaration: '{decl}'") from e
         name = extract_name(decl)
 
         add_file(ast, name, dep)
-        for file in dependencies.get(dep, list()):
+        for file in dependencies.get(dep, []):
             add_file(ast, name, file)
 
     for tp in candidates:
@@ -132,15 +130,13 @@ def import_declaration(declaration, ast=None, track_typedef=False):
     :param track_typedef: Specify flag that at parsing the declaration it is allowed to match typedefs.
     :return: Declaration object.
     """
-    global _type_collection
-    global _typedefs
     typedef = None
 
     if not ast:
         try:
             ast = parse_declaration(declaration)
-        except Exception:
-            raise ValueError("Cannot parse declaration: {!r}".format(declaration))
+        except Exception as e:
+            raise ValueError("Cannot parse declaration: {!r}".format(declaration)) from e
 
     if not ast.get('declarator', []):
         ast_class = ast.get('specifiers', {}).get('type specifier', {}).get('class')
@@ -203,8 +199,8 @@ def import_declaration(declaration, ast=None, track_typedef=False):
 
     if not track_typedef:
         return ret
-    else:
-        return ret, typedef
+
+    return ret, typedef
 
 
 def dump_types(file_name):
@@ -213,15 +209,13 @@ def dump_types(file_name):
 
 
 def _take_pointer(exp, tp):
-    if isinstance(tp, Array) or isinstance(tp, Function):
+    if isinstance(tp, (Array, Function)):
         return '(*' + exp + ')'
-    else:
-        return '*' + exp
+
+    return '*' + exp
 
 
 def _add_parent(declaration, parent):
-    global _type_collection
-
     parent = _type_collection.setdefault(parent, parent)
     if str(parent) not in (str(e) for e in declaration.parents):
         declaration.parents.append(parent)
@@ -251,19 +245,19 @@ class Declaration:
             if type(self) is type(other):
                 if str(self) == str(other) or self.str_without_specifiers == other.str_without_specifiers:
                     return True
-                elif self.str_without_specifiers == 'void *' or other.str_without_specifiers == 'void *':
+                if self.str_without_specifiers == 'void *' or other.str_without_specifiers == 'void *':
                     return True
-                elif isinstance(self, Pointer):
+                if isinstance(self, Pointer):
                     return self.points == other.points
-                elif isinstance(self, Array):
+                if isinstance(self, Array):
                     # Compare children to avoid comparing sizes
                     return self.element == other.element
-                elif isinstance(self, Function):
+                if isinstance(self, Function):
                     return self.return_value == other.return_value and \
-                           len(self.parameters) == len(other.parameters) and \
-                           all(x == y for x, y in zip(self.parameters, other.parameters))
+                        len(self.parameters) == len(other.parameters) and \
+                        all(x == y for x, y in zip(self.parameters, other.parameters))
             return False
-        elif isinstance(other, str):
+        if isinstance(other, str):
             me = self.str_without_specifiers
             return me == other or str(me) == other
         return other.__eq__(self)
@@ -306,10 +300,10 @@ class Declaration:
         specifiers = self._ast.get('specifiers')
         if specifiers and isinstance(specifiers, list):
             return 'static' in specifiers
-        elif specifiers and isinstance(specifiers, dict):
+        if specifiers and isinstance(specifiers, dict):
             return 'static' in specifiers.get('specifiers', [])
-        else:
-            return False
+
+        return False
 
     def add_parent(self, parent):
         """
@@ -330,7 +324,7 @@ class Declaration:
         """
         if isinstance(self, Pointer) and self.points == alias:
             return self
-        elif isinstance(alias, Pointer) and self == alias.points:
+        if isinstance(alias, Pointer) and self == alias.points:
             return alias
 
         return None
@@ -351,7 +345,7 @@ class Declaration:
                 queue.append(tp.element)
             elif isinstance(tp, Pointer):
                 queue.append(tp.points)
-            elif (isinstance(tp, Structure) or isinstance(tp, Union) or isinstance(tp, Enum)) and not tp.name:
+            elif isinstance(tp, (Structure, Union, Enum)) and not tp.name:
                 ret = False
                 break
 
@@ -383,18 +377,17 @@ class Declaration:
         :param scope: File with the declaration to check visible typedefs.
         :return: String.
         """
-        global _typedefs
         if pointer:
             declarator = _take_pointer(declarator, self)
 
-        if isinstance(typedef, sortedcontainers.SortedSet) or isinstance(typedef, set) or isinstance(typedef, str):
+        if isinstance(typedef, (sortedcontainers.SortedSet, set, str)):
             if self.typedef and (
-                    ((isinstance(typedef, set) or isinstance(typedef, sortedcontainers.SortedSet)) and
+                    ((isinstance(typedef, (set, sortedcontainers.SortedSet))) and
                      self.typedef in typedef) or
                     (
-                        (isinstance(typedef, str) and typedef == 'all') or
-                        typedef != 'none' and not self.nameless_type()
-                     )) and \
+                            (isinstance(typedef, str) and typedef == 'all') or
+                            typedef != 'none' and not self.nameless_type()
+                    )) and \
                     (not scope or (self.typedef in _typedefs and
                                    len(_typedefs[self.typedef][1] & scope) > 0)):
                 result = "{} {}".format(self.typedef, declarator)
@@ -403,21 +396,18 @@ class Declaration:
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
-        if not isinstance(self, Pointer) and qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
+        if not isinstance(self, Pointer) and qualifiers and self._ast.get('specifiers', {}).get('qualifiers'):
             result = ' '.join(self._ast['specifiers']['qualifiers']) + ' ' + result
-        if specifiers and self._ast.get('specifiers', dict()).get('specifiers'):
+        if specifiers and self._ast.get('specifiers', {}).get('specifiers'):
             result = ' '.join(self._ast['specifiers']['specifiers']) + ' ' + result
         return result
 
-    def _to_string(self, replacement, typedef=None, scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         raise NotImplementedError
 
 
 class Primitive(Declaration):
     """Class represents base build-in (non-complex) types (string, int) and complex typedef types."""
-
-    def __init__(self, ast):
-        super(Primitive, self).__init__(ast)
 
     @property
     def pretty_name(self):
@@ -430,18 +420,18 @@ class Primitive(Declaration):
         pn = self._ast['specifiers']['type specifier']['name']
         return pn.replace(' ', '_')
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         if replacement == '':
             return self._ast['specifiers']['type specifier']['name']
-        else:
-            return "{} {}".format(self._ast['specifiers']['type specifier']['name'], replacement)
+
+        return "{} {}".format(self._ast['specifiers']['type specifier']['name'], replacement)
 
 
 class Enum(Declaration):
     """The class represents Enum types."""
 
     def __init__(self, ast):
-        super(Enum, self).__init__(ast)
+        super().__init__(ast)
         self.enumerators = []
 
         if 'enumerators' in self._ast['specifiers']['type specifier']:
@@ -465,7 +455,7 @@ class Enum(Declaration):
         """
         return 'enum_{}'.format(self.name)
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         if not self.name:
             name = '{ ' + ', '.join(self.enumerators) + ' }'
         else:
@@ -473,19 +463,19 @@ class Enum(Declaration):
 
         if replacement == '':
             return "enum {}".format(name)
-        else:
-            return "enum {} {}".format(name, replacement)
+
+        return "enum {} {}".format(name, replacement)
 
 
 class Function(Declaration):
     """The class represents Function types."""
 
     def __init__(self, ast):
-        super(Function, self).__init__(ast)
+        super().__init__(ast)
         self.return_value = None
         self.parameters = []
         self.ret_typedef = None
-        self.params_typedef = list()
+        self.params_typedef = []
 
         self.return_value, self.ret_typedef = import_declaration(None, self._ast['return value type'],
                                                                  track_typedef=True)
@@ -524,12 +514,11 @@ class Function(Declaration):
 
     def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         def filtered_typedef_param(available):
-            if isinstance(typedef, set) or isinstance(typedef, sortedcontainers.SortedSet):
+            if isinstance(typedef, (set, sortedcontainers.SortedSet)):
                 return {available}
-            elif available and typedef == 'complex_and_params':
+            if available and typedef == 'complex_and_params':
                 return {available}
-            else:
-                return typedef
+            return typedef
 
         if typedef == 'complex_and_params' and not scope:
             scope = {'common'}
@@ -539,7 +528,7 @@ class Function(Declaration):
         else:
             parameter_declarations = []
             for index, param in enumerate(self.parameters):
-                if type(param) is str:
+                if isinstance(param, str):
                     parameter_declarations.append(param)
                 else:
                     if with_args:
@@ -576,7 +565,7 @@ class Structure(Declaration):
     """THe class represents Structure types."""
 
     def __init__(self, ast):
-        super(Structure, self).__init__(ast)
+        super().__init__(ast)
         self.fields = sortedcontainers.SortedDict()
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -607,9 +596,9 @@ class Structure(Declaration):
         """
         if self.name:
             return 'struct_{}'.format(self.name)
-        else:
-            key = _new_identifier()
-            return 'struct_noname_{}'.format(key)
+
+        key = _new_identifier()
+        return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
         """
@@ -618,7 +607,7 @@ class Structure(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field] == target]
+        return [field for field, decl in self.fields.items() if decl == target]
 
     def weak_contains(self, target):
         """
@@ -628,15 +617,15 @@ class Structure(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field] == target or
-                self.fields[field].pointer_alias(target)]
+        return [field for field, decl in self.fields.items() if decl == target or
+                decl.pointer_alias(target)]
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         if not self.name:
             name = '{' + \
-                   ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False,
-                                                            qualifiers=qualifiers)
-                               for field in self.fields.keys()]) +
+                   ('; '.join([item.to_string(field, typedef=typedef, scope=scope, specifiers=False,
+                                              qualifiers=qualifiers)
+                               for field, item in self.fields.items()]) +
                     '; ' if len(self.fields) > 0 else '') \
                    + '}'
         else:
@@ -644,15 +633,15 @@ class Structure(Declaration):
 
         if replacement == '':
             return "struct {}".format(name)
-        else:
-            return "struct {} {}".format(name, replacement)
+
+        return "struct {} {}".format(name, replacement)
 
 
 class Union(Declaration):
     """The class represents union types."""
 
     def __init__(self, ast):
-        super(Union, self).__init__(ast)
+        super().__init__(ast)
         self.fields = sortedcontainers.SortedDict()
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -681,9 +670,9 @@ class Union(Declaration):
         """
         if self._ast['specifiers']['type specifier']['name']:
             return 'union_{}'.format(self.name)
-        else:
-            key = _new_identifier()
-            return 'union_noname_{}'.format(key)
+
+        key = _new_identifier()
+        return 'union_noname_{}'.format(key)
 
     def contains(self, target):
         """
@@ -692,7 +681,7 @@ class Union(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field] == target]
+        return [field for field, decl in self.fields.items() if decl == target]
 
     def weak_contains(self, target):
         """
@@ -702,10 +691,10 @@ class Union(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field] == target or
-                self.fields[field].pointer_alias(target)]
+        return [field for field, decl in self.fields.items() if decl == target or
+                decl.pointer_alias(target)]
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         if not self.name:
             name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False,
                                                                   qualifiers=qualifiers)
@@ -716,15 +705,15 @@ class Union(Declaration):
 
         if replacement == '':
             return "union {}".format(name)
-        else:
-            return "union {} {}".format(name, replacement)
+
+        return "union {} {}".format(name, replacement)
 
 
 class Array(Declaration):
     """The class represent array types."""
 
     def __init__(self, ast):
-        super(Array, self).__init__(ast)
+        super().__init__(ast)
         self.element = None
 
         array = ast['declarator'][-1]['arrays'].pop(0)
@@ -764,12 +753,9 @@ class Array(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        if self.element == target or self.element.pointer_alias(target):
-            return True
-        else:
-            return False
+        return self.element == target or self.element.pointer_alias(target)
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         if self.size:
             size = self.size
         else:
@@ -783,14 +769,14 @@ class Pointer(Declaration):
     """The class represents pointers."""
 
     def __init__(self, ast):
-        super(Pointer, self).__init__(ast)
+        super().__init__(ast)
 
         ast['declarator'][-1]['pointer'] -= 1
         ast = reduce_level(ast)
         self.points = import_declaration(None, ast)
         self.points.add_parent(self)
 
-    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         replacement = _take_pointer(replacement, self.points)
 
         return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=qualifiers)

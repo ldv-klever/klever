@@ -99,7 +99,7 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
 
     # Make available data from media, logs and static for its actual user.
     media_user = get_media_user(logger)
-    user_group = '{}:{}'.format(media_user, media_user)
+    user_group = '{user}:{user}'.format(user=media_user)
 
     execute_cmd(logger, 'chown', '-R', user_group, media_real)
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')

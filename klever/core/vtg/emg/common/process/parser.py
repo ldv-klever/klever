@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import ply.lex as lex
-import ply.yacc as yacc
+from ply import lex
+from ply import yacc
 
 from klever.core.vtg.emg.common.process.actions import Behaviour, Receive, Dispatch, Subprocess, Block, Concatenation,\
     Choice, Parentheses
@@ -88,15 +88,15 @@ def t_NUMBER(t):
 def t_error(t):
     if t:
         raise TypeError("Unknown text '%s'" % (t.value,))
-    else:
-        raise TypeError('Unknown token parsing error')
+
+    raise TypeError('Unknown token parsing error')
 
 
 def p_error(t):
     if t:
         raise TypeError("Unknown text '%s'" % (t.value,))
-    else:
-        raise TypeError('Unknown parsing error')
+
+    raise TypeError('Unknown parsing error')
 
 
 t_ignore = ' \t\n'
@@ -293,9 +293,6 @@ def parse_process(process, string):
     :param string: Process description in DSL.
     :return: Abstract syntax tree.
     """
-    global __parser
-    global __lexer
-
     if not __parser:
         setup_parser()
     __parser.process = process
@@ -303,4 +300,4 @@ def parse_process(process, string):
     try:
         return __parser.parse(string, lexer=__lexer)
     except TypeError as err:
-        raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
+        raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args)) from err

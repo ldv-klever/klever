@@ -35,8 +35,8 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         return klever.core.utils.find_file_or_dir(logger, main_work_dir, file_or_dir)
 
 
-def get_cif_or_aspectator_exec(conf, exec):
-    return conf['CIF']['cross compile prefix'] + exec
+def get_cif_or_aspectator_exec(conf, exec_cmd):
+    return conf['CIF']['cross compile prefix'] + exec_cmd
 
 
 def prepare_cif_opts(opts, clade, model_opts=False):
@@ -47,7 +47,7 @@ def prepare_cif_opts(opts, clade, model_opts=False):
     if model_opts or not meta['conf'].get("Compiler.preprocess_cmds", False):
         new_opts = filter_opts(opts, clade.get_storage_path)
 
-    extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', list())
+    extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', [])
     new_opts.extend(extra_cc_opts)
 
     return new_opts

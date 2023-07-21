@@ -38,22 +38,22 @@ class CollectionEncoder(json.JSONEncoder):
             self.logger.info(f"Test print: {str(o)}")
         if isinstance(o, ProcessCollection):
             return self._serialize_collection(o)
-        elif isinstance(o, Process):
+        if isinstance(o, Process):
             return self._serialize_process(o)
-        elif isinstance(o, Label):
+        if isinstance(o, Label):
             return self._serialize_label(o)
-        elif isinstance(o, Action):
+        if isinstance(o, Action):
             return self._serialize_action(o)
-        elif isinstance(o, Savepoint):
+        if isinstance(o, Savepoint):
             return self._serialize_savepoint(o)
-        elif isinstance(o, set):
+        if isinstance(o, set):
             return list(o)
-        elif isinstance(o, Peer):
+        if isinstance(o, Peer):
             raise NotImplementedError
-        elif isinstance(o, (list, dict, str, int, float, bool, type(None))):
+        if isinstance(o, (list, dict, str, int, float, bool, type(None))):
             return o
-        else:
-            raise TypeError(f"Cannot serialize object '{str(o)}' of type '{type(o).__name__}'")
+
+        raise TypeError(f"Cannot serialize object '{str(o)}' of type '{type(o).__name__}'")
 
     def _serialize_collection(self, collection):
         return {
@@ -63,7 +63,8 @@ class CollectionEncoder(json.JSONEncoder):
             "functions models": {p.name: self.default(p) for p in collection.models.values()}
         }
 
-    def _serialize_label(self, label):
+    @staticmethod
+    def _serialize_label(label):
         dict_repr = {}
         if label.declaration:
             dict_repr['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
@@ -71,12 +72,13 @@ class CollectionEncoder(json.JSONEncoder):
             dict_repr['value'] = label.value
         return dict_repr
 
-    def _serialize_savepoint(self, point):
+    @staticmethod
+    def _serialize_savepoint(point):
         sp = {}
 
         if point.comment:
             sp["comment"] = point.comment
-        sp["statements"] = point.statements if point.statements else list()
+        sp["statements"] = point.statements if point.statements else []
         if point.requirements:
             sp['require'] = dict(point.requirements)
         if point.weak_requirements:
@@ -101,7 +103,7 @@ class CollectionEncoder(json.JSONEncoder):
                 ict_action['process'] = repr(action.action)
             else:
                 ict_action['process'] = ''
-        elif isinstance(action, Signal) or isinstance(action, Receive):
+        elif isinstance(action, (Signal, Receive)):
             ict_action['parameters'] = self.default(list(action.parameters))
             if isinstance(action, Dispatch) and action.broadcast:
                 ict_action['broadcast'] = True
@@ -200,7 +202,7 @@ class CollectionDecoder:
                     try:
                         process = self._import_process(source, name, category, process_desc)
                         collection.models[process.name] = process
-                    except Exception as err:
+                    except Exception as err:  # pylint: disable=broad-except
                         self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
                         raise_exc.append(name)
         else:
@@ -229,7 +231,7 @@ class CollectionDecoder:
                                          f"processing")
 
                     collection.environment[str(process)] = process
-                except Exception:
+                except Exception:  # pylint: disable=broad-except
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
                     raise_exc.append(name)
         else:
@@ -241,7 +243,7 @@ class CollectionDecoder:
                 entry_process = self._import_process(source, ProcessDescriptor.DEFAULT_ID,
                                                      ProcessDescriptor.EXPECTED_CATEGORY, raw["main process"])
                 collection.entry = entry_process
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-except
                 self.logger.warning("Cannot parse the main process: {}".format(str(err)))
                 raise_exc.append('entry')
         else:
@@ -263,8 +265,8 @@ class CollectionDecoder:
                     if sp.intersection(savepoints):
                         intr = ', '.join(sp.intersection(savepoints))
                         raise ValueError(f'Savepoints cannot be used twice: {intr}')
-                    else:
-                        savepoints.update(sp)
+
+                    savepoints.update(sp)
 
                     for savepoint in action.savepoints:
                         for name in savepoint.requirements.required_processes:
@@ -304,7 +306,7 @@ class CollectionDecoder:
         dic = copy.deepcopy(dic)
         process = self.PROCESS_CONSTRUCTOR(name, category)
 
-        for label_name in dic.get('labels', dict()):
+        for label_name in dic.get('labels', {}):
             label = self._import_label(label_name, dic['labels'][label_name])
             process.labels[label_name] = label
 
@@ -316,11 +318,11 @@ class CollectionDecoder:
 
         # Then import subprocesses
         next_actions = sortedcontainers.SortedDict()
-        for name, desc in dic.get('actions', dict()).items():
+        for nm, desc in dic.get('actions', {}).items():
             subp = desc.get('process')
             if subp:
                 next_action = parse_process(process, subp)
-                next_actions[name] = next_action
+                next_actions[nm] = next_action
 
         # Import comments
         if 'comment' in dic and isinstance(dic['comment'], str):
@@ -339,15 +341,12 @@ class CollectionDecoder:
                 self._import_action(process, act_name, description)
 
         # Connect actions
-        for name in next_actions:
-            process.actions[name].action = next_actions[name]
+        for nm, act in next_actions.items():
+            process.actions[nm].action = act
 
-        for att in self.PROCESS_ATTRIBUTES:
+        for att, nm in self.PROCESS_ATTRIBUTES.items():
             if att in dic:
-                if self.PROCESS_ATTRIBUTES[att]:
-                    attname = self.PROCESS_ATTRIBUTES[att]
-                else:
-                    attname = att
+                attname = nm if nm else att
                 setattr(process, attname, dic[att])
 
         # Fix paths in manual specification
@@ -407,13 +406,13 @@ class CollectionDecoder:
                     try:
                         savepoint._require = Requirements.from_dict(sp_dic['require'], str(process))
                     except (ValueError, AssertionError) as err:
-                        raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}")
+                        raise ValueError(f"Cannot parse requirements of savepoint '{sp_name}': {str(err)}") from err
 
                 if 'weak require' in sp_dic:
                     try:
                         savepoint._weak_require = WeakRequirements.from_dict(sp_dic['weak require'], str(process))
                     except (ValueError, AssertionError) as err:
-                        raise ValueError(f"Cannot parse weak requirements of savepoint '{sp_name}': {str(err)}")
+                        raise ValueError(f"Cannot parse weak requirements of savepoint '{sp_name}': {str(err)}") from err
 
                 act.savepoints.add(savepoint)
 
@@ -421,13 +420,13 @@ class CollectionDecoder:
             try:
                 act._require = Requirements.from_dict(dic['require'], str(process))
             except (ValueError, AssertionError) as err:
-                raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}")
+                raise ValueError(f"Cannot parse requirements of '{name}' in '{str(process)}': {str(err)}") from err
 
         if 'weak require' in dic:
             try:
                 act._weak_require = WeakRequirements.from_dict(dic['weak require'], str(process))
             except (ValueError, AssertionError) as err:
-                raise ValueError(f"Cannot parse weak requirements of '{name}' in '{str(process)}': {str(err)}")
+                raise ValueError(f"Cannot parse weak requirements of '{name}' in '{str(process)}': {str(err)}") from err
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)

@@ -21,8 +21,8 @@ import time
 
 import keystoneauth1.identity
 import keystoneauth1.session
-import glanceclient.client
 import keystoneauth1.exceptions
+import glanceclient.client
 import novaclient.client
 import novaclient.exceptions
 import neutronclient.v2_0.client
@@ -51,7 +51,7 @@ class OSClient:
         self.cinder = cinderclient.client.Client('3', session=session)
 
     def image_exists(self, image_name):
-        return self.get_images(image_name) != []
+        return self.get_images(image_name)
 
     def get_base_image(self, base_image_name):
         self.logger.info(f'Get base image matching "{base_image_name}"')
@@ -83,7 +83,7 @@ class OSClient:
         return f'{instance.name} (status: {instance.status}, IP: {self.get_instance_floating_ip(instance, exit_on_error=False)})'
 
     def instance_exists(self, instance_name):
-        return self.get_instances(instance_name) != []
+        return self.get_instances(instance_name)
 
     def get_instance(self, instance_name):
         self.logger.info(f'Get instance matching "{instance_name}"')

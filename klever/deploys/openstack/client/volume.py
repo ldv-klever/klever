@@ -59,6 +59,10 @@ class OSVolume:
                 self.remove()
                 raise
 
+        self.logger.error('Could not create volume')
+        self.remove()
+        raise RuntimeError("Volume was not created")
+
     def attach(self, instance):
         self.logger.info('Attach volume to instance')
         self.client.nova.volumes.create_server_volume(instance.id, self.volume.id, device=self.DEVICE)

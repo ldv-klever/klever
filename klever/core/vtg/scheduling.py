@@ -28,9 +28,9 @@ class Governer:
         self.processing = precessing
 
         # Stores current execution status
-        self._problematic = dict()
+        self._problematic = {}
         # Stores limitations for running and timeout tasks
-        self._issued_limits = dict()
+        self._issued_limits = {}
         # Total number of tasks
         self._total_tasks = None
         self._unique_tasks = 0
@@ -53,7 +53,7 @@ class Governer:
             self._walllimit = None
 
         # Data for interval calculation with statistical values
-        self._statistics = dict()
+        self._statistics = {}
 
     @property
     def limitation_tasks(self):
@@ -67,11 +67,11 @@ class Governer:
         # Check that there is no any task that is not finished and it is not timeout or out of mem
         if self._rescheduling:
             return True
-        elif isinstance(self._total_tasks, int) and self._unique_tasks == self._total_tasks:
+        if isinstance(self._total_tasks, int) and self._unique_tasks == self._total_tasks:
             self._rescheduling = True
             return True
-        else:
-            return False
+
+        return False
 
     def is_there(self, task):
         """Check that task is tracked as a limit."""
@@ -110,7 +110,7 @@ class Governer:
         increase the limitations.
         """
         # First set QoS limit
-        limits = dict()
+        limits = {}
         limits.update(self._qos_limit)
 
         # Check do we have some statistics already
@@ -130,7 +130,7 @@ class Governer:
         """Save solution and return is this solution is final or not"""
         # Check that it is an error from scheduler
         if self._walllimit and status_info:
-            status, resources, limit_reason = status_info
+            _, _, limit_reason = status_info
             self.logger.debug(f"Task {task} finished")
             self._solved += 1
 
@@ -141,7 +141,7 @@ class Governer:
                 element['running'] = False
                 # We need to check can we solve it again later
                 return False
-            elif self.is_there(task):
+            if self.is_there(task):
                 # Ok ,we solved this timelimit or memory limit
                 del self._problematic[task]
                 del self._issued_limits[task]
@@ -168,8 +168,8 @@ class Governer:
         have_time = self._have_time()
         if increased_time >= have_time:
             return self._minstep
-        else:
-            return have_time / min_time
+
+        return have_time / min_time
 
     def _is_there_or_init(self, task):
         """Check that task is tracked as a time limit or otherwise start tracking it."""

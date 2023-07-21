@@ -29,22 +29,22 @@ class ErrorTrace:
     MAX_NOTE_LEVEl = 3
 
     def __init__(self, logger):
-        self._attrs = list()
-        self._nodes = dict()
-        self._files = list()
-        self._funcs = list()
+        self._attrs = []
+        self._nodes = {}
+        self._files = []
+        self._funcs = []
         self._logger = logger
         self._entry_node_id = None
         self._violation_node_ids = set()
-        self._violation_edges = list()
-        self._notes = dict()
-        self._asserts = dict()
-        self._actions = list()
-        self._callback_actions = list()
-        self.emg_comments = dict()
-        self.displays = dict()
+        self._violation_edges = []
+        self._notes = {}
+        self._asserts = {}
+        self._actions = []
+        self._callback_actions = []
+        self.emg_comments = {}
+        self.displays = {}
         self.programfile_content = ''
-        self.programfile_line_map = dict()
+        self.programfile_line_map = {}
 
     @property
     def functions(self):
@@ -62,8 +62,8 @@ class ErrorTrace:
     def entry_node(self):
         if self._entry_node_id:
             return self._nodes[self._entry_node_id]
-        else:
-            raise KeyError('Entry node has not been set yet')
+
+        raise KeyError('Entry node has not been set yet')
 
     def highlight(self, src, func_name=None):
         highlight = Highlight(self._logger, src)
@@ -134,8 +134,8 @@ class ErrorTrace:
                 'notes': notes,
                 'hide': hide
             }
-        else:
-            return {}
+
+        return {}
 
     def serialize(self):
         klever.core.utils.capitalize_attr_names(self._attrs)
@@ -144,13 +144,13 @@ class ErrorTrace:
         # Convert list of edges to global variable declarations list and to error trace tree.
         is_first_edge = True
         is_global_var_decls = False
-        global_var_decls = list()
-        trace = dict()
+        global_var_decls = []
+        trace = {}
         # References to thread nodes for their simple update.
-        thread_node_refs = dict()
+        thread_node_refs = {}
         prev_thread_id = None
         # References to thread function call stacks.
-        thread_func_call_stacks = dict()
+        thread_func_call_stacks = {}
         # Node for accumulating current local declarations.
         declarations_node = None
         # First declaration edge.
@@ -171,16 +171,16 @@ class ErrorTrace:
                 global_var_decl.update(self.convert_notes(edge))
                 global_var_decls.append(global_var_decl)
                 continue
-            else:
-                is_global_var_decls = False
+
+            is_global_var_decls = False
 
             if declarations_node and 'declaration' not in edge:
                 # TODO: make a function for this since there are two more similar places below.
-                if 'action' in declarations_edge:
-                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(
+                if 'action' in declarations_edge:  # pylint: disable=unsupported-membership-test
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(  # pylint: disable=unsubscriptable-object
                         declarations_node)
                 else:
-                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)  # pylint: disable=unsubscriptable-object
 
                 declarations_node = None
                 declarations_edge = None
@@ -190,7 +190,7 @@ class ErrorTrace:
                 thread_node = {
                     'type': 'thread',
                     'thread': edge['thread'],
-                    'children': list()
+                    'children': []
                 }
 
                 # Remember reference to it.
@@ -209,8 +209,9 @@ class ErrorTrace:
             # not appear without some function call node within corresponding thread function call stack.
             if 'action' in edge:
                 if not thread_func_call_stacks[edge['thread']][-1]['children'] \
-                        or not thread_func_call_stacks[edge['thread']][-1]['children'][-1]['type'] == 'action'\
-                        or self.resolve_action(edge['action']) != thread_func_call_stacks[edge['thread']][-1]['children'][-1]['display']:
+                        or not thread_func_call_stacks[edge['thread']][-1]['children'][-1]['type'] == 'action' \
+                        or self.resolve_action(edge['action']) != \
+                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['display']:
                     # Create node representing given action. Action source file and line are the same as for first its
                     # edge.
                     action_node = {
@@ -218,7 +219,7 @@ class ErrorTrace:
                         'file': edge['file'],
                         'line': edge['line'],
                         'display': self.resolve_action(edge['action']),
-                        'children': list()
+                        'children': []
                     }
 
                     if edge['action'] in self._callback_actions:
@@ -241,7 +242,7 @@ class ErrorTrace:
                     # TODO: like below.
                     'line': edge['line'] if 'line' in edge else 0,
                     'display': edge.get('display', display(self.resolve_function(edge['enter']))),
-                    'children': list()
+                    'children': []
                 }
 
                 # TODO: remove this redundant check after switching to new violation witness format since "bad" edge is artificial.
@@ -260,7 +261,7 @@ class ErrorTrace:
 
                 # Each thread can have its own function call stack.
                 if edge['thread'] not in thread_func_call_stacks:
-                    thread_func_call_stacks[edge['thread']] = list()
+                    thread_func_call_stacks[edge['thread']] = []
 
                 # Add reference to created function call node for corresponding thread node since given function call is
                 # on top of corresponding function call stack.
@@ -302,7 +303,7 @@ class ErrorTrace:
                     if not declarations_node:
                         declarations_node = {
                             'type': 'declarations',
-                            'children': list()
+                            'children': []
                         }
                         declarations_edge = edge
                     declarations_node['children'].append(decl_or_stmt_node)
@@ -359,7 +360,7 @@ class ErrorTrace:
     def add_node(self, node_id):
         if node_id in self._nodes:
             raise ValueError('There is already added node with an identifier {!r}'.format(node_id))
-        self._nodes[node_id] = {'id': node_id, 'in': list(), 'out': list()}
+        self._nodes[node_id] = {'id': node_id, 'in': [], 'out': []}
         return self._nodes[node_id]
 
     def add_edge(self, source, target):
@@ -386,16 +387,15 @@ class ErrorTrace:
             if not file_name.endswith(".aux") and not os.path.isfile(file_name):
                 raise FileNotFoundError("There is no file {!r}".format(file_name))
             self._files.append(file_name)
-            return self.resolve_file_id(file_name)
-        else:
-            return self.resolve_file_id(file_name)
+
+        return self.resolve_file_id(file_name)
 
     def add_function(self, name):
         if name not in self._funcs:
             self._funcs.append(name)
             return len(self._funcs) - 1
-        else:
-            return self.resolve_function_id(name)
+
+        return self.resolve_function_id(name)
 
     def add_action(self, comment, relevant=False):
         if comment not in self._actions:
@@ -410,7 +410,7 @@ class ErrorTrace:
 
     def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
-            self.emg_comments[file] = dict()
+            self.emg_comments[file] = {}
         self.emg_comments[file][line] = data
 
     def resolve_file_id(self, file):
@@ -455,12 +455,12 @@ class ErrorTrace:
                 yield current
             if current is end:
                 return
-            else:
-                current = getter(current)
-                if not current:
-                    return
-                else:
-                    yield current
+
+            current = getter(current)
+            if not current:
+                return
+
+            yield current
 
     def insert_edge_and_target_node(self, edge, after=True):
         new_edge = {
@@ -487,15 +487,17 @@ class ErrorTrace:
             new_node['in'] = [new_edge]
             new_edge['target node'] = new_node
 
-        if 'thread' in new_edge['target node']['out'][0]:
+        if new_edge['target node']['out'] and 'thread' in new_edge['target node']['out'][0]:  # pylint: disable=unsubscriptable-object
             # Keep already set thread identifiers
-            new_edge['thread'] = new_edge['target node']['out'][0]['thread']
+            new_edge['thread'] = new_edge['target node']['out'][0]['thread']  # pylint: disable=unsubscriptable-object
 
         return new_edge
 
-    def is_warning(self, edge):
+    @staticmethod
+    def is_warning(edge):
         if 'notes' in edge:
             return any(note['level'] == 0 for note in edge['notes'])
+        return False
 
     def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
@@ -531,7 +533,7 @@ class ErrorTrace:
         del target
 
     def remove_non_referred_files(self, referred_file_ids):
-        for file_id in range(len(self._files)):
+        for file_id, _ in enumerate(self._files):
             if file_id not in referred_file_ids:
                 # This is not a complete removing. But error traces will not hold absolute paths of files that are not
                 # referred by witness.
@@ -541,15 +543,15 @@ class ErrorTrace:
     def next_edge(edge):
         if len(edge['target node']['out']) > 0:
             return edge['target node']['out'][0]
-        else:
-            return None
+
+        return None
 
     @staticmethod
     def previous_edge(edge):
         if len(edge['source node']['in']) > 0:
             return edge['source node']['in'][0]
-        else:
-            return None
+
+        return None
 
     def find_violation_path(self):
         self._find_violation_path()
@@ -577,7 +579,7 @@ class ErrorTrace:
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
-        emg_comment = re.compile('/\*\sEMG_ACTION\s(.*)\s\*/')
+        emg_comment = re.compile(r'/\*\sEMG_ACTION\s(.*)\s\*/')
 
         for file_id, file in self.files:
             # Files without names are not referred by witness.
@@ -623,15 +625,15 @@ class ErrorTrace:
                                 continue
 
                             if level not in self._notes:
-                                self._notes[level] = dict()
+                                self._notes[level] = {}
                             if file_id not in self._notes[level]:
-                                self._notes[level][file_id] = dict()
+                                self._notes[level][file_id] = {}
                             self._notes[level][file_id][line + 1] = comment
                             self._logger.debug("Get note '{0}' of level '{1}' for statement from '{2}:{3}'"
                                                .format(comment, level, file, line + 1))
                         elif kind == 'ASSERT':
                             if file_id not in self._asserts:
-                                self._asserts[file_id] = dict()
+                                self._asserts[file_id] = {}
                             self._asserts[file_id][line + 1] = comment
                             self._logger.debug(
                                 "Get assertion '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
@@ -660,10 +662,7 @@ class ErrorTrace:
                                 emg_wrapper_id = self.resolve_function_id(comment)
 
                             self.displays[emg_wrapper_id] = "EMG wrapper"
-                            self._logger.debug("Get display '{0}' for EMG wrapper '{1}' from '{2}:{3}'"
-                                               .format(comment, comment, file, line + 1))
-
-        return
+                            self._logger.debug(f"Get display '{comment}' for EMG wrapper '{emg_wrapper_id}' from '{file}:{line+1}'")
 
     def remove_switch_cases(self):
         # Get rid of redundant switch cases. Replace:
@@ -711,7 +710,7 @@ class ErrorTrace:
                     x = m.group(1)
                     continue
                 # Start from scratch if first expression condition differs.
-                elif x != m.group(1):
+                if x != m.group(1):
                     x = None
                     continue
 
@@ -792,13 +791,13 @@ class ErrorTrace:
                 if len(data) == 0:
                     raise ValueError('Unexpected return from function {!r} in thread {}'.
                                      format(self.resolve_function(edge['return']), edge['thread']))
-                elif edge['return'] != data[-1]:
+                if edge['return'] != data[-1]:
                     raise ValueError('Unexpected return from function {!r} in thread {}, expected last entered '
                                      'function {}'.
                                      format(self.resolve_function(edge['return']), edge['thread'],
                                             self.resolve_function(data[-1])))
-                else:
-                    data.pop(-1)
+
+                data.pop(-1)
             if 'enter' in edge:
                 data.append(edge['enter'])
             if 'source' not in edge:

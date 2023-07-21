@@ -18,11 +18,11 @@ import argparse
 import os
 import sys
 
-import klever.scheduler.controller as controller
-import klever.scheduler.schedulers.debug as debug
-import klever.scheduler.schedulers.native as native
-import klever.scheduler.schedulers.verifiercloud as verifiercloud
-import klever.scheduler.utils as utils
+from klever.scheduler import controller
+from klever.scheduler.schedulers import debug
+from klever.scheduler.schedulers import native
+from klever.scheduler.schedulers import verifiercloud
+from klever.scheduler import utils
 
 from klever.scheduler.schedulers import Scheduler
 from klever.scheduler.client import run_benchexec
@@ -57,7 +57,7 @@ def native_scheduler():
     scheduler_impl.launch()
 
 
-def scheduler_client(sys_argv=sys.argv[1:]):
+def scheduler_client(sys_argv=sys.argv[1:]): # pylint: disable=dangerous-default-value
     # Parse configuration
     parser = argparse.ArgumentParser(description='Start cloud Klever scheduler client according to the provided '
                                                  'configuration.')
