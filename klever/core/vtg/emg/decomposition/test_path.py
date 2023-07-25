@@ -67,7 +67,7 @@ def test_eq(path1, path2, path3):
     assert path1 == path2
 
 
-def test_inclusive_path(path1, path2, path3):
+def test_inclusive_path(path1, path2):
     assert path1.included(path2)
 
 

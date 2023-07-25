@@ -15,9 +15,7 @@
 # limitations under the License.
 #
 
-import json
 import os
-import re
 from xml.dom import minidom
 from xml.etree import ElementTree
 

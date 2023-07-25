@@ -35,13 +35,13 @@ import klever.core.utils
 from klever.core.coverage import LCOV
 
 
-@klever.core.components.before_callback
+@klever.core.components.before_callback  # pylint: disable=no-member
 def __launch_sub_job_components(context):
     context.mqs['VRP common attrs'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
-@klever.core.components.after_callback
+@klever.core.components.after_callback  # pylint: disable=no-member
 def __submit_common_attrs(context):
     context.mqs['VRP common attrs'].put(context.common_attrs)
 
@@ -64,7 +64,7 @@ class VRP(klever.core.components.Component):
 
     def process_results(self):
         self.__workers = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
-        self.logger.info(f"Going to start {self.__workers} workers to process results")
+        self.logger.info("Going to start %s workers to process results", self.__workers)
 
         # Do result processing
         klever.core.utils.report(self.logger,
@@ -100,11 +100,11 @@ class VRP(klever.core.components.Component):
         generation_timeout = 1
 
         source_paths = self.conf['working source trees']
-        self.logger.info(f'Source paths to be trimmed file names: {source_paths}')
+        self.logger.info('Source paths to be trimmed file names: %s', source_paths)
 
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
-            self.logger.info(f'Track processing task {str(task_data[1])}')
+            self.logger.info('Track processing task %s', str(task_data[1]))
             self.mqs['processing tasks'].put([status.lower(), task_data, tryattempt, source_paths])
 
         receiving = True
@@ -120,7 +120,7 @@ class VRP(klever.core.components.Component):
                     data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
 
                 if data:
-                    self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
+                    self.logger.info('Received %s items with timeout %s s', len(data), generation_timeout)
                 for item in data:
                     if not item:
                         receiving = False
@@ -170,10 +170,10 @@ class VRP(klever.core.components.Component):
             status, data, attempt, source_paths = element
             pf, _, envmodel, requirement, _, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
-            self.logger.info(f'Receive solution {result_key}')
+            self.logger.info('Receive solution %s', result_key)
             attrs = None
             if attempt:
-                self.logger.info(f'Rescheduling attempt {attempt}')
+                self.logger.info('Rescheduling attempt %s', attempt)
                 new_id = "RP/{}/{}/{}/{}".format(pf, envmodel, requirement, attempt)
                 workdir = os.path.join(pf, envmodel, requirement, str(attempt))
                 attrs = [{
@@ -190,15 +190,15 @@ class VRP(klever.core.components.Component):
                         source_paths=source_paths, element=[status, data])
                 rp.start()
                 rp.join()
-                self.logger.info(f'Successfully processed {result_key}')
+                self.logger.info('Successfully processed %s', result_key)
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed %r, %r failed", pf, requirement)
             finally:
-                self.logger.info(f'Submit solution for {result_key}')
+                self.logger.info('Submit solution for %s', result_key)
                 solution = tuple(self.vals['task solution triples'].get(result_key))
                 del self.vals['task solution triples'][result_key]
                 self.mqs['processed'].put(('Task', tuple(data[1]), solution))
-            self.logger.debug(f'Continue fetching items after processing {result_key}')
+            self.logger.debug('Continue fetching items after processing %s', result_key)
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -215,6 +215,7 @@ class VRP(klever.core.components.Component):
 class RP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
+                 # pylint:disable=unused-argument
                  separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, source_paths=None,
                  element=None):
         # Read this in a callback
@@ -256,7 +257,7 @@ class RP(klever.core.components.Component):
         self.results_key = f'{self.program_fragment_id}:{self.envmodel}:{self.req_spec_id}'
         self.additional_srcs = additional_srcs
         self.verification_task_files = verification_task_files
-        self.logger.debug(f"Process results of task {task_id}")
+        self.logger.debug("Process results of task %s", task_id)
 
         klever.core.utils.save_program_fragment_description(program_fragment_desc, self.files_list_file)
 
@@ -333,7 +334,7 @@ class RP(klever.core.components.Component):
         else:
             error_trace_file = 'error trace.json'
 
-        self.logger.info(f'Write processed witness to "{error_trace_file}"')
+        self.logger.info('Write processed witness to "%s"', error_trace_file)
         with open(error_trace_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(error_trace, fp, self.conf['keep intermediate files'])
 
@@ -403,7 +404,7 @@ class RP(klever.core.components.Component):
             self.verdict = 'safe'
         else:
             witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
-            self.logger.info(f"Found {len(witnesses)} witnesses")
+            self.logger.info("Found %s witnesses", len(witnesses))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".

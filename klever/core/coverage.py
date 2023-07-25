@@ -394,7 +394,7 @@ class JCR(klever.core.components.Component):
                             self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
                             counters[sub_job_id][req_spec_id] = 0
                     else:
-                        self.logger.warning("There is no coverage file %r".
+                        self.logger.warning("There is no coverage file %r",
                                             coverage_info['coverage info file'])
                 elif sub_job_id in total_coverage_infos:
                     self.logger.debug('Calculate total coverage for job %r', sub_job_id)

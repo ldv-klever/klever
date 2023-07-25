@@ -18,7 +18,7 @@ import copy
 
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
-from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
+from klever.core.vtg.emg.common.process.actions import Subprocess
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
 
 

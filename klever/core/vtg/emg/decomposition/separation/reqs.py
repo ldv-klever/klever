@@ -20,7 +20,7 @@ import copy
 from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioCollection
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
-from klever.core.vtg.emg.common.process.actions import Actions, Choice, Operator, Concatenation, BaseAction, \
+from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, BaseAction, \
     Requirements, Savepoint
 
 

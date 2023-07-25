@@ -264,7 +264,7 @@ class OSKleverInstance:
 
             instance.confirm_resize()
             self.logger.info('Resize is confirmed and complete')
-        except Exception as e:
+        except Exception as e:  # pylint:disable=broad-exception-caught
             self.logger.error(e)
 
             instance = self.client.nova.servers.get(instance.id)

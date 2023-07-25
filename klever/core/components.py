@@ -381,7 +381,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # Component working directory will be created in parent process.
         if self.separate_from_parent and not os.path.isdir(self.work_dir):
             self.logger.info(
-                f'Create working directory "{self.work_dir}" for component "{self.name}"')
+                'Create working directory "%s" for component "%s"', self.work_dir, self.name)
             os.makedirs(self.work_dir.encode('utf-8'))
 
         # Actually start process.
@@ -405,7 +405,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         signal.signal(signal.SIGUSR1, self.__stop)
 
         if self.separate_from_parent:
-            self.logger.info(f'Change working directory to "{self.work_dir}" for component "{self.name}"')
+            self.logger.info('Change working directory to "%s" for component "%s"', self.work_dir, self.name)
             os.chdir(self.work_dir)
 
         # Try to launch component.
@@ -429,7 +429,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                          self.conf['main working directory'])
 
             self.main()
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             exception = True
 
             # Print information on exception to logs and as problem description.
@@ -479,7 +479,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                     klever.core.utils.json_dump(count_consumed_resources(self.logger, self.tasks_start_time,
                                                                          self.include_child_resources),
                                                 fp, self.conf['keep intermediate files'])
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             exception = True
             self.logger.exception('Catch exception')
         finally:
@@ -496,7 +496,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             if stopped or exception:
                 # Treat component stopping as normal termination.
                 exit_code = os.EX_SOFTWARE if exception else os.EX_OK
-                self.logger.info(f'Exit with code "{exit_code}"')
+                self.logger.info('Exit with code "%s"', exit_code)
                 # Do not perform any pre-exit operations like waiting for reading filled queues since this can lead to
                 # deadlocks.
                 os._exit(exit_code)
@@ -505,14 +505,14 @@ class Component(multiprocessing.Process, CallbacksCaller):
         return '' if self.separate_from_parent else '[{0}] '.format(self.name)
 
     def stop(self):
-        self.logger.info(f'Stop component "{self.name}"')
+        self.logger.info('Stop component "%s"', self.name)
 
         # We need to send some signal to do interrupt execution of component. Otherwise it will continue its execution.
         os.kill(self.pid, signal.SIGUSR1)
 
         self.join(stopped=True)
 
-    def __stop(self, signum, frame):
+    def __stop(self, signum, frame):  # pylint:disable=unused-argument
         self.logger.info('%s Stop all children', self.__get_subcomponent_name())
         for child in multiprocessing.active_children():
             self.logger.info('%s Stop child "%s"', self.__get_subcomponent_name(), child.name)
@@ -536,12 +536,12 @@ class Component(multiprocessing.Process, CallbacksCaller):
         multiprocessing.Process.join(self, timeout)
 
         if stopped:
-            self.logger.debug(f'Do not panic since component "{self.name}" was stopped by us')
+            self.logger.debug('Do not panic since component "%s" was stopped by us', self.name)
             return 0
 
         # Examine component exit code in parent process.
         if self.exitcode:
-            self.logger.warning(f'Component "{self.name}" exited with "{self.exitcode}"')
+            self.logger.warning('Component "%s" exited with "%s"', self.name, self.exitcode)
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
         return 0

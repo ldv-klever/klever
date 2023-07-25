@@ -23,13 +23,6 @@ from klever.core.vtg.emg.generators.linuxModule.process import ExtendedProcess, 
 class ExtendedProcessDecoder(CollectionDecoder):
 
     PROCESS_CONSTRUCTOR = ExtendedProcess
-    PROCESS_ATTRIBUTES = {
-        'headers': None,
-        'declarations': None,
-        'definitions': None,
-        'source files': 'cfiles',
-        'peers': None
-    }
     ACTION_ATTRIBUTES = {
         'comment': None,
         'parameters': None,
@@ -83,10 +76,10 @@ class ExtendedProcessDecoder(CollectionDecoder):
                                     f' label {name}')
 
             if isinstance(dic['interface'], str):
-                label.set_declaration(dic['interface'], None)
+                label.set_declaration(dic['interface'], None)  # pylint: disable=no-member
             elif isinstance(dic['interface'], list):
                 for string in dic['interface']:
-                    label.set_declaration(string, None)
+                    label.set_declaration(string, None)  # pylint: disable=no-member
             else:
                 raise TypeError('Expect list or string with interface identifier')
 

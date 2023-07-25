@@ -26,18 +26,18 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 
 class StateTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):  # pylint: disable=super-init-not-called
-        raise NotImplementedError('State translator requires update to the newest API which has not been done')
+    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
+        super().__init__(logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa)
+        self.__state_variables = {}
+        self.__state_chains_memoization = {}
+        self.__switchers_cache = {}
+        self.__jump_types = {t for t in [Dispatch, Receive, Block, Subprocess]
+                             if t.__name__ not in get_or_die(conf, 'actions composition')}
 
         # TODO
-        # self.__state_variables = {}
-        # self.__state_chains_memoization = {}
-        # self.__switchers_cache = {}
+        raise NotImplementedError('State translator requires update to the newest API which has not been done')
         #
         # conf.setdefault('actions composition', default_value=[])
-        # self.__jump_types = set([t for t in [Dispatch, Receive, Block, Subprocess]
-        #                          if t.__name__ not in get_or_die(conf, 'actions composition')])
-        # super().__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         checks = []
@@ -54,7 +54,8 @@ class StateTranslator(FSATranslator):
         raise NotImplementedError('State control functions are not designed to be run in separate threads')
 
     def _call_cf_code(self, automaton, parameter='0'):
-        return "{}({});".format(self._control_function(automaton).name, parameter),  # pylint: disable=trailing-comma-tuple
+        return "{}({});".format(self._control_function(automaton).name,
+                                parameter),  # pylint: disable=trailing-comma-tuple
 
     def _dispatch_blocks(self, action, automaton, function_parameters, automata_peers, replicative):
         pre = []
@@ -71,7 +72,7 @@ class StateTranslator(FSATranslator):
 
                     for index in range(len(function_parameters)):
                         # Determine expression
-                        receiver_access = automata_peers[name]['automaton'].process.\
+                        receiver_access = automata_peers[name]['automaton'].process. \
                             resolve_access(r_state.action.parameters[index])
 
                         # Determine var
@@ -207,7 +208,7 @@ class StateTranslator(FSATranslator):
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
-            var = Variable('emg_statevar_{}'.format(automaton.identifier),  'int a')
+            var = Variable('emg_statevar_{}'.format(automaton.identifier), 'int a')
             var.use += 1
             self.__state_variables[automaton.identifier] = var
 
@@ -255,7 +256,7 @@ class StateTranslator(FSATranslator):
 
                 for state in [st for st in sorted(list(state.successors), key=lambda f: f.identifier)
                               if st.identifier not in self.__state_chains_memoization[automaton.identifier]
-                              and st not in blocks_stack]:
+                                 and st not in blocks_stack]:
                     blocks_stack.append(state)
 
         return self.__state_chains_memoization[automaton.identifier]
@@ -322,7 +323,7 @@ class StateTranslator(FSATranslator):
         invoke = '{}()'.format(name)
         self.__switchers_cache[key] = {
             'call': invoke,
-            'function':  func
+            'function': func
         }
         return invoke
 

@@ -358,7 +358,7 @@ class Scenario:
 
         return Process.compatible_with_model(self, model, restrict_to)
 
-    def _broken_defined_processes(self, requirement, processes, model):
+    def _broken_defined_processes(self, requirement, processes, model):  # pylint:disable=unused-argument
         broken = set()
         for name, actions in ((name, process.actions) for name, process in processes.items()):
             if not requirement.compatible(name, actions):

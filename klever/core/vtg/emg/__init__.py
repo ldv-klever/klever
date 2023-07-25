@@ -44,7 +44,7 @@ class EMG(Plugin):
 
         :return: None
         """
-        self.logger.info(f"Start environment model generator {self.id}")
+        self.logger.info("Start environment model generator %s", self.id)
 
         # Initialization of EMG
         self.logger.info("Import results of source analysis")
@@ -82,7 +82,7 @@ class EMG(Plugin):
             data_report["envmodel_attrs"][model.name] = json.dumps(model.attributes, ensure_ascii=True, sort_keys=True,
                                                                    indent=2)
             self.abstract_task_desc.append(new_description)
-            self.logger.info(f"An environment model '{model.attributed_name}' has been generated successfully")
+            self.logger.info("An environment model '%s' has been generated successfully", model.attributed_name)
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')

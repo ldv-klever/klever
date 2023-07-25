@@ -75,7 +75,7 @@ def main():
     # Returns either mode of previous deployment or unchanged value of args.mode
     args.mode = Klever(args, logger).get_deployment_mode()
 
-    logger.info(f'Start execution of action "{args.action}" in "{args.mode}" mode')
+    logger.info('Start execution of action "%s" in "%s" mode', args.action, args.mode)
 
     try:
         if args.mode == 'development':
@@ -85,10 +85,11 @@ def main():
         elif args.mode == 'testing':
             getattr(KleverTesting(args, logger), args.action)()
         else:
-            logger.error(f'Mode "{args.mode}" is not supported')
+            logger.error('Mode "%s" is not supported', args.mode)
             sys.exit(errno.ENOSYS)
     except SystemExit:
-        logger.error(f'Could not execute action "{args.action}" in "{args.mode}" mode (analyze error messages above for details)')
+        logger.error('Could not execute action "%s" in "%s" mode (analyze error messages above for details)',
+                     args.action, args.mode)
         raise
 
-    logger.info(f'Finish execution of action "{args.action}" in "{args.mode}" mode')
+    logger.info('Finish execution of action "%s" in "%s" mode', args.action, args.mode)

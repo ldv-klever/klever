@@ -419,7 +419,7 @@ class Native(runners.TryLessMemoryRunner):
                 # If the user pressed a button in Bridge then we have to trigger signal manually.
                 os.kill(process.pid, signal.SIGTERM)
                 process.join()
-            except Exception as err:
+            except Exception as err:  # pylint:disable=broad-exception-caught
                 self.logger.warning('Cannot terminate process {}: {}'.format(process.pid, err))
         return self._postprocess_solution(identifier, future, mode)
 

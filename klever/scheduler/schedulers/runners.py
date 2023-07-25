@@ -114,7 +114,7 @@ class Runner:
             item["error"] = msg
             return False
 
-    def _prepare_task(self, identifier, description):
+    def _prepare_task(self, identifier, description):  # pylint:disable=unused-argument
         """
         Prepare a working directory before starting the solution.
 
@@ -146,7 +146,7 @@ class Runner:
             item["error"] = msg
             return False
 
-    def _prepare_job(self, identifier, configuration):
+    def _prepare_job(self, identifier, configuration):  # pylint:disable=unused-argument
         """
         Prepare a working directory before starting the solution.
 
@@ -386,7 +386,7 @@ class Runner:
         # Runners must implement the method
         raise NotImplementedError
 
-    def add_job_progress(self, identifier, item, progress):
+    def add_job_progress(self, identifier, item, progress):  # pylint:disable=unused-argument
         """
         Save information about the progress if necessary.
 
@@ -400,7 +400,7 @@ class Runner:
         """Abort solution of all running tasks and any other actions before termination."""
         utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
-    def update_nodes(self, wait_controller=False):
+    def update_nodes(self, wait_controller=False):  # pylint:disable=unused-argument
         """
         Update statuses and configurations of available nodes and push them to the server.
 
@@ -455,7 +455,7 @@ class TryLessMemoryRunner(Runner):
         # Get solution in advance before it is cleaned
         if item["future"].done():
             try:
-                solution = utils.kv_get_solution(self.logger, self.scheduler_type(), identifier)
+                solution = utils.kv_get_solution(self.scheduler_type(), identifier)
                 termination_reason = solution.get("status")
             except RuntimeError as err:
                 self.logger.warning("Cannot get a solution for task {} due to: {}".

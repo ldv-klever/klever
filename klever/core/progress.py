@@ -200,8 +200,8 @@ class PW(klever.core.components.Component):
 
             # Calculate time on each report sending on base of all time and the whole number of tasks/subjobs
             if isinstance(self.total_tasks, int) and isinstance(self.tasks_progress, int):
-                self.logger.info(f"Current tasks progress is {self.tasks_progress}")
-                self.logger.debug(f"Left to solve {self.rest_tasks} tasks of {self.total_tasks} in total")
+                self.logger.info("Current tasks progress is %s", self.tasks_progress)
+                self.logger.debug("Left to solve %s tasks of %s in total", self.rest_tasks, self.total_tasks)
                 task_estimation = self._estimate_time(tasks_start_time, task_update_time, self.solved_tasks,
                                                       self.rest_tasks, self.tasks_progress, given_finish_time)
                 data_report["failed_ts"] = self.failed_tasks
@@ -215,10 +215,10 @@ class PW(klever.core.components.Component):
 
             # Estimate subjobs
             if not self.job_mode and isinstance(self.subjobs_progress, int):
-                self.logger.info(f"Current subjobs progress is {self.subjobs_progress}")
+                self.logger.info("Current subjobs progress is %s", self.subjobs_progress)
                 subjob_estimation = self._estimate_time(subjobs_start_time, subjobs_update_time, self.solved_subjobs,
                                                         self.rest_subjobs, self.subjobs_progress, given_finish_time)
-                self.logger.debug(f"Left to solve {self.rest_subjobs} subjobs of {self.subjobs_number} in total")
+                self.logger.debug("Left to solve %s subjobs of %s in total", self.rest_subjobs, self.subjobs_number)
                 data_report["failed_sj"] = self.failed_subjobs
                 data_report["solved_sj"] = self.solved_subjobs
                 if isinstance(subjob_estimation, int):
@@ -269,7 +269,7 @@ class PW(klever.core.components.Component):
         else:
             ret = 0
 
-        self.logger.info(f"Solution progress: {progress}, time estimation: {ret}")
+        self.logger.info("Solution progress: %s, time estimation: %s", progress, ret)
         return ret
 
     def _send_report(self, report):

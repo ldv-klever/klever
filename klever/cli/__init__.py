@@ -17,10 +17,10 @@ import json
 import logging
 import os
 import re
+import zipfile
 # TODO: this is non-standard dependency while it is not required for all users. So, let's create a separate library!
 import requests
 from requests.adapters import HTTPAdapter
-import zipfile
 
 from klever.cli.utils import get_password
 
@@ -230,7 +230,7 @@ class Cli:
             resp_json = resp.json()
         except Exception as e:
             logging.exception(
-                f"Can't parse JSON response of starting decision request (code {resp.status_code}): {e}"
+                "Can't parse JSON response of starting decision request (code %s): %s", resp.status_code, e
             )
             raise BridgeError("Decision wasn't started") from e
         return resp_json['id'], resp_json['identifier']

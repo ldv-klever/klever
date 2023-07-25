@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import ujson
 import zipfile
+import ujson
 
 
 from klever.core.pfg.abstractions.strategies import Abstract

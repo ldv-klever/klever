@@ -17,7 +17,7 @@
 
 import pytest
 
-from klever.core.vtg.emg.common.process.actions import *
+from klever.core.vtg.emg.common.process.actions import Behaviour, Block, Operator, Savepoint
 
 
 @pytest.fixture

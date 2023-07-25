@@ -212,7 +212,7 @@ class WeaverWorker(klever.core.components.Component):
                 pass
         # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
         outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
-        self.logger.info(f'Weave in C file "{infile}"')
+        self.logger.info('Weave in C file "%s"', infile)
 
         # Produce aspect to be weaved in.
         if 'plugin aspects' in self.extra_cc:
@@ -257,7 +257,7 @@ class WeaverWorker(klever.core.components.Component):
             aspect = None
 
         if aspect:
-            self.logger.info(f'Aspect to be weaved in is "{aspect}"')
+            self.logger.info('Aspect to be weaved in is "%s"', aspect)
         else:
             self.logger.info('C file will be passed through C Back-end only')
 

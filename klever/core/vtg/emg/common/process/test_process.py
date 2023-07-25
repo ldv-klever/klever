@@ -19,7 +19,7 @@ import pytest
 
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Concatenation, Choice, Parentheses
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Concatenation, Choice
 
 
 @pytest.fixture

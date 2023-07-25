@@ -15,11 +15,13 @@
 # limitations under the License.
 #
 
+import argparse
 import os
 import shutil
 import sys
 
-from klever.deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services, get_media_user
+from klever.core.utils import Cd
+from klever.deploys.utils import execute_cmd, get_logger, start_services, stop_services, get_media_user
 
 
 # This function includes common actions for both development and production Klever Bridge.
@@ -106,16 +108,12 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
 
     # Try to add httpd_t to the list of permissive domains.
-    try:
-        execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t')
-    except Exception:
-        pass
+    execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t', hide_errors=True)
 
     start_services(logger, services)
 
 
 def main():
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--development', default=False, action='store_true')

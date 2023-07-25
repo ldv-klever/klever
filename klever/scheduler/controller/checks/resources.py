@@ -33,7 +33,7 @@ def set_data(consul_client, conf):
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-    logging.info(f"Configuration file: {expect_file}")
+    logging.info("Configuration file: %s", expect_file)
 
     # Read node configuration
     with open(expect_file, encoding="utf-8") as fh:

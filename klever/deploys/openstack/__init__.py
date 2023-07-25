@@ -119,12 +119,13 @@ def main(sys_args=sys.argv[1:]): # pylint: disable=dangerous-default-value
         elif args.entity == 'instance' and args.instances > 1:
             getattr(OSKleverInstances(args, logger), args.action)()
         else:
-            logger.error(f'Entity "{args.entity}" is not supported')
+            logger.error('Entity "%s" is not supported', args.entity)
             sys.exit(errno.ENOSYS)
     except SystemExit:
         logger.error(
-            f'Could not execute action "{args.action}" for "{args.entity}" (analyze error messages above for details)'
+            'Could not execute action "%s" for "%s" (analyze error messages above for details)',
+            args.action, args.entity
         )
         raise
 
-    logger.info(f'Finish execution of action "{args.action}" for "{args.entity}"')
+    logger.info('Finish execution of action "%s" for "%s"', args.action, args.entity)

@@ -22,8 +22,6 @@ import os
 import json
 import shutil
 import subprocess
-import queue
-import threading
 import time
 import signal
 import zipfile
@@ -34,53 +32,10 @@ import sys
 from xml.etree import ElementTree
 
 from klever.scheduler.utils import consul
+from klever.core.utils import memory_units_converter, StreamQueue
 
 # This should prevent rumbling of urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-
-class StreamQueue:
-    """
-    Implements queue to work with output stream to catch stderr or stdout.
-    """
-
-    def __init__(self, stream, stream_name, collect_all_output=False):
-        self.stream = stream
-        self.stream_name = stream_name
-        self.collect_all_output = collect_all_output
-        self.queue = queue.Queue()
-        self.finished = False
-        self.traceback = None
-        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
-        self.output = []
-
-    def get(self):
-        try:
-            return self.queue.get_nowait()
-        except queue.Empty:
-            return None
-
-    def join(self):
-        self.thread.join()
-
-    def start(self):
-        self.thread.start()
-
-    def __put_lines_from_stream_to_queue(self):
-        try:
-            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
-            # execution of command will be completed.
-            for line in self.stream:
-                line = line.decode('utf-8').rstrip()
-                self.queue.put(line)
-                if self.collect_all_output:
-                    self.output.append(line)
-
-            # Nothing will be put to queue from now.
-            self.finished = True
-        except Exception:
-            import traceback
-            self.traceback = traceback.format_exc().rstrip()
 
 
 def common_initialization(tool, conf=None):
@@ -139,8 +94,8 @@ def common_initialization(tool, conf=None):
     # Report about the dir
     if clean_dir:
         # Go to the working directory to avoid creating files elsewhere
-        logger.debug(f"Clean working dir: {conf['common']['working directory']}")
-        logger.debug(f"Create working dir: {conf['common']['working directory']}")
+        logger.debug("Clean working dir: %s", conf['common']['working directory'])
+        logger.debug("Create working dir: %s", conf['common']['working directory'])
     else:
         logger.info("Keep working directory from the previous run")
 
@@ -291,7 +246,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
         return True
 
-    def handler(arg1, arg2):
+    def handler(arg1, arg2):  # pylint:disable=unused-argument
         def terminate():
             print("{}: Cancellation of {} is successful, exiting".format(os.getpid(), pid))
             os._exit(-1)
@@ -358,7 +313,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
                                                   '' if len(args) == 1 else ' ',
                                                   ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
-        p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
+        p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)  # pylint:disable=subprocess-popen-preexec-fn
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
         err_q = StreamQueue(p.stderr, 'STDERR', True)
@@ -386,7 +341,8 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
         err_q.join()
     else:
-        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout) # pylint: disable=consider-using-with
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr,  # pylint:disable=subprocess-popen-preexec-fn
+                             stdout=stdout)  # pylint: disable=consider-using-with
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
     p.wait()
@@ -505,91 +461,6 @@ def extract_cpu_cores_info():
     return data
 
 
-def __converter(value, table, kind, outunit):
-    """
-    Converts units to units.
-
-    :param value: Given value as an integer, float or a string with units or without them.
-    :param table: Table to translate units.
-    :param kind: Time of units to print errors.
-    :param outunit: Desired output unit, '' - means base.
-    :return: Return the obtained value and the string of the value with units.
-    """
-    if isinstance(value, str):
-        regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
-        if not regex.search(value):
-            raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
-
-        value, inunit = regex.search(value).groups()
-    else:
-        inunit = ''
-    # Check values
-    for v in (inunit, outunit):
-        if v not in table:
-            raise ValueError("Get unknown {} unit {!r}".format(kind, v))
-
-    # Get number and get bytes
-    value_in_base = float(value) * table[inunit]
-
-    # Than convert bytes into desired value
-    value_in_out = value_in_base / table[outunit]
-
-    # Align if necessary
-    if outunit != '':
-        fvalue = round(float(value_in_out), 2)
-        ivalue = int(round(float(value_in_out), 0))
-        if abs(fvalue - ivalue) < 0.1:
-            value_in_out = ivalue
-        else:
-            value_in_out = fvalue
-    else:
-        value_in_out = int(value_in_out)
-
-    return value_in_out, "{}{}".format(value_in_out, outunit)
-
-
-def memory_units_converter(num, outunit=''):
-    """
-    Translate memory units.
-
-    :param num: Given value as an integer, float or a string with units or without them.
-    :param outunit: Desired output unit, '' - means Bytes.
-    :return: Return the obtained value and the string of the value with units.
-    """
-    units_in_bytes = {
-        '': 1,
-        "B": 1,
-        "KB": 10 ** 3,
-        "MB": 10 ** 6,
-        "GB": 10 ** 9,
-        "TB": 10 ** 12,
-        "KiB": 2 ** 10,
-        "MiB": 2 ** 20,
-        "GiB": 2 ** 30,
-        "TiB": 2 ** 40,
-    }
-
-    return __converter(num, units_in_bytes, 'memory', outunit)
-
-
-def time_units_converter(num, outunit=''):
-    """
-    Translate time units.
-
-    :param num: Given value as an integer, float or a string with units or without them.
-    :param outunit: Desired output unit, '' - means seconds.
-    :return: Return the obtained value and the string of the value with units.
-    """
-    units_in_seconds = {
-        '': 1,
-        "s": 1,
-        "min": 60,
-        "h": 60 ** 2
-    }
-
-    return __converter(num, units_in_seconds, 'time', outunit)
-
-
 def kv_upload_solution(logger, identifier, scheduler_type, dataset):
     """
     Upload data to controller storage.
@@ -608,11 +479,10 @@ def kv_upload_solution(logger, identifier, scheduler_type, dataset):
         logger.warning("Cannot save key {!r} to key-value storage".format(key))
 
 
-def kv_get_solution(logger, scheduler_type, identifier):
+def kv_get_solution(scheduler_type, identifier):
     """
     Upload data to controller storage.
 
-    :param logger: Logger object.
     :param scheduler_type: Type of the scheduler to avoid races.
     :param identifier: Task identifier.
     :return: None

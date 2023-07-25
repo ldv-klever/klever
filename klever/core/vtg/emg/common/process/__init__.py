@@ -18,8 +18,8 @@
 import re
 import copy
 import string
-import graphviz
 import collections
+import graphviz
 import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
@@ -270,12 +270,11 @@ class Process:
         return {peer: registrations.intersection(signals) for peer, signals in self.peers.items()
                 if registrations.intersection(signals)}
 
-    def resolve_access(self, access, interface=None):
+    def resolve_access(self, access):
         """
         Get a string access and return a matching list of Access objects.
 
         :param access: String access like "%mylabel%".
-        :param interface: process interface
         :return: List with Access objects.
         """
         if isinstance(access, Label):

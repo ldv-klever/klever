@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import argparse
 import errno
 import json
 import logging
@@ -134,7 +135,6 @@ def load_deps_conf(logger):
 
 
 def main():
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment-configuration-file', default='klever.json')

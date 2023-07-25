@@ -77,7 +77,7 @@ def __extract_implementations(logger, collection, sa):
                 # Actually we does not expect several declarations specific for containers
                 entity['category'] = i.category
             entities.append(entity)
-    __import_entities(collection, sa, entities)
+    __import_entities(collection, entities)
 
     logger.info("Search for callbacks provided as parameters")
     for name, obj, in ((name, obj) for name in sa.source_functions for obj in sa.get_source_functions(name)):
@@ -123,7 +123,7 @@ def check_relevant_interface(collection, declaration, category, connector):
     return (collection.get_intf(i) for i in children)
 
 
-def __import_entities(collection, sa, entities):
+def __import_entities(collection, entities):
     def determine_category(e, decl):
         c = None
         if 'category' in e:

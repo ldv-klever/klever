@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 
-import requests
 import time
 import zipfile
+import requests
 
 
 class UnexpectedStatusCode(IOError):
@@ -113,7 +113,6 @@ class Session:
         :param archive: Path to save the archive.
         :return: True
         """
-        ret = True
         while True:
             resp = None
             try:
@@ -131,8 +130,7 @@ class Session:
             finally:
                 if resp:
                     resp.close()
-
-        return ret
+        return True
 
     def push_archive(self, endpoint, data, archive):
         """

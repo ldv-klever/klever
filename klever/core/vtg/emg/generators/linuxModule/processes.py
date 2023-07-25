@@ -678,7 +678,7 @@ def __resolve_accesses(logger, chosen, interfaces):
         process.accesses(accesses)
 
 
-def __resolve_interface(logger, interfaces, interface, tail_string):
+def __resolve_interface(logger, interfaces, interface, tail_string):  # pylint:disable=unused-argument
     tail = tail_string.split(".")
     # todo: get rid of leading dot and support arrays
     if len(tail) == 1:

@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import argparse
 import json
 import os
 
@@ -159,7 +160,6 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
 
 
 def main():
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--development', default=False, action='store_true')

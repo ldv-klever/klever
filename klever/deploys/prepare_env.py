@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import argparse
 import errno
 import glob
 import os
@@ -33,11 +34,8 @@ def prepare_env(logger, deploy_dir):
     except subprocess.CalledProcessError:
         logger.debug('User "klever" already exists')
 
-    try:
-        logger.debug('Obtain execute access to {!r} home directory'.format(os.getlogin()))
-        execute_cmd(logger, 'chmod', 'o+x', os.path.join('/', 'home', os.getlogin()))
-    except Exception:
-        pass
+    logger.debug('Obtain execute access to {!r} home directory'.format(os.getlogin()))
+    execute_cmd(logger, 'chmod', 'o+x', os.path.join('/', 'home', os.getlogin()), hide_errors=True)
 
     logger.debug('Prepare configurations directory')
     execute_cmd(logger, 'mkdir', os.path.join(deploy_dir, 'klever-conf'))
@@ -118,7 +116,6 @@ def prepare_env(logger, deploy_dir):
 
 
 def main():
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment-directory', default='klever-inst')

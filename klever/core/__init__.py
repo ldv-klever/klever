@@ -17,5 +17,5 @@
 
 
 def main():
-    import klever.core.core
+    import klever.core.core  # pylint:disable=import-outside-toplevel
     return klever.core.core.Core().main()

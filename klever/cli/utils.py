@@ -17,7 +17,6 @@
 
 import getpass
 import logging
-import os
 import subprocess
 import sys
 
@@ -57,41 +56,3 @@ def get_password(password):
 
     print(PROMPT, end='', flush=True)
     return sys.stdin.readline().rstrip()
-
-
-def make_relative_path(dirs, file_or_dir, absolutize=False):
-    # Normalize paths first of all.
-    dirs = [os.path.normpath(d) for d in dirs]
-    file_or_dir = os.path.normpath(file_or_dir)
-
-    # Check all dirs are absolute or relative.
-    is_dirs_abs = False
-    if all(os.path.isabs(d) for d in dirs):
-        is_dirs_abs = True
-    elif all(not os.path.isabs(d) for d in dirs):
-        pass
-    else:
-        raise ValueError('Can not mix absolute and relative dirs')
-
-    if os.path.isabs(file_or_dir):
-        # Making absolute file_or_dir relative to relative dirs has no sense.
-        if not is_dirs_abs:
-            return file_or_dir
-    else:
-        # One needs to absolutize file_or_dir since it can be relative to Clade storage.
-        if absolutize:
-            if not is_dirs_abs:
-                raise ValueError('Do not absolutize file_or_dir for relative dirs')
-
-            file_or_dir = os.path.join(os.path.sep, file_or_dir)
-        # file_or_dir is already relative.
-        elif is_dirs_abs:
-            return file_or_dir
-
-    # Find and return if so path relative to the longest directory.
-    for d in sorted(dirs, key=len, reverse=True):
-        # TODO: commonpath was supported just in Python 3.5.
-        if os.path.commonpath([file_or_dir, d]) == d:
-            return os.path.relpath(file_or_dir, d)
-
-    return file_or_dir

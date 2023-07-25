@@ -248,14 +248,14 @@ class Declaration:
                 if self.str_without_specifiers == 'void *' or other.str_without_specifiers == 'void *':
                     return True
                 if isinstance(self, Pointer):
-                    return self.points == other.points
+                    return self.points == other.points  # pylint: disable=no-member
                 if isinstance(self, Array):
                     # Compare children to avoid comparing sizes
-                    return self.element == other.element
+                    return self.element == other.element  # pylint: disable=no-member
                 if isinstance(self, Function):
-                    return self.return_value == other.return_value and \
-                        len(self.parameters) == len(other.parameters) and \
-                        all(x == y for x, y in zip(self.parameters, other.parameters))
+                    # pylint: disable=no-member
+                    return self.return_value == other.return_value and len(self.parameters) == len(other.parameters) and \
+                        all(x == y for x, y in zip(self.parameters, other.parameters))  # pylint: disable=no-member
             return False
         if isinstance(other, str):
             me = self.str_without_specifiers
@@ -322,7 +322,7 @@ class Declaration:
         :param alias: Declaration object.
         :return: Declaration object.
         """
-        if isinstance(self, Pointer) and self.points == alias:
+        if isinstance(self, Pointer) and self.points == alias:   # pylint: disable=no-member
             return self
         if isinstance(alias, Pointer) and self == alias.points:
             return alias

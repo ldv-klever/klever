@@ -17,16 +17,17 @@
 
 import os
 import time
-import pika
 import queue
 import logging
 import traceback
 import threading
 import sys
+import pika
 
+from klever.core.utils import time_units_converter
 from klever.scheduler.server import Server
 from klever.scheduler.utils.bridge import BridgeError
-from klever.scheduler.utils import sort_priority, time_units_converter, memory_units_converter
+from klever.scheduler.utils import sort_priority, memory_units_converter
 
 
 class SchedulerException(RuntimeError):
@@ -302,14 +303,16 @@ class Scheduler:
                 # Submit tools
                 try:
                     self.runner.update_tools()
-                except Exception as err:
+                except Exception as err:  # pylint:disable=broad-exception-caught
+                    # Not sure, if there is any exception possible
                     self.logger.warning('Cannot submit verification tools information: {}'.format(err))
 
                 # Get actual information about connected nodes
                 submit = True
                 try:
                     self.runner.update_nodes()
-                except Exception as err:
+                except Exception as err:  # pylint:disable=broad-exception-caught
+                    # Not sure, if there is any exception possible
                     self.logger.error("Cannot obtain information about connected nodes: {}".format(err))
                     submit = False
                     self.logger.warning("Do not run tasks until actual information about the nodes will be obtained")
@@ -391,7 +394,7 @@ class Scheduler:
                 self._listening_thread.stop()
                 self._listening_thread.join()
                 sys.exit(137)
-            except Exception:
+            except Exception:  # pylint:disable=broad-exception-caught
                 exception_info = 'An error occurred:\n{}'.format(traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
                 self.terminate()

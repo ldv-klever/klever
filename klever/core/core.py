@@ -20,11 +20,11 @@ import json
 import hashlib
 import multiprocessing
 import os
-import pkg_resources
 import shutil
 import time
 import traceback
 import queue
+import pkg_resources
 
 import klever.core.job
 import klever.core.session
@@ -98,7 +98,7 @@ class Core(klever.core.components.CallbacksCaller):
                 'report id': self.report_id,
                 'coverage_finished': multiprocessing.Manager().dict()
             })
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             self.process_exception()
 
             if self.mqs:
@@ -121,7 +121,7 @@ class Core(klever.core.components.CallbacksCaller):
                             self.report_id,
                             self.conf['main working directory']
                         )
-                except Exception:
+                except Exception:  # pylint: disable=broad-exception-caught
                     self.process_exception()
         finally:
             try:
@@ -160,7 +160,7 @@ class Core(klever.core.components.CallbacksCaller):
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 self.process_exception()
 
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
@@ -172,7 +172,7 @@ class Core(klever.core.components.CallbacksCaller):
                     shutil.rmtree(os.path.abspath('.'))
 
                 if self.logger:
-                    self.logger.info(f'Exit with code "{self.exit_code}"')
+                    self.logger.info('Exit with code "%s"', self.exit_code)
 
         return self.exit_code
 

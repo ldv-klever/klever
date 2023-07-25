@@ -17,8 +17,8 @@
 
 import copy
 import json
-import pytest
 import logging
+import pytest
 
 from klever.core.vtg.emg.common.process import ProcessCollection, ProcessDescriptor
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
@@ -36,7 +36,7 @@ def raw_model():
 
 
 @pytest.fixture()
-def model(source, raw_model):
+def model():
     return model_preset()
 
 

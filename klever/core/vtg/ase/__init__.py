@@ -44,11 +44,11 @@ class ASE(klever.core.vtg.plugins.Plugin):
             arg_signs = None
 
             if os.path.isfile(arg_signs_file):
-                self.logger.info(f'Process obtained argument signatures from file "{arg_signs_file}"')
+                self.logger.info('Process obtained argument signatures from file "%s"', arg_signs_file)
                 # We could obtain the same argument signatures, so remove duplicates.
                 with open(arg_signs_file, encoding='utf-8') as fp:
                     arg_signs = set(fp.read().splitlines())
-                self.logger.debug(f'Obtain following argument signatures "{arg_signs}"')
+                self.logger.debug('Obtain following argument signatures "%s"', arg_signs)
 
             # Convert each argument signature (that is represented as C identifier) into:
             # * the same identifier but with leading "_" for concatenation with other identifiers ("_" allows to
@@ -77,14 +77,14 @@ class ASE(klever.core.vtg.plugins.Plugin):
         for request_aspect in self.conf['request aspects']:
             request_aspect = klever.core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                                     request_aspect)
-            self.logger.debug(f'Request aspect is "{request_aspect}"')
+            self.logger.debug('Request aspect is "%s"', request_aspect)
 
             for grp in self.abstract_task_desc['grps']:
                 self.logger.info('Request argument signatures for C files of group "%s"', grp['id'])
 
                 for extra_cc in grp['Extra CCs']:
                     infile = extra_cc['in file']
-                    self.logger.info(f'Request argument signatures for C file "{infile}"')
+                    self.logger.info('Request argument signatures for C file "%s"', infile)
 
                     cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
 

@@ -24,7 +24,7 @@ import tempfile
 
 
 from klever.cli.build.make import MakeProgram
-from klever.cli.utils import make_relative_path
+from klever.core.utils import make_relative_path
 
 
 class Linux(MakeProgram):

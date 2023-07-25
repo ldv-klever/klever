@@ -17,12 +17,12 @@
 
 import errno
 import os
-import paramiko
 import subprocess
 import sys
 import tarfile
 import time
 import zipfile
+import paramiko
 
 from klever.deploys.utils import execute_cmd, get_password
 from klever.deploys.openstack.conf import OS_USER
@@ -71,7 +71,7 @@ class SSH:
             try:
                 self.ssh.connect(hostname=self.floating_ip, username=self.args.ssh_username, pkey=k)
                 return self
-            except Exception:
+            except Exception:  # pylint:disable=broad-exception-caught
                 attempts -= 1
                 self.logger.info('Could not open SSH session, wait for {0} seconds and try {1} times more'
                                  .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))

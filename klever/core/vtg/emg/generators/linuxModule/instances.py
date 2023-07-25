@@ -240,7 +240,7 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
     param_identifiers = id_generator()
     action_identifiers = id_generator()
     for action in list(process.actions.filter(include={Call})):
-        _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers,
+        _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers,
                                 param_identifiers)
 
     # Process rest code
@@ -341,13 +341,12 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
         del process.labels[label]
 
 
-def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers,
+def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers,
                             param_identifiers):
     """
     This function takes an extended Process and converts the given Call action into a Condition object as a part of
     translation of an extended Process into a common one.
 
-    :param logger: Logger object.
     :param conf: Configuration dictionary.
     :param sa: Source object.
     :param interfaces: Interfaces collection.

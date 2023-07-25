@@ -133,7 +133,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 else:
                     model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                         self.logger, self.conf['main working directory'], model_c_file)
-                    self.logger.debug(f'Get model with C file "{model_c_file_realpath}"')
+                    self.logger.debug('Get model with C file "%s"', model_c_file_realpath)
                     add_model(model, model_c_file_realpath)
 
         # Like for models above.

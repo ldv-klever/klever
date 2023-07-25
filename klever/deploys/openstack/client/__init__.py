@@ -208,7 +208,7 @@ class OSClient:
             with open(self.password_file, 'r') as fp:
                 password = fp.read()
             self.logger.info(f'Use password from "{self.password_file}" file')
-        except Exception:
+        except Exception:  # pylint:disable=broad-exception-caught
             password = get_password(self.logger, 'OpenStack password for authentication: ')
 
         auth = keystoneauth1.identity.v3.Password(

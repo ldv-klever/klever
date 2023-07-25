@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import logging
 import glob
 import json
 import os
@@ -24,8 +25,9 @@ import zipfile
 import shutil
 import re
 
+from klever.core.utils import time_units_converter
 from klever.scheduler.server import Server
-from klever.scheduler.utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
+from klever.scheduler.utils import execute, process_task_results, submit_task_results, memory_units_converter
 from klever.scheduler.client.options import adjust_options
 
 
@@ -39,7 +41,6 @@ def run_benchexec(mode, file=None, configuration=None):
     :param configuration: The configuration dictionary. Do not set the option alongside with the file one.
     :return: It always exits at the end.
     """
-    import logging
 
     if configuration and file:
         raise ValueError('Provide either file or configuration string')
@@ -95,7 +96,7 @@ def run_benchexec(mode, file=None, configuration=None):
     srv = None
     exit_code = 0
     try:
-        logger.info(f"Going to solve a verification {mode} with identifier {conf['identifier']}")
+        logger.info("Going to solve a verification %s with identifier %s", mode, conf['identifier'])
         if mode == "task":
             srv = Server(logger, conf["Klever Bridge"], os.curdir)
             srv.register()
@@ -109,7 +110,7 @@ def run_benchexec(mode, file=None, configuration=None):
     finally:
         if not isinstance(exit_code, int):
             exit_code = 1
-        logger.info(f"Exiting with exit code {str(exit_code)}")
+        logger.info("Exiting with exit code %s", str(exit_code))
         os._exit(exit_code)
 
 

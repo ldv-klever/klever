@@ -124,7 +124,7 @@ class OSInstance:
                                  .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
                 self.remove(instance)
-            except Exception:
+            except Exception:  # pylint:disable=broad-exception-caught
                 attempts -= 1
                 # Give a chance to see information on this exception for handling it one day.
                 self.logger.exception('Please, handle me!')
@@ -232,7 +232,7 @@ class OSInstance:
                     f' and try {attempts} times more'
                 )
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
-            except Exception:
+            except Exception:  # pylint:disable=broad-exception-caught
                 attempts -= 1
                 # Give a chance to see information on this exception for handling it one day.
                 self.logger.exception('Please, handle me!')

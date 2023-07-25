@@ -55,7 +55,7 @@ class TR(klever.core.vtg.plugins.Plugin):
             )
 
             for tmpl in self.conf['templates']:
-                self.logger.info(f'Render template "{tmpl}"')
+                self.logger.info('Render template "%s"', tmpl)
 
                 # It is assumed that all templates have suffix ".tmpl" and some meaningful suffix before it, e.g. ".c"
                 # or ".aspect". Rendered templates will be stored into files without suffix ".tmpl" and one will be able
@@ -71,7 +71,7 @@ class TR(klever.core.vtg.plugins.Plugin):
                 self.abstract_task_desc['files'].append(
                     os.path.relpath(file, self.conf['main working directory']))
 
-                self.logger.debug(f'Rendered template was stored into file "{file}"')
+                self.logger.debug('Rendered template was stored into file "%s"', file)
 
             self.abstract_task_desc.pop('template context')
 

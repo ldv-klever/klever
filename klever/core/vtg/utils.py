@@ -17,9 +17,8 @@
 
 import os
 
-import klever.core.utils
-
 from clade.extensions.opts import filter_opts
+import klever.core.utils
 
 
 def define_arch_dependent_macro(conf):

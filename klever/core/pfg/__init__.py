@@ -72,7 +72,7 @@ class PFG(klever.core.components.Component):
         self.prepare_descriptions_file(pairs)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
         self.excluded_clean.append(attr_data[1])
-        self.logger.debug(f"Excluded {', '.join(self.excluded_clean)}")
+        self.logger.debug("Excluded %s", ', '.join(self.excluded_clean))
         self.clean_dir = True
 
     main = generate_program_fragments

@@ -20,25 +20,14 @@ import getpass
 import json
 import logging
 import os
-import pkg_resources
 import pwd
 import subprocess
 import sys
+import pkg_resources
 
 
-class Cd:
-    def __init__(self, path):
-        self.new_path = path
-        self.prev_path = os.getcwd()
-
-    def __enter__(self):
-        os.chdir(self.new_path)
-
-    def __exit__(self, etype, value, traceback):
-        os.chdir(self.prev_path)
-
-
-def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None, keep_stdout=False):
+def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None, keep_stdout=False,
+                hide_errors=False):
     logger.debug('Execute command "{0}"'.format(' '.join(args)))
 
     # Do not print output by default.
@@ -63,10 +52,14 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
         pw_record = pwd.getpwnam(username)
         kwargs['preexec_fn'] = demote(pw_record.pw_uid, pw_record.pw_gid)
 
-    if get_output:
-        return subprocess.check_output(args, **kwargs).decode('utf-8')
+    try:
+        if get_output:
+            return subprocess.check_output(args, **kwargs).decode('utf-8')
 
-    subprocess.check_call(args, stdout=stdout, **kwargs)
+        subprocess.check_call(args, stdout=stdout, **kwargs)
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        if not hide_errors:
+            raise e
 
 
 def check_deployment_configuration_file(logger, deploy_conf_file):

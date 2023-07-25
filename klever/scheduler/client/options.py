@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from xml.etree import ElementTree
-
 
 def adjust_options(file, conf):
     """
@@ -31,7 +29,7 @@ def adjust_options(file, conf):
         cpa_adjustment(file, conf)
 
 
-def cpa_adjustment(file, conf):
+def cpa_adjustment(file, conf):  # pylint:disable=unused-argument
     """
     This function adds fixes to configuration.
 

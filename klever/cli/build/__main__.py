@@ -207,8 +207,8 @@ def main(args=sys.argv[1:]): # pylint: disable=dangerous-default-value
         all_desc_paths.extend(desc_paths)
 
         if not desc_paths:
-            logger.error(f'There are no JSONs corresponding to the specified description pattern {desc_name_pattern}')
-            logger.error(f'Target program descriptions are stored in the {get_descs_dir()} directory')
+            logger.error('There are no JSONs corresponding to the specified description pattern %s', desc_name_pattern)
+            logger.error('Target program descriptions are stored in the %s directory', get_descs_dir())
             sys.exit(-1)
 
     import_build_modules()
@@ -218,7 +218,7 @@ def main(args=sys.argv[1:]): # pylint: disable=dangerous-default-value
         with open(desc_path, 'r', encoding='utf-8') as fp:
             descs = json.load(fp)
 
-        logger.info(f'Use "{get_desc_name(desc_path)}" description')
+        logger.info('Use "%s" description', get_desc_name(desc_path))
         for desc in descs:
             desc['description directory'] = os.path.dirname(desc_path)
             desc['build base'] = os.path.abspath(os.path.join(args.output, desc['build base']))

@@ -48,7 +48,7 @@ class BaseAction:
 
     my_operator = OperatorDescriptor()
 
-    def __new__(cls, *args, **kwards):
+    def __new__(cls, *args, **kwards):  # pylint:disable=unused-argument
         # This is required to do deepcopy
         self = super().__new__(cls)
         self.my_operator = None

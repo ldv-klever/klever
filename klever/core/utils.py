@@ -32,6 +32,7 @@ import shutil
 import resource
 import random
 import string
+import traceback
 
 
 class Cd:
@@ -115,8 +116,7 @@ class StreamQueue:
 
             # Nothing will be put to queue from now.
             self.finished = True
-        except Exception:
-            import traceback
+        except Exception:  # pylint: disable=broad-exception-caught
             self.traceback = traceback.format_exc().rstrip()
 
 
@@ -617,7 +617,7 @@ def unique_file_name(file_name, suffix=''):
 
 def __converter(value, table, kind, outunit):
     """
-    Converts units to uits.
+    Converts units to units.
 
     :param value: Given value as an integer, float or a string with units or without them.
     :param table: Table to translate units.

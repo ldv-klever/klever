@@ -190,7 +190,7 @@ def run_consul(conf, logger, work_dir, config_file):
 
     process = None
 
-    def handler(signum, frame):
+    def handler(signum, frame):  # pylint:disable=unused-argument
         if process:
             process.send_signal(signum)
 

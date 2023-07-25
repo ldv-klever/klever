@@ -15,11 +15,12 @@
 
 import os
 import json
-import setuptools_scm
 import shutil
 import tempfile
+import setuptools_scm
 
-from klever.deploys.utils import Cd, execute_cmd
+from klever.core.utils import Cd
+from klever.deploys.utils import execute_cmd
 from klever.deploys.openstack.conf import STORAGE
 
 

@@ -18,7 +18,6 @@
 import os
 import re
 import sys
-import yaml
 import glob
 import uuid
 import json
@@ -27,6 +26,7 @@ import traceback
 import collections
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
+import yaml
 
 from klever.scheduler import schedulers
 from klever.scheduler.schedulers import runners
@@ -160,7 +160,7 @@ class VerifierCloud(runners.Runner):
         web_client_location = os.path.join(self.conf["scheduler"]["web client location"])
         self.logger.debug("Add to PATH web client location {0}".format(web_client_location))
         sys.path.append(web_client_location)
-        from webclient import WebInterface
+        from webclient import WebInterface  # pylint: disable=import-outside-toplevel
         self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
         self.__tasks = {}
@@ -194,7 +194,7 @@ class VerifierCloud(runners.Runner):
         # This is not reliable library as it is developed separately of Schedulers
         try:
             self.wi.shutdown()
-        except Exception:
+        except Exception:  # pylint:disable=broad-exception-caught
             self.logger.warning("Web interface wrapper raised an exception: \n{}".
                                 format(traceback.format_exc().rstrip()))
 

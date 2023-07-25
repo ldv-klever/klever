@@ -106,7 +106,7 @@ class Klever:
 
         try:
             version = get_klever_version()
-        except Exception:
+        except (ValueError, TypeError):
             self.logger.exception('Could not get Klever version')
             version = ''
 
@@ -476,10 +476,7 @@ class Klever:
             pass
 
         # Try to remove httpd_t from the list of permissive domains.
-        try:
-            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t', stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
+        execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t', stderr=subprocess.DEVNULL, hide_errors=True)
 
     def _post_install_or_update(self, is_dev=False):
         configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,

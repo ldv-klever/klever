@@ -17,9 +17,9 @@
 
 import json
 import os
-import requests
 import time
 import zipfile
+import requests
 
 
 class UnexpectedStatusCode(IOError):

@@ -554,7 +554,7 @@ class Job(klever.core.components.Component):
         self.component_processes = []
 
     def decide_job_or_sub_job(self):
-        self.logger.info(f'Decide job/sub-job "{self.id}"')
+        self.logger.info('Decide job/sub-job "%s"', self.id)
 
         # This is required to associate verification results with particular sub-jobs.
         # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
@@ -565,7 +565,7 @@ class Job(klever.core.components.Component):
             spec_set = self.common_components_conf['specifications set']
         else:
             raise KeyError('Specify attribute "specifications set" within job.json')
-        self.logger.debug(f'Specifications set is "{spec_set}"')
+        self.logger.debug('Specifications set is "%s"', spec_set)
 
         # Check that specifications set is supported.
         with open(self.common_components_conf['specifications base'], encoding='utf-8') as fp:
@@ -692,7 +692,7 @@ class Job(klever.core.components.Component):
                         if not in_file.startswith('/tmp') and in_file != '/dev/null':
                             in_files.append(os.path.join(cmd['cwd'], in_file))
             in_files_prefix = os.path.dirname(os.path.commonprefix(in_files))
-            self.logger.info(f'Common prefix of CC/CL input files is "{in_files_prefix}"')
+            self.logger.info('Common prefix of CC/CL input files is "%s"', in_files_prefix)
 
             out_files = []
             for cmd in self.clade.get_all_cmds_by_type("LD") + self.clade.get_all_cmds_by_type("Link"):
@@ -702,7 +702,7 @@ class Job(klever.core.components.Component):
                         if not out_file.startswith('/tmp') and out_file != '/dev/null':
                             out_files.append(os.path.join(cmd['cwd'], out_file))
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
-            self.logger.info(f'Common prefix of LD/Link output files is "{out_files_prefix}"')
+            self.logger.info('Common prefix of LD/Link output files is "%s"', out_files_prefix)
 
             # Meaningful paths look like "/dir...".
             meaningful_paths = []
@@ -853,7 +853,7 @@ class Job(klever.core.components.Component):
             os.remove('original sources.zip')
 
     def __get_job_or_sub_job_components(self):
-        self.logger.info(f'Get components for sub-job "{self.id}"')
+        self.logger.info('Get components for sub-job "%s"', self.id)
 
         self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component)
                            for component in self.CORE_COMPONENTS]
@@ -863,7 +863,7 @@ class Job(klever.core.components.Component):
 
     def launch_sub_job_components(self):
         """Has callbacks"""
-        self.logger.info(f'Launch components for sub-job "{self.id}"')
+        self.logger.info('Launch components for sub-job "%s"', self.id)
 
         for component in self.components:
             p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,

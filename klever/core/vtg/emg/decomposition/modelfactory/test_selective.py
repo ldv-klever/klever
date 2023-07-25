@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import pytest
 import logging
+import pytest
 from klever.core.vtg.emg.decomposition.separation.reqs import ReqsStrategy
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy

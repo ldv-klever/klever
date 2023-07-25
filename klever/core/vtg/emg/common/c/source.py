@@ -245,7 +245,7 @@ class Source:
         self._source_vars = sortedcontainers.SortedDict()
         self._macros = sortedcontainers.SortedDict()
 
-    def dump(self, var_file, func_file, macro_file):
+    def dump(self, var_file, func_file, macro_file):  # pylint:disable=unused-argument
         with open(var_file, 'w', encoding='utf-8') as fp:
             ujson.dump({k: {f: v.declare_with_init() for f, v in fs.items()} for k, fs in self._source_vars.items()},
                        fp, indent=2, sort_keys=True)
