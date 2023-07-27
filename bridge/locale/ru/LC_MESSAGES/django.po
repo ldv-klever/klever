@@ -1554,6 +1554,25 @@ msgstr "Обработка результатов"
 msgid "Resource limits for Klever Core"
 msgstr "Ограничения на ресурсы для Klever Core"
 
+msgid "Number of threads in EMG thread pool. Launched for each job"
+msgstr "Число параллельных запусков EMG. Запускаются для каждой задачи"
+
+msgid "Plugins"
+msgstr "Плагины"
+
+msgid "Number of threads in Plugins thread pool (includes RSG, ASE, TR, Weaver, FVTP(CIL) components)."
+msgstr "Число параллельных запусков плагинов (включают компоненты RSG, ASE, TR, Weaver, FVTP(CIL))"
+
+msgid "Launched for each Job"
+msgstr "Запускаются для каждой задачи"
+
+msgid "Number of threads in CIF thread pools. Launched for each Weaver component"
+msgstr "Число параллельных запусков CIF. Запускаются внутри каждого компонента Weaver"
+
+msgid "Number of threads in Result processor thread pool. Launched for each Job"
+msgstr "Число параллельных запусков Result processor. Запускаются для каждой задачи"
+
+
 #: jobs/templates/jobs/startDecision.html:123
 #: jobs/templates/jobs/viewDecision/configuration.html:41
 #: reports/templates/reports/ReportSafe.html:93

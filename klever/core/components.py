@@ -179,7 +179,7 @@ def launch_workers(logger, workers, monitoring_list=None):
     logger.info('All components finished')
 
 
-def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, monitoring_list=None,
+def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant, monitoring_list=None,
                          sleep_interval=1):
     """
     Blocking function that run given number of workers processing elements of particular queue.
@@ -187,18 +187,28 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     :param logger: Logger object.
     :param queue: multiprocessing.Queue
     :param constructor: Function that gets element and returns Component
-    :param number: Max number of simultaneously working workers
+    :param max_threads: Max number of simultaneously running workers (may be specified as a list for different components).
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
                             them fails then we should also terminate the rest workers.
     :param sleep_interval: Interval between workers check in seconds.
     :return: 0 if all workers finish successfully and 1 otherwise.
     """
-    logger.info("Start children set with {!r} workers".format(number))
     active = True
     elements = []
     components = []
     ret = 0
+    if isinstance(max_threads, list):
+        # If we specify max_threads as a list, then maximum number of parallel running threads will
+        # be changed dynamically. For example, if a thread pool is used for different components,
+        # its size may vary depending on which components are used. In such a case, the number
+        # should be changed later during thread pool main loop iteration.
+        number = max_threads[0]
+        is_agile_threads = True
+    else:
+        number = max_threads
+        is_agile_threads = False
+    logger.info("Start children set with {!r} workers".format(number))
     is_limit_cores_globally = False
     try:
         while True:
@@ -225,6 +235,13 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                 used_cores = len(components)
                 reserve_workers_cpu_cores(used_cores)
                 logger.debug(f"Reserve {used_cores} cores for tasks preparation")
+                if is_agile_threads:
+                    # Do not fail if we got list with only one element
+                    if len(max_threads) >= 2:
+                        number = max_threads[1]
+                    is_agile_threads = False
+                    logger.info("Change number of workers to {!r}".format(number))
+
             # Wait for components termination
             finished = 0
             # Because we use i for deletion we always delete the element near the end to not break order of
@@ -264,7 +281,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
             if len(components) == 0 and len(elements) == 0:
                 if not active:
                     break
-
+            if len(components) >= number or len(elements) == 0:
+                # sleep if thread pool is full or there are no new elements
                 time.sleep(sleep_interval)
     finally:
         for p in components:

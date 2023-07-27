@@ -519,11 +519,12 @@ class VTGWL(klever.core.components.Component):
         self.req_spec_classes = REQ_SPEC_CLASSES
 
     def task_generating_loop(self):
-        number = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        emg_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'EMG')
+        plugins_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Plugins')
 
-        self.logger.info("Start EMG workers")
-        klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'],
-                                                    self.factory, number, True)
+        self.logger.info("Start %s EMG workers, %s Plugins workers", emg_threads, plugins_threads)
+        klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'], self.factory,
+                                                    [emg_threads, plugins_threads], True)
         self.logger.info("Terminate VTGL worker")
 
     def factory(self, item):

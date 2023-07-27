@@ -95,22 +95,45 @@
             <input class="parallelism-values" id="parallelism_0" type="text" value="{{ data.conf.parallelism.0 }}">
         </div>
         <br><br>
-        <label for="parallelism_1">{% trans 'Tasks generation' %}</label>
+        <label for="parallelism_1">{% trans 'EMG' %}</label>
+        <i class="ui blue icon help note-popup"></i>
+        <div class="ui popup">
+            {% trans 'Number of threads in EMG thread pool. Launched for each job' %}
+        </div>
         <br>
         <div class="ui input">
             <input class="parallelism-values" id="parallelism_1" type="text" value="{{ data.conf.parallelism.1 }}">
         </div>
         <br><br>
-        <label for="parallelism_2">{% trans 'Weaving' %}</label>
+        <label for="parallelism_2">{% trans 'Plugins' %}</label>
+        <i class="ui blue icon help note-popup"></i>
+        <div class="ui popup">
+            {% trans 'Number of threads in Plugins thread pool (includes RSG, ASE, TR, Weaver, FVTP(CIL) components).' %}
+            {% trans 'Launched for each Job' %}
+        </div>
         <br>
         <div class="ui input">
             <input class="parallelism-values" id="parallelism_2" type="text" value="{{ data.conf.parallelism.2 }}">
         </div>
         <br><br>
-        <label for="parallelism_3">{% trans 'Results processing' %}</label>
+        <label for="parallelism_3">{% trans 'CIF' %}</label>
+        <i class="ui blue icon help note-popup"></i>
+        <div class="ui popup">
+            {% trans 'Number of threads in CIF thread pools. Launched for each Weaver component' %}
+        </div>
         <br>
         <div class="ui input">
             <input class="parallelism-values" id="parallelism_3" type="text" value="{{ data.conf.parallelism.3 }}">
+        </div>
+        <br><br>
+        <label for="parallelism_4">{% trans 'Results processing' %}</label>
+        <i class="ui blue icon help note-popup"></i>
+        <div class="ui popup">
+            {% trans 'Number of threads in Result processor thread pool. Launched for each Job' %}
+        </div>
+        <br>
+        <div class="ui input">
+            <input class="parallelism-values" id="parallelism_4" type="text" value="{{ data.conf.parallelism.4 }}">
         </div>
         <br><br><br>
         {% for p in data.parallelism %}

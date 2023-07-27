@@ -59,8 +59,8 @@ def prepare_node_info(node_info):
         result["available RAM memory"] = utils.memory_units_converter(result["available RAM memory"], '')[0]
     if result["available RAM memory"] < 1000 ** 3:
         result["available RAM memory"] = 1000 ** 3
-    elif result["available RAM memory"] > result["RAM memory"] - 1000 ** 3:
-        result["available RAM memory"] = result["RAM memory"] - 1000 ** 3
+    elif result["available RAM memory"] > result["RAM memory"]:
+        result["available RAM memory"] = result["RAM memory"]
     if isinstance(result["available disk memory"], float):
         result["available disk memory"] = int(result["disk memory"] * result["available disk memory"])
     elif isinstance(result["available disk memory"], str):

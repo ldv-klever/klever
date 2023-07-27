@@ -36,8 +36,9 @@
     "max solving tasks per sub-job": 1000,
     "parallelism": {
         "Sub-jobs processing": 3,
-        "Tasks generation": 4,
-        "Weaving": 2,
+        "EMG": 4,
+        "Plugins": 4,
+        "Weaving": 4,
         "Results processing": 2
     },
     "priority": "LOW",
