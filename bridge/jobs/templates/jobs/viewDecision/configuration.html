@@ -41,10 +41,12 @@
         <div class="ui bulleted list">
             <div class="item"><b>{% trans 'Memory size for whole process' %}</b>: {{ conf.memory }} {% trans 'GB' %}</div>
             <div class="item"><b>{% trans 'Disk memory size' %}</b>: {{ conf.disk_size }} {% trans 'GB' %}</div>
-            <div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.cpu_num }}</div>
-            <div class="item"><b>{% trans 'CPU model' %}</b>: {{ conf.cpu_model }}</div>
+            <!--<div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.cpu_num }}</div>
+            <div class="item"><b>{% trans 'CPU model' %}</b>: {{ conf.cpu_model }}</div>-->
             <div class="item"><b>{% trans 'CPU time for CIL' %}</b>: {{ conf.cpu_time_exec_cmds }} {% trans 'min' %}</div>
             <div class="item"><b>{% trans 'Memory size for CIL' %}</b>: {{ conf.memory_exec_cmds }} {% trans 'GB' %}</div>
+            <div class="item"><b>{% trans 'CPU time for EMG' %}</b>: {{ conf.cpu_time_exec_emg }} {% trans 'min' %}</div>
+            <div class="item"><b>{% trans 'Memory size for EMG' %}</b>: {{ conf.memory_exec_emg }} {% trans 'GB' %}</div>
         </div>
     </div>
 </div>

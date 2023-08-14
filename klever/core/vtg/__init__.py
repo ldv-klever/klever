@@ -23,6 +23,8 @@ import hashlib
 import importlib
 import collections
 import multiprocessing
+import resource
+
 
 import klever.core.components
 import klever.core.utils
@@ -614,7 +616,8 @@ class VTGW(klever.core.components.Component):
         self.logger.debug("There is no data has been prepared for %s", self.task)
         return type(self.task).__name__, tuple(self.task)
 
-    def _run_plugin(self, plugin_desc, initial_abstract_task_desc_file=None, out_abstract_task_desc_file=None):
+    def _run_plugin(self, plugin_desc, initial_abstract_task_desc_file=None, out_abstract_task_desc_file=None,
+                    enforce_limitations=False):
         plugin_name = plugin_desc['name']
         plugin_work_dir = plugin_desc['name'].lower()
         plugin_conf = copy.deepcopy(plugin_desc['options'])
@@ -649,6 +652,17 @@ class VTGW(klever.core.components.Component):
                    # directories like sub-jobs to simplify the workflow and debugging.
                    include_child_resources=plugin_name != 'Weaver')
         p.start()
+        if enforce_limitations:
+            _, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
+            _, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
+            cpu_time_limit = self.conf["resource limits"]["CPU time for EMG"]
+            memory_limit = self.conf["resource limits"]["memory size for EMG"]
+            self.logger.debug(
+                'Got the following limitations for %s: CPU time = %ss, '
+                'memory = %sB', plugin_name, cpu_time_limit, memory_limit
+            )
+            resource.prlimit(p.pid, resource.RLIMIT_CPU, (cpu_time_limit, hard_time))
+            resource.prlimit(p.pid, resource.RLIMIT_AS, (memory_limit, hard_mem))
         p.join()
 
     def plugin_fail_processing(self):
@@ -775,7 +789,7 @@ class EMGW(VTGW):
 
         # Here plugin will put modified abstract verification task description.
         try:
-            self._run_plugin(options)
+            self._run_plugin(options, enforce_limitations=True)
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
             self.plugin_fail_processing()

@@ -105,6 +105,8 @@ StartDecision.prototype.update = function(resp) {
     $('#cpu_model').val(resp['cpu_model']);
     $('#cpu_time_exec_cmds').val(resp['cpu_time_exec_cmds']);
     $('#memory_exec_cmds').val(resp['memory_exec_cmds']);
+    $('#cpu_time_exec_emg').val(resp['cpu_time_exec_emg']);
+    $('#memory_exec_emg').val(resp['memory_exec_emg']);
     $('#console_level').dropdown('set selected', resp['console_level']);
     $('#file_level').dropdown('set selected', resp['file_level']);
     $('#console_formatter').val(resp['console_formatter']);
@@ -129,6 +131,8 @@ StartDecision.prototype.serialize = function() {
             cpu_model: $('#cpu_model').val(),
             cpu_time_exec_cmds: $('#cpu_time_exec_cmds').val().replace(/,/, '.'),
             memory_exec_cmds: $('#memory_exec_cmds').val().replace(/,/, '.'),
+            cpu_time_exec_emg: $('#cpu_time_exec_emg').val().replace(/,/, '.'),
+            memory_exec_emg: $('#memory_exec_emg').val().replace(/,/, '.'),
             console_level: $('#console_level').val(),
             file_level: $('#file_level').val(),
             console_formatter: $('#console_formatter').val(),
