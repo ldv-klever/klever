@@ -16,20 +16,22 @@
 #
 
 import argparse
-import json
 import hashlib
+import json
 import multiprocessing
 import os
+import queue
 import shutil
 import time
 import traceback
-import queue
+
 import pkg_resources
 
+import klever.core.components
 import klever.core.job
 import klever.core.session
 import klever.core.utils
-import klever.core.components
+from klever.core.session import BridgeError
 
 
 class Core(klever.core.components.CallbacksCaller):
@@ -261,14 +263,25 @@ class Reporter(klever.core.components.Component):
 
                     reports_and_report_file_archives.append(report_and_report_file_archives)
 
-                    # Do not send more than 10 reports at once. Otherwise different strange issues may appear im Core
-                    # and Bridge.
+                    # We may fail if we try to upload too big report.
+                    # In such a case we switch to upload reports separately.
                     if len(reports_and_report_file_archives) == 10:
                         # Do not sleep since there may be pending reports already.
                         issleep = False
                         break
                 except queue.Empty:
                     break
+
+            def upload_data(reports: list) -> str:
+                # pylint: disable=broad-exception-caught
+                error_msg = ""
+                try:
+                    session.upload_reports_and_report_file_archives(reports, self.conf['keep intermediate files'])
+                except BridgeError as exc:
+                    error_msg = 'Cannot upload reports due to too big archive (%s)', exc
+                except Exception as exc:
+                    error_msg = 'Cannot upload report due to unknown reason (%s)', exc
+                return error_msg
 
             if reports_and_report_file_archives:
                 for report_and_report_file_archives in reports_and_report_file_archives:
@@ -278,8 +291,14 @@ class Reporter(klever.core.components.Component):
                         '\n'.join(['  {0}'.format(archive) for archive in report_file_archives])
                         if report_file_archives else '')
 
-                session.upload_reports_and_report_file_archives(reports_and_report_file_archives,
-                                                                self.conf['keep intermediate files'])
+                if upload_data(reports_and_report_file_archives):
+                    # Failed to upload all reports - try to upload each of them separately.
+                    for report in reports_and_report_file_archives:
+                        err_msg = upload_data([report])
+                        if err_msg:
+                            self.logger.error(err_msg)
+                            raise BridgeError(err_msg)
+                            # TODO: we still may fail here in case of big report.
             if is_finish:
                 break
 
