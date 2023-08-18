@@ -81,7 +81,8 @@
             </div>
             <i class="ui blue icon help note-popup"></i>
             <div class="ui popup">
-                {% trans 'For instance,' %} 100.
+                {% trans 'This value limits a number of tasks for EMG thread pool and to be submitted to the scheduler' %}.
+                {% trans 'Recommended value is an overall number of verification tasks' %}.
             </div>
         </div>
     </div>
@@ -150,10 +151,11 @@
             </div>
             <i class="ui blue icon help note-popup"></i>
             <div class="ui popup">
-                {% trans 'For instance,' %} 2.4.
+                {% trans 'Memory is not limited for the main process, but scheduler reserves the given amount' %}
             </div>
         </div>
         <br>
+        <!-- This limit will make sense only if scheduler can track each component
         <label for="cpu_num" style="margin-right: 20px;">{% trans 'Number of CPU cores' %}</label>
         <div>
             <div class="ui input">
@@ -165,6 +167,7 @@
             </div>
         </div>
         <br>
+        -->
         <label for="disk_size" style="margin-right: 20px;">{% trans 'Disk memory size' %}, {% trans 'GB' %}</label>
         <div>
             <div class="ui input">
@@ -172,10 +175,12 @@
             </div>
             <i class="ui blue icon help note-popup"></i>
             <div class="ui popup">
-                {% trans 'For instance,' %} 100.0.
+                {% trans 'Job will be stopped if it exceeds disk memory limit' %}.
+                {% trans 'Recommended value is at least 100 GB' %}.
             </div>
         </div>
         <br>
+        <!-- This limit will make sense only for scheduler with several machines for jobs
         <label for="cpu_model">{% trans 'CPU model' %}</label>
         <div>
             <div class="ui input" style="width: 250px;">
@@ -187,6 +192,7 @@
             </div>
         </div>
         <br>
+         -->
         <label for="cpu_time_exec_cmds" style="margin-right: 20px;">{% trans 'CPU time for CIL' %}, {% trans 'min' %}</label>
         <div>
             <div class="ui input">

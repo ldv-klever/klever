@@ -1572,6 +1572,20 @@ msgstr "Число параллельных запусков CIF. Запуска
 msgid "Number of threads in Result processor thread pool. Launched for each Job"
 msgstr "Число параллельных запусков Result processor. Запускаются для каждой задачи"
 
+msgid "This value limits a number of tasks for EMG thread pool and to be submitted to the scheduler"
+msgstr "Данное значение ограничивает число задач, генерируемых EMG и передаваемых далее планировщику"
+
+msgid "Recommended value is an overall number of verification tasks"
+msgstr "Рекомендуется устанавливать равным общему числу верификационных задач"
+
+msgid "Memory is not limited for the main process, but scheduler reserves the given amount"
+msgstr "Память не ограничивается для основного процесса, при этом планировщик резервирует указанное значение"
+
+msgid "Job will be stopped if it exceeds disk memory limit"
+msgstr "Решение задачи будет остановлено, если она исчерпает указанное ограничение дисковой памяти"
+
+msgid "Recommended value is at least 100 GB"
+msgstr "Рекомендуемое значение не менее 100 Гб"
 
 #: jobs/templates/jobs/startDecision.html:123
 #: jobs/templates/jobs/viewDecision/configuration.html:41
