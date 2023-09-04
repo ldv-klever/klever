@@ -94,7 +94,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_main:3c59e06"
+              "version": "smg-master:c6f6a66"
             }
           }
         }
@@ -142,7 +142,41 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_main:3c59e06"
+              "version": "smg-master:c6f6a66"
+            }
+          }
+        }
+      ]
+    },
+    "memory safety for loadable kernel modules and kernel subsystems with mea": {
+      "template": "loadable kernel modules and kernel subsystems",
+      "plugins": [
+        {
+          "name": "EMG",
+          "options": {
+            "translation options": {"allocate external": true}
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {
+            "memory safety": true,
+            "models": [
+              "common/list.c",
+              "linux/alloc/common.c",
+              "linux/drivers/usb/core/usb/message.c",
+              "linux/memory safety/memory.c"
+            ]
+          }
+        },
+        {"name": "Weaver"},
+        {
+          "name": "FVTP",
+          "options": {
+            "verifier profile": "memory checking with mea",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "smg-master:c6f6a66"
             }
           }
         }
@@ -396,7 +430,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_main:3c59e06"
+                            "version": "smg-master:c6f6a66"
                           }
                         }
                       }
@@ -665,6 +699,11 @@
         "template": "memory safety for loadable kernel modules and kernel subsystems"
       },
       {
+        "identifier":  "memory safety with mea",
+        "description": "Linux memory safety",
+        "template": "memory safety for loadable kernel modules and kernel subsystems with mea"
+      },
+      {
         "identifier": "net",
         "children": [
           {
@@ -723,7 +762,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_main:3c59e06"
+                    "version": "smg-master:c6f6a66"
                   }
                 }
               }
@@ -751,7 +790,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_main:3c59e06"
+                    "version": "smg-master:c6f6a66"
                   }
                 }
               }

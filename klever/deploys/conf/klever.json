@@ -25,6 +25,11 @@
       "path": "https://forge.ispras.ru/attachments/download/9819/consul_1.11.4_linux_amd64.zip",
       "executable path": "consul"
     },
+    "MEA": {
+      "version": "1.1",
+      "path": "https://github.com/ispras/cv/releases/download/MEA-1.1/mea.tar.xz",
+      "executable path": "scripts"
+    },
     "JRE": {
       "version": "11.0.14.1+1",
       "path": "https://forge.ispras.ru/attachments/download/9820/OpenJDK11U-jre_x64_linux_hotspot_11.0.14.1_1.tar.gz",
@@ -33,8 +38,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "klever_main:3c59e06",
-        "path": "https://forge.ispras.ru/attachments/download/10619/CPAchecker-3c59e06.tar.xz",
+        "version": "smg-master:c6f6a66",
+        "path": "https://forge.ispras.ru/attachments/download/11601/CPAchecker-c6f6a66.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {

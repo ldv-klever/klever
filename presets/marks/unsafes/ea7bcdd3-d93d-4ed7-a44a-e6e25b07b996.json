@@ -22,7 +22,11 @@
                 {
                   "i7300_idle_ioat_init": [
                     {
-                      "dma_alloc_attrs": []
+                      "dma_alloc_attrs": [
+                        {
+                          "get_dma_ops": []
+                        }
+                      ]
                     },
                     {
                       "i7300_idle_ioat_selftest": [

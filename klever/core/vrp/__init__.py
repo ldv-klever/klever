@@ -17,22 +17,24 @@
 
 import glob
 import json
+import multiprocessing
 import os
 import re
+import sys
 import time
 import traceback
-from xml.etree import ElementTree
 import zipfile
-import multiprocessing
+from xml.etree import ElementTree
 
 from clade import Clade
-
-from klever.core.vrp.et import import_error_trace
 
 import klever.core.components
 import klever.core.session
 import klever.core.utils
 from klever.core.coverage import LCOV
+from klever.core.vrp.et import import_error_trace
+
+MEA_LIB = os.path.join("MEA", "scripts")
 
 
 @klever.core.components.before_callback  # pylint: disable=no-member
@@ -231,7 +233,6 @@ class RP(klever.core.components.Component):
         self.results_key = None
         self.additional_srcs = None
         self.verification_task_files = None
-        self.__exception = None
         # Common initialization
         super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
@@ -308,10 +309,6 @@ class RP(klever.core.components.Component):
 
         if status == 'finished':
             self.process_finished_task(task_id, opts, verifier)
-            # Raise exception just here since the method above has callbacks.
-            if self.__exception:
-                self.logger.warning("Raising the saved exception")
-                raise self.__exception
         elif status == 'error':
             self.process_failed_task(task_id)
             # Raise exception just here since the method above has callbacks.
@@ -342,24 +339,37 @@ class RP(klever.core.components.Component):
 
     def report_unsafe(self, error_trace_file, attrs, identifier=''):
         attrs.extend(self.report_attrs)
-        klever.core.utils.report(self.logger,
-                                 'unsafe',
-                                 {
-                                     # To distinguish several Unsafes specific identifiers should be used.
-                                     'identifier': self.verification_report_id + '/' + identifier,
-                                     'parent': self.verification_report_id,
-                                     'attrs': attrs,
-                                     'error_trace': klever.core.utils.ArchiveFiles(
-                                         [error_trace_file],
-                                         arcnames={error_trace_file: 'error trace.json'}
-                                     )
-                                 },
-                                 self.mqs['report files'],
-                                 self.vals['report id'],
-                                 self.conf['main working directory'],
-                                 data_files=[self.files_list_file])
+        klever.core.utils.report(
+            self.logger,
+            'unsafe',
+            {
+                # To distinguish several Unsafes specific identifiers should be used.
+                'identifier': self.verification_report_id + '/' + identifier,
+                'parent': self.verification_report_id,
+                'attrs': attrs,
+                'error_trace': klever.core.utils.ArchiveFiles(
+                    [error_trace_file],
+                    arcnames={error_trace_file: 'error trace.json'}
+                )
+            },
+            self.mqs['report files'],
+            self.vals['report id'],
+            self.conf['main working directory'],
+            data_files=[self.files_list_file]
+        )
 
-    def process_single_verdict(self, decision_results, opts, log_file):
+    def __filter_witnesses(self, witnesses: list) -> list:
+        # Export MEA lib
+        for env_path in os.environ['PATH'].split(':'):
+            if MEA_LIB in env_path:
+                sys.path.append(env_path)
+                from filter import execute_filtering  # pylint: disable=import-outside-toplevel
+                return execute_filtering(witnesses)
+        # Sanity check - if MEA was not installed, then ignore filtering
+        # TODO: check for MEA on top level
+        raise RuntimeError("Failed to export MEA lib")
+
+    def process_single_verdict(self, decision_results, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
@@ -387,72 +397,52 @@ class RP(klever.core.components.Component):
         # not upload all witnesses that can be properly processed as well as information on all such failures.
         # Necessary verification finish report also won't be uploaded causing Bridge to corrupt the whole job.
         if re.search('true', decision_results['status']):
-            klever.core.utils.report(self.logger,
-                                     'safe',
-                                     {
-                                         # There may be the only Safe, so, "/" uniquely distinguishes it.
-                                         'identifier': self.verification_report_id + '/',
-                                         'parent': self.verification_report_id,
-                                         'attrs': self.report_attrs
-                                         # TODO: at the moment it is unclear what are verifier proofs.
-                                         # 'proof': None
-                                     },
-                                     self.mqs['report files'],
-                                     self.vals['report id'],
-                                     self.conf['main working directory'],
-                                     data_files=[self.files_list_file])
+            klever.core.utils.report(
+                self.logger,
+                'safe',
+                {
+                    # There may be the only Safe, so, "/" uniquely distinguishes it.
+                    'identifier': self.verification_report_id + '/',
+                    'parent': self.verification_report_id,
+                    'attrs': self.report_attrs
+                    # TODO: add a correctness witness here if it was found.
+                    # 'proof': None
+                },
+                self.mqs['report files'],
+                self.vals['report id'],
+                self.conf['main working directory'],
+                data_files=[self.files_list_file]
+            )
             self.verdict = 'safe'
         else:
             witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
+            error_msg = ""
             self.logger.info("Found %s witnesses", len(witnesses))
+            if len(witnesses) > 1:
+                witnesses = self.__filter_witnesses(witnesses)
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
-            if "expect several witnesses" in opts and opts["expect several witnesses"]:
-                self.verdict = 'unsafe'
+            self.verdict = 'unsafe'
 
-                # Surprisingly there may be no witnesses at all even when verifier reported unsafe.
-                if not witnesses and re.search('false', decision_results['status']):
-                    self.logger.warning('Failed to process witnesses:\n%s', traceback.format_exc().rstrip())
-                    self.verdict = 'non-verifier unknown'
-                    self.__exception = RuntimeError('Verifier reported false without violation witnesses')
+            if not witnesses and re.search('false', decision_results['status']):
+                self.logger.warning('No witnesses found with Unsafe verdict')
+                self.verdict = 'non-verifier unknown'
 
-                identifier = 1
-                for witness in witnesses:
-                    try:
-                        error_trace_file, attrs = self.process_witness(witness)
-                        self.report_unsafe(error_trace_file, attrs, str(identifier))
-                    except Exception as e: # pylint: disable=broad-except
-                        self.logger.warning('Failed to process a witness:\n%s',
-                                            traceback.format_exc().rstrip())
-                        self.verdict = 'non-verifier unknown'
-
-                        if self.__exception:
-                            try:
-                                # Bad code just to save the cause
-                                raise e from self.__exception
-                            except Exception as e:  # pylint: disable=broad-except
-                                self.__exception = e
-                        else:
-                            self.__exception = e
-                    finally:
-                        identifier += 1
-
-            if re.search('false', decision_results['status']) and \
-                    ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
-                self.verdict = 'unsafe'
+            identifier = 1
+            for witness in witnesses:
                 try:
-                    if len(witnesses) != 1:
-                        raise NotImplementedError('Just one witness is supported (but "{0}" are given)'.
-                                                  format(len(witnesses)))
-
-                    error_trace_file, attrs = self.process_witness(witnesses[0])
-                    self.report_unsafe(error_trace_file, attrs)
-                except Exception as e:  # pylint: disable=broad-except
-                    self.logger.warning('Failed to process a witness:\n%s', traceback.format_exc().rstrip())
+                    error_trace_file, attrs = self.process_witness(witness)
+                    self.report_unsafe(error_trace_file, attrs, str(identifier))
+                except Exception as err:  # pylint: disable=broad-except
+                    self.logger.warning('Failed to process a witness: %s\n%s', err, traceback.format_exc().rstrip())
                     self.verdict = 'non-verifier unknown'
-                    self.__exception = e
-            elif not re.search('false', decision_results['status']):
+                    error_msg = f"{error_msg}Failed to process a witness due to:\n" \
+                                f"{str(traceback.format_exc().rstrip())}\n"
+                finally:
+                    identifier += 1
+
+            if not re.search('false', decision_results['status']) or error_msg:
                 self.verdict = 'unknown'
 
                 # Prepare file to send it with unknown report.
@@ -460,37 +450,43 @@ class RP(klever.core.components.Component):
                 verification_problem_desc = os.path.join('verification', 'problem desc.txt')
 
                 # Check resource limitations
-                if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
+                if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT') or error_msg:
                     if decision_results['status'] == 'OUT OF MEMORY':
                         msg = "memory exhausted"
-                    else:
+                    elif decision_results['status'] == 'TIMEOUT':
                         msg = "CPU time exhausted"
-
+                    else:
+                        msg = ""
+                    if error_msg:
+                        msg = f"{error_msg}{msg}"
                     with open(verification_problem_desc, 'w', encoding='utf-8') as fp:
                         fp.write(msg)
 
-                    data = list(self.vals['task solution triples'][self.results_key])
-                    data[2] = decision_results['status']
-                    self.vals['task solution triples'][self.results_key] = data
+                    if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
+                        data = list(self.vals['task solution triples'][self.results_key])
+                        data[2] = decision_results['status']
+                        self.vals['task solution triples'][self.results_key] = data
                 else:
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
-                klever.core.utils.report(self.logger,
-                                         'unknown',
-                                         {
-                                             # There may be the only Unknown, so, "/" uniquely distinguishes it.
-                                             'identifier': self.verification_report_id + '/',
-                                             'parent': self.verification_report_id,
-                                             'attrs': [],
-                                             'problem_description': klever.core.utils.ArchiveFiles(
-                                                 [verification_problem_desc],
-                                                 {verification_problem_desc: 'problem desc.txt'}
-                                             )
-                                         },
-                                         self.mqs['report files'],
-                                         self.vals['report id'],
-                                         self.conf['main working directory'],
-                                         'verification')
+                klever.core.utils.report(
+                    self.logger,
+                    'unknown',
+                    {
+                        # There may be the only Unknown, so, "/" uniquely distinguishes it.
+                        'identifier': self.verification_report_id + '/',
+                        'parent': self.verification_report_id,
+                        'attrs': [],
+                        'problem_description': klever.core.utils.ArchiveFiles(
+                            [verification_problem_desc],
+                            {verification_problem_desc: 'problem desc.txt'}
+                        )
+                    },
+                    self.mqs['report files'],
+                    self.vals['report id'],
+                    self.conf['main working directory'],
+                    'verification'
+                )
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""
@@ -510,7 +506,8 @@ class RP(klever.core.components.Component):
         with open('decision results.json', encoding='utf-8') as fp:
             decision_results = json.load(fp)
 
-        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        # TODO: specify the computer where the verifier was invoked (this information should be get from
+        # BenchExec or VerifierCloud web client.
         log_files_dir = glob.glob(os.path.join('output', 'benchmark*logfiles'))[0]
         log_files = os.listdir(log_files_dir)
 
@@ -590,7 +587,7 @@ class RP(klever.core.components.Component):
                      os.path.join(self.conf['main working directory'], self.coverage_info_file),
                      os.path.join(self.conf['main working directory'], coverage_info_dir),
                      self.verification_task_files)
-            except Exception as err: # pylint: disable=broad-except
+            except Exception as err:  # pylint: disable=broad-except
                 exception = err
             else:
                 report['coverage'] = klever.core.utils.ArchiveFiles(['coverage'])
@@ -606,7 +603,7 @@ class RP(klever.core.components.Component):
 
         try:
             # Submit a verdict
-            self.process_single_verdict(decision_results, opts, log_file)
+            self.process_single_verdict(decision_results, log_file)
         finally:
             # Submit a closing report
             klever.core.utils.report(self.logger,
