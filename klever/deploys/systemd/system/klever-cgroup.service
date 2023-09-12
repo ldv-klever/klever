@@ -5,10 +5,7 @@ After=klever-native-scheduler.service
 
 [Service]
 Type=simple
-ExecStart=/bin/sh -c "swapoff -a && chmod -R o+wt /sys/fs/cgroup/cpuset '/sys/fs/cgroup/cpu,cpuacct' /sys/fs/cgroup/memory /sys/fs/cgroup/freezer"
-RemainAfterExit=yes
-Restart=on-failure
-RestartSec=5
+ExecStart=/bin/sh -c "chmod -R o+wt /sys/fs/cgroup/cpuset '/sys/fs/cgroup/cpu,cpuacct' /sys/fs/cgroup/memory /sys/fs/cgroup/freezer"
 
 [Install]
 WantedBy=multi-user.target
