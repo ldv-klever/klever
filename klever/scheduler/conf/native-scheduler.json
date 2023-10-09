@@ -29,7 +29,7 @@
       "did not terminate within grace period after cancellation"
     ],
     "try less memory": 0.5,
-    "limit max tasks based on plugins load": false
+    "limit max tasks based on plugins load": true
   },
   "common": {
     "working directory": "native-scheduler-work-dir",

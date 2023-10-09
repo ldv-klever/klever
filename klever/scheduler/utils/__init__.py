@@ -247,7 +247,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
         return True
 
     def handler(arg1, arg2):  # pylint:disable=unused-argument
-        def terminate():
+        def terminate(pid):
             print("{}: Cancellation of {} is successful, exiting".format(os.getpid(), pid))
             os._exit(-1)
 
@@ -259,7 +259,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             try:
                 os.kill(pid, signal.SIGINT)
             except ProcessLookupError:
-                terminate()
+                terminate(pid)
             restore_handlers()
 
             try:
@@ -270,7 +270,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
                 # Lets try it again
                 time.sleep(10)
 
-        terminate()
+        terminate(None)
 
     def set_handlers():
         signal.signal(signal.SIGTERM, handler)
