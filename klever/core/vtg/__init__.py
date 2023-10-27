@@ -31,7 +31,7 @@ import klever.core.utils
 import klever.core.session
 
 from klever.core.vtg.scheduling import Governer
-
+from klever.scheduler.schedulers.global_config import clear_workers_cpu_cores
 
 @klever.core.components.before_callback  # pylint: disable=no-member
 def __launch_sub_job_components(context):
@@ -525,6 +525,7 @@ class VTGWL(klever.core.components.Component):
         plugins_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Plugins')
 
         self.logger.info("Start %s EMG workers, %s Plugins workers", emg_threads, plugins_threads)
+        clear_workers_cpu_cores()
         klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'], self.factory,
                                                     [emg_threads, plugins_threads], True)
         self.logger.info("Terminate VTGL worker")

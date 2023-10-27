@@ -29,7 +29,7 @@ import resource
 import re
 
 import klever.core.utils
-from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores
+from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores, clear_workers_cpu_cores
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
@@ -285,6 +285,8 @@ def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant,
                 # sleep if thread pool is full or there are no new elements
                 time.sleep(sleep_interval)
     finally:
+        if is_limit_cores_globally:
+            clear_workers_cpu_cores()
         for p in components:
             if p.is_alive():
                 p.terminate()
