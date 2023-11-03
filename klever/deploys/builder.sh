@@ -2,6 +2,7 @@
 
 CORES=$(nproc)
 TAR=0
+FORCE_REMOVE=0
 ARCH="x86_64"
 KERNEL_CONFIG="allmodconfig"
 VERSION=
@@ -18,6 +19,7 @@ usage()
     echo "       --cif <path> - path to CIF executable (mandatory argument)"
     echo "       --workdir <path> - working directory, where the build base will be created (mandatory argument)"
     echo "       --tar - create tar archive containing the build base"
+    echo "       --force - clear build base directory"
     echo "       --arch <name> - architecture (by default, $ARCH)"
     echo "       --jobs <number> - number of parallel jobs (by default, $CORES)"
     echo "       --kernel-config <name> - make command (by default, $KERNEL_CONFIG). Use '$SKIP_MAKE_COMMAND' to skip it"
@@ -33,6 +35,7 @@ while [[ "$1" != "" ]]; do
         --arch )          shift; ARCH="$1" ;;
         --jobs )          shift; CORES="$1" ;;
         --tar )           TAR=1 ;;
+        --force )         FORCE_REMOVE=1 ;;
         --kernel-config ) shift; KERNEL_CONFIG="$1" ;;
         -h | --help )     usage ;;
         * )               usage ;;
@@ -67,6 +70,7 @@ fi
 
 if [ ! "$ARCH" == "x86_64" ]; then
     echo "Architecture $ARCH is not supported"
+    exit 1
 fi
 
 if ! command -v clade &> /dev/null ; then
@@ -128,6 +132,10 @@ fi
 if [ ! "$KERNEL_CONFIG" == "$SKIP_MAKE_COMMAND" ]; then
   echo "Generate kernel config: make $KERNEL_CONFIG"
   make "$KERNEL_CONFIG" || { echo "Cannot execute make $KERNEL_CONFIG" ; exit 1; }
+fi
+
+if [ "$FORCE_REMOVE" -ne 0 ]; then
+  rm -rf "$build_base_dir"
 fi
 
 time clade -w "$build_base_dir" -p klever_linux_kernel --cif "$CIF" -e SrcGraph make -j "$CORES" modules || { echo 'Cannot build SrcGraph' ; exit 1; }
