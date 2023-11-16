@@ -209,10 +209,10 @@
         {
           "name": "FVTP",
           "options": {
-            "verifier profile": "race checking",
+            "verifier profile": "race checking base",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-update:39383"
+              "version": "CPALockator-update:88c361"
             },
             "result processing": {
               "expect several witnesses": true
@@ -349,6 +349,17 @@
         "identifier": "concurrency safety",
         "description": "Linux concurrency safety",
         "template": "concurrency safety for loadable kernel modules and kernel subsystems"
+      },
+      {
+        "identifier": "concurrency safety tm",
+        "description": "Linux concurrency safety with TM analysis",
+        "template": "concurrency safety for loadable kernel modules and kernel subsystems",
+        "plugins": [{
+          "name": "FVTP",
+          "options": {
+            "verifier profile": "race checking tm"
+          }
+        }]
       },
       {
         "identifier": "concurrency safety rcu",

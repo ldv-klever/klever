@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "concurrency safety"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest-unsafe.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest-unsafe.ko"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     }
   ],
   "description": "",
@@ -27,16 +27,6 @@
                           "difficult_function": [
                             {
                               "get": [
-                                {
-                                  "tryLock": [
-                                    {
-                                      "Instrumented function 'mutex_lock'": []
-                                    },
-                                    {
-                                      "Instrumented function 'mutex_unlock'": []
-                                    }
-                                  ]
-                                },
                                 {
                                   "local_init": [
                                     {
@@ -71,16 +61,6 @@
                   "difficult_function": [
                     {
                       "get": [
-                        {
-                          "tryLock": [
-                            {
-                              "Instrumented function 'mutex_lock'": []
-                            },
-                            {
-                              "Instrumented function 'mutex_unlock'": []
-                            }
-                          ]
-                        },
                         {
                           "local_init": [
                             {

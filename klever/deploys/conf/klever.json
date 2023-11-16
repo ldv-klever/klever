@@ -44,8 +44,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-update:39383",
-        "path": "https://forge.ispras.ru/attachments/download/9772/CPALockator-39383.tar.xz",
+        "version": "CPALockator-update:88c361",
+        "path": "https://forge.ispras.ru/attachments/download/11834/CPALockator-88c361.tar.xz",
         "executable path": "scripts"
       }
     }
