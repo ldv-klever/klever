@@ -31,24 +31,15 @@ from klever.scheduler.utils import execute, process_task_results, submit_task_re
 from klever.scheduler.client.options import adjust_options
 
 
-def run_benchexec(mode, file=None, configuration=None):
+def run_benchexec(mode, conf):
     """
     This is the main routine of the native scheduler client that runs locally BenchExec for given job or task and upload
     results to Bridge.
 
     :param mode: Either "job" or "task".
-    :param file: File with the configuration. Do not set the option alongside with the configuration one.
-    :param configuration: The configuration dictionary. Do not set the option alongside with the file one.
+    :param conf: configuration.
     :return: It always exits at the end.
     """
-
-    if configuration and file:
-        raise ValueError('Provide either file or configuration string')
-    if file:
-        with open(file, encoding="utf-8") as fh:
-            conf = json.loads(fh.read())
-    else:
-        conf = configuration
 
     # Check common configuration
     if "common" not in conf:

@@ -23,7 +23,7 @@ from klever.core.vtg.fvtp import common
 from klever.core import utils
 
 
-class Basic:
+class BasicGenerationStrategy:
 
     def __init__(self, logger, conf, abstract_task_desc):
         """
@@ -45,8 +45,6 @@ class Basic:
         Main routine of the strategy. It is suspicious if you need to change it, do it if you need to play with resource
         limitations or generate several tasks. This should be a generator to update archives each time before submitting
         new tasks.
-
-        :return: List of descriptions with fully prepared tasks.
         """
         self.logger.info("Prepare single verification task for abstract task {!r}".
                          format(self.abstract_task_desc['id']))

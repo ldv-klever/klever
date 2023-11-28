@@ -98,6 +98,6 @@ class Debug(klever.scheduler.schedulers.native.Native):
         return "FINISHED"
 
     @staticmethod
-    def _fake_starter(args, timeout):  # pylint:disable=unused-argument
+    def _fake_starter(mode, conf):  # pylint:disable=unused-argument
         while True:
             time.sleep(2)

@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import argparse
-import os
-import sys
-
 from klever.scheduler import controller
 from klever.scheduler.schedulers import debug
 from klever.scheduler.schedulers import native
@@ -25,7 +20,6 @@ from klever.scheduler.schedulers import verifiercloud
 from klever.scheduler import utils
 
 from klever.scheduler.schedulers import Scheduler
-from klever.scheduler.client import run_benchexec
 
 
 def client_controller():
@@ -55,21 +49,6 @@ def native_scheduler():
     conf, logger = utils.common_initialization("Klever scheduler")
     scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
     scheduler_impl.launch()
-
-
-def scheduler_client(sys_argv=sys.argv[1:]): # pylint: disable=dangerous-default-value
-    # Parse configuration
-    parser = argparse.ArgumentParser(description='Start cloud Klever scheduler client according to the provided '
-                                                 'configuration.')
-    parser.add_argument('mode', metavar="MODE", help='TASK or JOB.')
-    parser.add_argument('--conf', metavar="CONF", help='JSON string with all necessary configuration.')
-    parser.add_argument('--file', metavar="FILE", help='File with configuration. Use it during debug.')
-    args = parser.parse_args(sys_argv)
-    if args.file and os.path.isfile(args.file):
-        run_benchexec(args.mode, file=args.file)
-    else:
-        cf = json.loads(str(args.conf))
-        run_benchexec(args.mode, configuration=cf)
 
 
 def verifiercloud_scheduler():

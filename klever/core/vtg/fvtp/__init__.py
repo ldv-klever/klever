@@ -15,9 +15,8 @@
 # limitations under the License.
 #
 
-import importlib
-
 import klever.core.vtg.plugins
+from klever.core.vtg.fvtp.basic import BasicGenerationStrategy
 
 
 class FVTP(klever.core.vtg.plugins.Plugin):
@@ -30,20 +29,7 @@ class FVTP(klever.core.vtg.plugins.Plugin):
         :return: None
         """
 
-        if 'strategy' in self.conf:
-            strategy_name = self.conf['strategy']
-        else:
-            strategy_name = 'basic'
-
-        self.logger.info("Going to use strategy %r to generate verification tasks", strategy_name)
-        try:
-            strategy = getattr(importlib.import_module('.{0}'.format(strategy_name.lower()), 'klever.core.vtg.fvtp'),
-                               strategy_name.capitalize())
-        except ImportError as e:
-            raise ValueError("There is no strategy {!r}".format(strategy_name)) from e
-
-        self.logger.info('Initialize strategy %r', strategy_name)
-        s = strategy(self.logger, self.conf, self.abstract_task_desc)
+        s = BasicGenerationStrategy(self.logger, self.conf, self.abstract_task_desc)
 
         self.logger.info('Begin task generating')
         s.generate_verification_task()

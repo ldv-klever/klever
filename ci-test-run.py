@@ -85,7 +85,7 @@ def compare_results(job, regr_test_results, job_version_solution_results):
 
     status = int(job_version_solution_results['status'])
     if status != 3:
-        return 'Testing/validation job failed: ' + job
+        return ['Testing/validation job failed: ' + job]
 
     for verdict in ('safes', 'unsafes', 'unknowns'):
         new_marks = []

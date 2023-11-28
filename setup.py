@@ -60,7 +60,6 @@ setuptools.setup(
             "klever-client-controller=klever.scheduler.main:client_controller",
             "klever-debug-scheduler=klever.scheduler.main:debug_scheduler",
             "klever-native-scheduler=klever.scheduler.main:native_scheduler",
-            "klever-scheduler-client=klever.scheduler.main:scheduler_client",
             "klever-verifiercloud-scheduler=klever.scheduler.main:verifiercloud_scheduler",
             "klever-node-check=klever.scheduler.controller.checks.node:main",
             "klever-resources-check=klever.scheduler.controller.checks.resources:main",

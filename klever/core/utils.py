@@ -30,8 +30,6 @@ import queue
 import tempfile
 import shutil
 import resource
-import random
-import string
 import traceback
 
 
@@ -496,6 +494,8 @@ def capitalize_attr_names(attrs):
 
 
 def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='', data_files=None):
+    if not mq:
+        return
     logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
@@ -506,7 +506,6 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         cur_report_id = report_id.value
         report_id.value += 1
 
-    prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     archives = []
     if 'attrs' in report_data:
         check_attr_values(report_data['attrs'])
@@ -522,13 +521,6 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
                     os.fsync(zfp.fp)
             report_data['attr_data'] = archive_name
             archives.append(data_zip)
-
-            # Create symlink to report file in current working directory.
-            cwd_data_zip = os.path.join(report_dir, '{} {} data attributes.zip'.format(prefix, cur_report_id))
-            if os.path.isfile(cwd_data_zip):
-                raise FileExistsError('Report file "{0}" already exists'.format(cwd_data_zip))
-            os.symlink(os.path.relpath(data_zip, report_dir), cwd_data_zip)
-            logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_data_zip))
 
     logger.debug('{0} prepare file archive'.format(kind.capitalize()))
     process_queue = [report_data]
@@ -561,19 +553,8 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     with open(report_file, 'w', encoding='utf-8') as fp:
         json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
-    # Create symlink to report file in current working directory.
-    prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-    cwd_report_file = os.path.join(report_dir, '{} {} report.json'.format(prefix, kind))
-    if os.path.isfile(cwd_report_file):
-        raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
-    os.symlink(os.path.relpath(report_file, report_dir), cwd_report_file)
-    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_report_file))
-
     # Put report file and report file archives to message queue if it is specified.
-    if mq:
-        mq.put({'report file': report_file, 'report file archives': archives})
-
-    return report_file
+    mq.put({'report file': report_file, 'report file archives': archives})
 
 
 def report_image(logger, component_id, title, dot_file, image_file, mq, report_id, main_work_dir):

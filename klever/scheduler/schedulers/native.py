@@ -22,13 +22,13 @@ import os
 import re
 import shutil
 import signal
-import sys
 import time
 
 from klever.scheduler import schedulers
 from klever.scheduler.schedulers import runners
 from klever.scheduler.schedulers import resource_scheduler
 from klever.scheduler import utils
+from klever.scheduler.client import run_benchexec
 
 
 class Native(runners.TryLessMemoryRunner):
@@ -59,7 +59,7 @@ class Native(runners.TryLessMemoryRunner):
         self._kv_url = None
         self._job_conf_prototype = None
         self._pool = None
-        self._client_bin = None
+        self._process_starter = run_benchexec
         self._manager = None
         self._log_file = 'info.log'
 
@@ -144,9 +144,6 @@ class Native(runners.TryLessMemoryRunner):
             self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
             self._pool = concurrent.futures.ThreadPoolExecutor(max_processes)
-
-        # Check client bin
-        self._client_bin = os.path.abspath(os.path.join(os.path.dirname(sys.executable), "klever-scheduler-client"))
 
     def schedule(self, pending_tasks, pending_jobs):
         """
@@ -308,26 +305,19 @@ class Native(runners.TryLessMemoryRunner):
             client_conf = self._job_conf_prototype.copy()
             self._manager.check_resources(configuration, job=True)
 
-        args = [self._client_bin, mode]
-
         self._create_work_dir(subdir, identifier)
-        client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
-        client_conf["identifier"] = identifier
         work_dir = os.path.join(self.work_dir, subdir, identifier)
-        file_name = os.path.join(work_dir, 'client.json')
-        args.extend(['--file', file_name])
         self._reserved[subdir][identifier] = {}
 
-        if configuration["resource limits"].get("CPU time"):
-            # This is emergency timer if something will hang
-            timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
-        else:
-            timeout = None
-        process = multiprocessing.Process(None, self._process_starter, identifier, [timeout, args])
+        client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
+        client_conf["identifier"] = identifier
+        client_conf["resource limits"] = configuration["resource limits"]
+        client_conf["resource limits"]["CPU cores"] = \
+            self._get_virtual_cores(int(node_status["available CPU number"]),
+                                    int(node_status["reserved CPU number"]),
+                                    int(configuration["resource limits"]["number of CPU cores"]))
 
         if mode == 'task':
-            client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
-            client_conf["identifier"] = identifier
             client_conf["common"]["working directory"] = work_dir
             for name in ("verifier", "upload verifier input files"):
                 client_conf[name] = configuration[name]
@@ -351,7 +341,6 @@ class Native(runners.TryLessMemoryRunner):
                     'configuration {!r}'.format(client_conf['verifier']['name'], client_conf['verifier']['version'],
                                                 self.conf["scheduler"]["task client configuration"]))
 
-            self._task_processes[identifier] = process
         else:
             klever_core_conf = configuration.copy()
             klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -360,17 +349,6 @@ class Native(runners.TryLessMemoryRunner):
             client_conf["common"]["working directory"] = work_dir
             client_conf["Klever Core conf"] = self._reserved["jobs"][identifier]["configuration"]
 
-            self._job_processes[identifier] = process
-
-        client_conf["resource limits"] = configuration["resource limits"]
-        # Add particular cores
-        if "resource limits" not in client_conf:
-            client_conf["resource limits"] = {}
-        client_conf["resource limits"]["CPU cores"] = \
-            self._get_virtual_cores(int(node_status["available CPU number"]),
-                                    int(node_status["reserved CPU number"]),
-                                    int(configuration["resource limits"]["number of CPU cores"]))
-        if mode != "task":
             if len(client_conf["resource limits"]["CPU cores"]) == 0:
                 data = utils.extract_cpu_cores_info()
                 client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
@@ -383,8 +361,12 @@ class Native(runners.TryLessMemoryRunner):
             with open(os.path.join(work_dir, "core.json"), "w", encoding="utf-8") as fh:
                 json.dump(client_conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
-        with open(file_name, 'w', encoding="utf-8") as fp:
-            json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+        process = multiprocessing.Process(None, self._process_starter, identifier, [mode, client_conf])
+
+        if mode == 'task':
+            self._task_processes[identifier] = process
+        else:
+            self._job_processes[identifier] = process
 
     def _check_solution(self, identifier, future, mode='task'):
         """
@@ -410,9 +392,9 @@ class Native(runners.TryLessMemoryRunner):
         """
         self.logger.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
-            process = self._task_processes[identifier] if identifier in self._task_processes else None
+            process = self._task_processes.get(identifier, None)
         else:
-            process = self._job_processes[identifier] if identifier in self._job_processes else None
+            process = self._job_processes.get(identifier, None)
         if process and process.pid:
             try:
                 # If the user really sent SIGINT then all children got it anyway and we must just wait.
@@ -488,8 +470,9 @@ class Native(runners.TryLessMemoryRunner):
                         if not match:
                             continue
                         if self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
-                            (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
-                             any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if t in msg)):
+                                (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
+                                 any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if
+                                     t in msg)):
                             continue
                         if re.search(r'benchexec(.*) outputted to STDERR', msg):
                             continue
@@ -531,6 +514,7 @@ class Native(runners.TryLessMemoryRunner):
         :param process: multiprocessing.Process object.
         :raise SchedulerException: Raised if process cannot be executed or if its exit code cannot be determined.
         """
+
         def log(msg):
             """This avoids killing problem of logging loggers."""
             if os.path.isfile(logfile):
@@ -561,36 +545,6 @@ class Native(runners.TryLessMemoryRunner):
             raise schedulers.SchedulerException(error_msg)
 
         raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
-
-    @staticmethod
-    def _process_starter(timeout, args):
-        """
-        Function just executes native scheduler client and waits until it terminates.
-
-        :param timeout: Check that tool will exit definitely within this period of time.
-        :param args: Native scheduler client execution command arguments.
-        :return: It exits with the exit code returned by a client.
-        """
-        # todo: implement proper self.logger here, since usage of self.logger lead to hanging of threads don't know why
-        ####### !!!! #######
-        # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
-        # This is because bug in self.logger library. After an attempt to start the client with self.logger in a
-        # separate process and then kill it and start it again self.logger will HANG and you WILL NOT able to start the
-        # client again. This is known bug in self.logger, so do not waste your time here until it is fixed.
-        ####### !!!! #######
-
-        # Kill handler
-        mypid = os.getpid()
-        with open('info.log', 'a') as lf:
-            print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
-        ec = utils.execute(args, timeout=timeout)
-        with open('info.log', 'a') as lf:
-            print('Executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)), file=lf)
-
-        # Be sure that process will exit
-        if not isinstance(ec, int):
-            ec = 1
-        os._exit(int(ec))
 
     def _create_work_dir(self, entities, identifier):
         """
