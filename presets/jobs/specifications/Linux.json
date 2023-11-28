@@ -73,7 +73,6 @@
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
-              "linux/overflow.c",
               "linux/verifier/memory.c",
               "verifier/gcc.c",
               "verifier/nondet.c"
@@ -511,6 +510,20 @@
       {
         "identifier": "empty",
         "description": "..."
+      },
+      {
+        "identifier": "overflow",
+        "description": "checks potential overflows",
+        "plugins": [
+          {
+            "name": "RSG",
+            "options": {
+              "common models": [
+                "linux/overflow.c"
+              ]
+            }
+          }
+        ]
       },
       {
         "identifier": "fs",

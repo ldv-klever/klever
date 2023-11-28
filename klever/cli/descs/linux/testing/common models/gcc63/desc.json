@@ -29,8 +29,7 @@
             "ext-modules/linux/mm/slab-memory-safety",
             "ext-modules/linux/mm/util",
             "ext-modules/linux/mm/vmalloc",
-            "ext-modules/linux/mm/vmalloc-memory-safety",
-            "ext-modules/linux/overflow"
+            "ext-modules/linux/mm/vmalloc-memory-safety"
         ]
     },
     {
@@ -64,8 +63,7 @@
             "ext-modules/linux/mm/slab-memory-safety",
             "ext-modules/linux/mm/util",
             "ext-modules/linux/mm/vmalloc-v2",
-            "ext-modules/linux/mm/vmalloc-memory-safety-v2",
-            "ext-modules/linux/overflow"
+            "ext-modules/linux/mm/vmalloc-memory-safety-v2"
         ]
     }
 ]
