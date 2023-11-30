@@ -8,17 +8,7 @@
     "consul": "/abs/path/to/consul",
     "script checks": [
       {
-        "name": "klever-resources-check",
-        "active": true,
-        "interval": "5s"
-      },
-      {
-        "name": "klever-node-check",
-        "active": true,
-        "interval": "5s"
-      },
-      {
-        "name": "klever-schedulers-check",
+        "name": "klever-check",
         "active": true,
         "interval": "5s"
       }

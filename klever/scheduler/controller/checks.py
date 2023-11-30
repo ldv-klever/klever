@@ -12,16 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 import os
+import time
 import json
-import subprocess
 import logging
+import subprocess
 import sys
 
 from klever.scheduler.utils import bridge
 from klever.scheduler.utils import consul
+
+
+def set_data(consul_client, conf):
+    try:
+        consul_client.kv_put("states/{}".format(conf["node configuration"]["node name"]),
+                             json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4))
+    except (AttributeError, KeyError):
+        print("Key-value storage is inaccessible")
 
 
 def set_status(logger, st, conf):
@@ -32,11 +40,7 @@ def set_status(logger, st, conf):
         session.json_exchange("service/scheduler/{0}/".format(scheduler), data={'status': status}, method='PATCH')
 
 
-def main():
-    expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-    with open(expect_file, encoding="utf-8") as fh:
-        conf = json.load(fh)
-
+def schedulers_checks(conf):
     # Sign in
     consul_client = consul.Session()
 
@@ -68,9 +72,36 @@ def main():
             sys.exit(1)
         set_status(logging, status, conf)
 
-    # Sign out
-    sys.exit(0)
+def resources_checks(node_conf, expect_file):
+    # Check content
+    consul_client = consul.Session()
+    data = consul_client.kv_get("states/{}".format(node_conf["node configuration"]["node name"]))
+    if data:
+        # Check last modification data
+        secs_since_diff = int(time.time() - os.path.getmtime(expect_file))
 
+        if secs_since_diff < 30:
+            set_data(consul_client, node_conf)
+    else:
+        set_data(consul_client, node_conf)
+
+    return True
+
+def main():
+    expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
+    logging.info("Configuration file: %s", expect_file)
+
+    if not os.path.isfile(expect_file):
+        sys.exit(2)
+
+    # Read node configuration
+    with open(expect_file, encoding="utf-8") as fh:
+        conf = json.load(fh)
+
+    resources_checks(conf, expect_file)
+    schedulers_checks(conf)
+
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
