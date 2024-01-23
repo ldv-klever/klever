@@ -63,9 +63,14 @@ void *ldv_zalloc_unknown_size(void)
 	return ldv_reference_zalloc_unknown_size();
 }
 
-void *ldv_xmalloc_unknown_size(size_t size)
+void *ldv_xmalloc_unknown_size(void)
 {
-    return ldv_reference_xmalloc_unknown_size(size);
+    return ldv_reference_xmalloc_unknown_size();
+}
+
+void *ldv_xmalloc_unknown_size_t(size_t size)
+{
+    return ldv_xmalloc_unknown_size();
 }
 
 void *ldv_realloc(void *ptr, size_t size)

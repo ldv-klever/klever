@@ -22,5 +22,5 @@ char* ldv_xasprintf(void);
 
 char* ldv_xasprintf(void)
 {
-    return ldv_xmalloc_unknown_size(0);
+    return ldv_xmalloc_unknown_size();
 }

@@ -841,7 +841,7 @@ There are several auxiliary expressions allowed in base block statements:
       :c:func:`ldv_xmalloc` function.
 * $UALLOC(%\*labelname*\%);
       Allocate memory according to the label type size (the label is expected to be a pointer) using
-      :c:func:`ldv_xmalloc_unknown_size` function.
+      :c:func:`ldv_xmalloc_unknown_size_t` function.
 * $ZALLOC(%\*labelname*\%);
       Allocate memory according to the label type size (the label is expected to be a pointer) using
       :c:func:`ldv_xzalloc` function.

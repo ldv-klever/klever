@@ -105,7 +105,7 @@ class CModel:
 
     mem_function_map = {
         "ALLOC": "ldv_xmalloc",
-        "UALLOC": "ldv_xmalloc_unknown_size",
+        "UALLOC": "ldv_xmalloc_unknown_size_t",
         "ZALLOC": "ldv_xzalloc"
     }
     free_function_map = {

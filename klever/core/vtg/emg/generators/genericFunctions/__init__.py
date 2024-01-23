@@ -311,7 +311,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                             value = "ldv_xmalloc(sizeof({}));".\
                                 format(apt if apt != 'void' else apt + '*')
                         else:
-                            value = "ldv_xmalloc_unknown_size(0);"
+                            value = "ldv_xmalloc_unknown_size();"
                         free_args.append(argvar.name)
                         initializations.append("{} = {}".format(argvar.name, value))
 

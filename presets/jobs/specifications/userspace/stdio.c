@@ -26,7 +26,7 @@ int ldv_asprintf(char **ptr)
 {
     char *new;
     if (ldv_undef_int()) {
-        new = (char *) ldv_xmalloc_unknown_size(sizeof(char));
+        new = (char *) ldv_xmalloc_unknown_size();
         *ptr = new;
         return ldv_undef_int_positive();
     } else {

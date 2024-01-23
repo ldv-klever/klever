@@ -78,12 +78,13 @@ extern void *ldv_reference_calloc_unknown_size(void);
 extern void *ldv_reference_zalloc_unknown_size(void);
 
 /**
- * ldv_xmalloc_unknown_size() - This function is intended just for EMG that likes to pass some size even
+ * ldv_xmalloc_unknown_size_t() - This function is intended just for EMG that likes to pass some size even
  *                              when it wants to allocate memory of unknown size.
  */
-extern void *ldv_xmalloc_unknown_size(size_t size);
+extern void *ldv_xmalloc_unknown_size_t(size_t size);
+extern void *ldv_xmalloc_unknown_size(void);
 
-extern void *ldv_reference_xmalloc_unknown_size(size_t size);
+extern void *ldv_reference_xmalloc_unknown_size(void);
 
 extern void *external_allocated_data(void);
 

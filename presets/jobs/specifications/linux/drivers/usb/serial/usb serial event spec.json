@@ -872,7 +872,7 @@
               "struct urb *emg_make_urb(struct usb_serial_port *port) {\n",
               "\t struct urb *new_urb;\n",
               "\t new_urb = ldv_xmalloc(sizeof(struct urb));\n",
-              "\t new_urb->transfer_buffer = ldv_malloc_unknown_size();\n",
+              "\t new_urb->transfer_buffer = ldv_xmalloc_unknown_size();\n",
               "\t new_urb->context = port;\n",
               "\t ldv_assume(new_urb->actual_length > 0);\n",
               "\t ldv_assume(new_urb->actual_length < 1000);\n",

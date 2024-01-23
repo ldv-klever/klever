@@ -142,12 +142,17 @@ void *ldv_zalloc_unknown_size(void)
 	return res;
 }
 
-void *ldv_xmalloc_unknown_size(size_t size)
+void *ldv_xmalloc_unknown_size(void)
 {
 	void *res;
 
-	res = ldv_reference_xmalloc_unknown_size(size);
+	res = ldv_reference_xmalloc_unknown_size();
 	ldv_assume(!ldv_is_err(res));
 
 	return res;
+}
+
+void *ldv_xmalloc_unknown_size_t(size_t size)
+{
+	return ldv_xmalloc_unknown_size();
 }

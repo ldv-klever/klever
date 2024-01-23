@@ -158,7 +158,7 @@ void *ldv_reference_zalloc_unknown_size(void)
 	return ldv_reference_calloc_unknown_size();
 }
 
-void *ldv_reference_xmalloc_unknown_size(size_t size)
+void *ldv_reference_xmalloc_unknown_size(void)
 {
 	void *res;
 
