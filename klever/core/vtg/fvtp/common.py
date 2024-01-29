@@ -19,6 +19,7 @@ import os
 import re
 import zipfile
 import json
+import sortedcontainers
 import klever.core.utils
 
 
@@ -36,10 +37,14 @@ def merge_files(logger, conf, abstract_task_desc):
     else:
         logger.info('Merge source files by means of CIL')
 
+        ordered_c_files = sortedcontainers.SortedSet()
+        for extra_c_file in abstract_task_desc['extra C files']:
+            if 'C file' in extra_c_file:
+                ordered_c_files.add(os.path.join(conf['main working directory'], extra_c_file['C file']))
+
         with open('input files', 'w', encoding='utf-8') as fp:
-            for extra_c_file in abstract_task_desc['extra C files']:
-                if 'C file' in extra_c_file:
-                    fp.write(os.path.join(conf['main working directory'], extra_c_file['C file']) + '\n')
+            for c_file in ordered_c_files:
+                fp.write(c_file + '\n')
 
         args = ['toplevel.opt'] + \
             conf.get('CIL additional opts', []) + \
