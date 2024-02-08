@@ -1,5 +1,6 @@
 stages:
   - checks
+  - product-lines
   - tests
 
 .deps: &deps
@@ -23,6 +24,20 @@ pylint:
   script:
   - venv/bin/python3 -m pip install pylint
   - venv/bin/pylint $(git ls-files 'klever/*.py')
+
+.option-check: &option-check
+  <<: *deps
+  stage: product-lines
+  interruptible: true
+  script:
+  - venv/bin/python3 ci-option-inject.py --config ci-config/options-injection-config.yml --name $OPTION_NAME
+  - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
+  - venv/bin/python3 ci-test-run.py --job_file=ci-config/job-sample.yml --job_name="Loadable kernel modules sample"
+
+consul-option:
+  <<: *option-check
+  variables:
+    OPTION_NAME: consul
 
 .integration-tests: &integration-tests
   <<: *deps

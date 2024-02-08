@@ -5,6 +5,7 @@
     "password": "password"
   },
   "client-controller": {
+    "type": "local",
     "consul": "/abs/path/to/consul",
     "script checks": [
       {

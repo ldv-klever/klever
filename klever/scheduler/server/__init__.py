@@ -40,6 +40,7 @@ def _robust_request(req):
 
     return tolerant_method
 
+
 class Server:
     """Exchange with gateway via net."""
 

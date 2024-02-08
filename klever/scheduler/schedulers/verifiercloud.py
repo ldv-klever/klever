@@ -374,7 +374,7 @@ class VerifierCloud(runners.Runner):
         self.logger.debug("Upload solution archive {} of the task {} to the verification gateway".
                           format(solution_archive, identifier))
         try:
-            utils.submit_task_results(self.logger, self.server, self.scheduler_type(), identifier, solution_description,
+            utils.submit_task_results(self.logger, self.server, identifier, solution_description,
                                       os.path.join(task_work_dir, "solution"))
         except Exception as err:
             error_msg = "Cannot submit solution results of task {}: {}".format(identifier, err)

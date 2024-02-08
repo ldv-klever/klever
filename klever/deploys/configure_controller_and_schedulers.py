@@ -97,6 +97,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
                                                                    'klever-conf/native-scheduler-task-client.json'))
     })
 
+    native_scheduler_conf['node configuration'] = controller_conf['node configuration']
+
     if development:
         native_scheduler_conf['scheduler']['keep working directory'] = True
 

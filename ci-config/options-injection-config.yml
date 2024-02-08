@@ -1,0 +1,7 @@
+consul:
+  - file: 'klever/scheduler/conf/controller.json'
+    options:
+      'client-controller:type': "consul"
+  - file: 'klever/scheduler/conf/native-scheduler.json'
+    options:
+      'scheduler:manager': "consul"

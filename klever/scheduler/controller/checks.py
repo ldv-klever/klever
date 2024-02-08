@@ -20,8 +20,7 @@ import logging
 import subprocess
 import sys
 
-from klever.scheduler.utils import bridge
-from klever.scheduler.utils import consul
+from klever.scheduler.utils import consul, bridge
 
 
 def set_data(consul_client, conf):
@@ -35,16 +34,12 @@ def set_data(consul_client, conf):
 def set_status(logger, st, conf):
     session = bridge.Session(logger, conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
                              conf["Klever Bridge"]["password"])
-
+    logging.info("Consul set status")
     for scheduler, status in st.items():
         session.json_exchange("service/scheduler/{0}/".format(scheduler), data={'status': status}, method='PATCH')
 
 
-def schedulers_checks(conf):
-    # Sign in
-    consul_client = consul.Session()
-
-    # Update scheduler status
+def get_schedulers_status():
     status = {
         "VerifierCloud": "DISCONNECTED",
         "Klever": "DISCONNECTED"
@@ -56,6 +51,33 @@ def schedulers_checks(conf):
     vc_out = subprocess.getoutput('ps -aux | grep [v]erifiercloud-scheduler')
     if vc_out and vc_out != '':
         status["VerifierCloud"] = "HEALTHY"
+
+    return status
+
+
+def local_scheduler_checks(conf):
+    old_status = {
+        "VerifierCloud": "DISCONNECTED",
+        "Klever": "DISCONNECTED"
+    }
+
+    while True:
+        status = get_schedulers_status()
+
+        if status != old_status:
+            # Update scheduler status
+            set_status(logging, status, conf)
+            old_status = status
+
+        time.sleep(5)
+
+
+def schedulers_checks(conf):
+    # Sign in
+    consul_client = consul.Session()
+    # Update scheduler status
+    status = get_schedulers_status()
+    logging.info("Consul scheduler checks")
 
     # Check the last submit
     schedulers = consul_client.kv_get("schedulers")
@@ -72,6 +94,7 @@ def schedulers_checks(conf):
             sys.exit(1)
         set_status(logging, status, conf)
 
+
 def resources_checks(node_conf, expect_file):
     # Check content
     consul_client = consul.Session()
@@ -86,6 +109,7 @@ def resources_checks(node_conf, expect_file):
         set_data(consul_client, node_conf)
 
     return True
+
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
@@ -102,6 +126,7 @@ def main():
     schedulers_checks(conf)
 
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

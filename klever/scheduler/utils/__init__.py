@@ -107,6 +107,66 @@ def common_initialization(tool, conf=None):
     return conf, logger
 
 
+def prepare_node_info(node_info):
+    """
+    Check that required values have been provided and add general node information.
+    :param node_info: Dictionary with "node configuration" part of the configuration.
+    :return: Updated dictionary.
+    """
+    system_info = extract_system_information()
+    result = node_info.copy()
+    result.update(system_info)
+
+    # Check required data
+    if "CPU number" not in result:
+        raise KeyError("Provide configuration property 'node configuration''CPU number'")
+    if "available RAM memory" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available RAM memory'")
+    if "available disk memory" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available disk memory'")
+    if "available for jobs" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available for jobs'")
+    if "available for tasks" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available for tasks'")
+
+    # TODO: extract this to the common library. Add debug printing in particular warn if specified values are out of bounds. Try to use some mathematical functions like min and max.
+    # Do magic transformations like in get_parallel_threads_num() from klever.core/utils.py to dynamically adjust available
+    # resources if they are specified as decimals.
+    if isinstance(result["available CPU number"], float):
+        result["available CPU number"] = int(result["CPU number"] * result["available CPU number"])
+    elif result["available CPU number"] > result["CPU number"]:
+        result["available CPU number"] = result["CPU number"]
+    if isinstance(result["available RAM memory"], float):
+        result["available RAM memory"] = int(result["RAM memory"] * result["available RAM memory"])
+    elif isinstance(result["available RAM memory"], str):
+        result["available RAM memory"] = memory_units_converter(result["available RAM memory"], '')[0]
+    if result["available RAM memory"] < 1000 ** 3:
+        result["available RAM memory"] = 1000 ** 3
+    elif result["available RAM memory"] > result["RAM memory"]:
+        result["available RAM memory"] = result["RAM memory"]
+    if isinstance(result["available disk memory"], float):
+        result["available disk memory"] = int(result["disk memory"] * result["available disk memory"])
+    elif isinstance(result["available disk memory"], str):
+        result["available disk memory"] = memory_units_converter(result["available disk memory"], '')[0]
+    if result["available disk memory"] < 1000 ** 3:
+        result["available disk memory"] = 1000 ** 3
+    elif result["available disk memory"] > result["disk memory"] - 1000 ** 3:
+        result["available disk memory"] = result["disk memory"] - 1000 ** 3
+
+    # Check feasibility of limits
+    if result["available RAM memory"] > result["RAM memory"]:
+        raise ValueError("Node has {} bytes of RAM memory but {} is attempted to reserve".
+                         format(result["RAM memory"], result["available RAM memory"]))
+    if result["available disk memory"] > result["disk memory"]:
+        raise ValueError("Node has {} bytes of disk memory but {} is attempted to reserve".
+                         format(result["disk memory"], result["available disk memory"]))
+    if result["available CPU number"] > result["CPU number"]:
+        raise ValueError("Node has {} CPU cores but {} is attempted to reserve".
+                         format(result["CPU number"], result["available CPU number"]))
+
+    return result
+
+
 def split_archive_name(path):
     """
     Split archive name into file name and extension. The difference with is.path.splitext is that this function can
@@ -341,8 +401,8 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
 
         err_q.join()
     else:
-        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr,  # pylint:disable=subprocess-popen-preexec-fn
-                             stdout=stdout)  # pylint: disable=consider-using-with
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, # pylint:disable=subprocess-popen-preexec-fn
+                             stderr=stderr, stdout=stdout)  # pylint: disable=consider-using-with
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
     p.wait()
@@ -397,14 +457,13 @@ def process_task_results(logger):
     return decision_results
 
 
-def submit_task_results(logger, server, scheduler_type, identifier, decision_results, solution_path, speculative=False):
+def submit_task_results(logger, server, identifier, decision_results, solution_path, speculative=False):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
 
     :param logger: Logger object.
     :param server: server.AbstractServer object.
-    :param scheduler_type: Scheduler type.
     :param identifier: Task identifier.
     :param decision_results: Dictionary with decision results and measured resources.
     :param solution_path: Path to the directory with solution files.
@@ -433,8 +492,6 @@ def submit_task_results(logger, server, scheduler_type, identifier, decision_res
     else:
         logger.info("Do not upload speculative solution")
 
-    kv_upload_solution(logger, identifier, scheduler_type, decision_results)
-
 
 def extract_cpu_cores_info():
     """
@@ -459,57 +516,3 @@ def extract_cpu_cores_info():
                     data[pc] = [current_vc]
 
     return data
-
-
-def kv_upload_solution(logger, identifier, scheduler_type, dataset):
-    """
-    Upload data to controller storage.
-
-    :param logger: Logger object.
-    :param identifier: Task identifier.
-    :param scheduler_type: Scheduler type.
-    :param dataset: Data to save about the solution. This should be dictionary.
-    :return: None
-    """
-    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    consul_client = consul.Session()
-    try:
-        consul_client.kv_put(key, json.dumps(dataset))
-    except (AttributeError, KeyError):
-        logger.warning("Cannot save key {!r} to key-value storage".format(key))
-
-
-def kv_get_solution(scheduler_type, identifier):
-    """
-    Upload data to controller storage.
-
-    :param scheduler_type: Type of the scheduler to avoid races.
-    :param identifier: Task identifier.
-    :return: None
-    """
-    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
-    consul_client = consul.Session()
-    data = consul_client.kv_get(key)
-    if data:
-        return json.loads(data)
-
-    raise RuntimeError("Cannot obtain key {!r} from key-value storage".format(key))
-
-
-def kv_clear_solutions(logger, scheduler_type, identifier=None):
-    """
-    Upload data to controller storage.
-
-    :param logger: Logger object.
-    :param scheduler_type: Type of the scheduler to avoid races.
-    :param identifier: Task identifier.
-    :return: None
-    """
-    try:
-        consul_client = consul.Session()
-        if isinstance(identifier, str):
-            consul_client.kv_delete('solutions/{}/{}'.format(scheduler_type, identifier))
-        else:
-            consul_client.kv_delete('solutions/{}'.format(scheduler_type))
-    except (AttributeError, KeyError):
-        logger.warning("Key-value storage is inaccessible")

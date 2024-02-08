@@ -24,66 +24,6 @@ import sys
 from klever.scheduler import utils
 
 
-def prepare_node_info(node_info):
-    """
-    Check that required values have been provided and add general node information.
-    :param node_info: Dictionary with "node configuration" part of the configuration.
-    :return: Updated dictionary.
-    """
-    system_info = utils.extract_system_information()
-    result = node_info.copy()
-    result.update(system_info)
-
-    # Check required data
-    if "CPU number" not in result:
-        raise KeyError("Provide configuration property 'node configuration''CPU number'")
-    if "available RAM memory" not in result:
-        raise KeyError("Provide configuration property 'node configuration''available RAM memory'")
-    if "available disk memory" not in result:
-        raise KeyError("Provide configuration property 'node configuration''available disk memory'")
-    if "available for jobs" not in result:
-        raise KeyError("Provide configuration property 'node configuration''available for jobs'")
-    if "available for tasks" not in result:
-        raise KeyError("Provide configuration property 'node configuration''available for tasks'")
-
-    # TODO: extract this to the common library. Add debug printing in particular warn if specified values are out of bounds. Try to use some mathematical functions like min and max.
-    # Do magic transformations like in get_parallel_threads_num() from klever.core/utils.py to dynamically adjust available
-    # resources if they are specified as decimals.
-    if isinstance(result["available CPU number"], float):
-        result["available CPU number"] = int(result["CPU number"] * result["available CPU number"])
-    elif result["available CPU number"] > result["CPU number"]:
-        result["available CPU number"] = result["CPU number"]
-    if isinstance(result["available RAM memory"], float):
-        result["available RAM memory"] = int(result["RAM memory"] * result["available RAM memory"])
-    elif isinstance(result["available RAM memory"], str):
-        result["available RAM memory"] = utils.memory_units_converter(result["available RAM memory"], '')[0]
-    if result["available RAM memory"] < 1000 ** 3:
-        result["available RAM memory"] = 1000 ** 3
-    elif result["available RAM memory"] > result["RAM memory"]:
-        result["available RAM memory"] = result["RAM memory"]
-    if isinstance(result["available disk memory"], float):
-        result["available disk memory"] = int(result["disk memory"] * result["available disk memory"])
-    elif isinstance(result["available disk memory"], str):
-        result["available disk memory"] = utils.memory_units_converter(result["available disk memory"], '')[0]
-    if result["available disk memory"] < 1000 ** 3:
-        result["available disk memory"] = 1000 ** 3
-    elif result["available disk memory"] > result["disk memory"] - 1000 ** 3:
-        result["available disk memory"] = result["disk memory"] - 1000 ** 3
-
-    # Check feasibility of limits
-    if result["available RAM memory"] > result["RAM memory"]:
-        raise ValueError("Node has {} bytes of RAM memory but {} is attempted to reserve".
-                         format(result["RAM memory"], result["available RAM memory"]))
-    if result["available disk memory"] > result["disk memory"]:
-        raise ValueError("Node has {} bytes of disk memory but {} is attempted to reserve".
-                         format(result["disk memory"], result["available disk memory"]))
-    if result["available CPU number"] > result["CPU number"]:
-        raise ValueError("Node has {} CPU cores but {} is attempted to reserve".
-                         format(result["CPU number"], result["available CPU number"]))
-
-    return result
-
-
 def setup_consul(conf, logger):
     """
     Setup consul working directory and configuration files.
@@ -95,7 +35,7 @@ def setup_consul(conf, logger):
     os.makedirs(consul_work_dir.encode("utf-8"))
 
     # Prepare node info
-    conf["node configuration"] = prepare_node_info(conf["node configuration"])
+    conf["node configuration"] = utils.prepare_node_info(conf["node configuration"])
 
     # TODO: Create main config
     consul_config = {"checks": []}

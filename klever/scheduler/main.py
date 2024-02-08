@@ -20,6 +20,7 @@ from klever.scheduler.schedulers import verifiercloud
 from klever.scheduler import utils
 
 from klever.scheduler.schedulers import Scheduler
+from klever.scheduler.controller.checks import local_scheduler_checks
 
 
 def client_controller():
@@ -32,11 +33,16 @@ def client_controller():
     if "node configuration" not in conf:
         raise KeyError("Provide configuration property 'node configuration' as a JSON-object")
 
-    # Setup consul
-    consul_work_dir, consul_config_file = controller.setup_consul(conf, logger)
+    if conf["client-controller"].get("type", "local") == "local":
+        local_scheduler_checks(conf['Klever Bridge'])
+    elif conf["client-controller"]["type"] == "consul":
+        # Setup consul
+        consul_work_dir, consul_config_file = controller.setup_consul(conf, logger)
 
-    # Run consul
-    controller.run_consul(conf, logger, consul_work_dir, consul_config_file)
+        # Run consul
+        controller.run_consul(conf, logger, consul_work_dir, consul_config_file)
+    else:
+        raise KeyError("Unknown client controller type: {}".format(conf["client-controller"]["type"]))
 
 
 def debug_scheduler():

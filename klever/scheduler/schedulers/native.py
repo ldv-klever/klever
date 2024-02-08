@@ -25,8 +25,7 @@ import signal
 import time
 
 from klever.scheduler import schedulers
-from klever.scheduler.schedulers import runners
-from klever.scheduler.schedulers import resource_scheduler
+from klever.scheduler.schedulers import runners, resource_scheduler
 from klever.scheduler import utils
 from klever.scheduler.client import run_benchexec
 
@@ -56,7 +55,6 @@ class Native(runners.TryLessMemoryRunner):
     def __init__(self, conf, logger, work_dir, server):
         """Do native scheduler specific initialization"""
         super().__init__(conf, logger, work_dir, server)
-        self._kv_url = None
         self._job_conf_prototype = None
         self._pool = None
         self._process_starter = run_benchexec
@@ -73,7 +71,6 @@ class Native(runners.TryLessMemoryRunner):
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''controller address'")
-        self._kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
         with open(self.conf["scheduler"]["job client configuration"], encoding="utf-8") as fh:
@@ -92,11 +89,24 @@ class Native(runners.TryLessMemoryRunner):
             self.logger.debug("Use provided in configuration prototype 'common' settings for jobs")
 
         # Check node first time
-        self._manager = resource_scheduler.ResourceManager(
-            self.logger,
-            max_jobs=self.conf["scheduler"].get("concurrent jobs", 1),
-            is_adjust_pool_size=self.conf["scheduler"].get("limit max tasks based on plugins load", False)
-        )
+        m_type = self.conf["scheduler"].get("manager", 'local')
+        if m_type == 'consul':
+            address = self.conf["scheduler"]["controller address"]
+            self._manager = resource_scheduler.ConsulResourceManager(
+                self.logger,
+                address,
+                max_jobs=self.conf["scheduler"].get("concurrent jobs", 1),
+                is_adjust_pool_size=self.conf["scheduler"].get("limit max tasks based on plugins load", False),
+            )
+        elif m_type == 'local':
+            self._manager = resource_scheduler.ResourceManager(
+                self.logger,
+                max_jobs=self.conf["scheduler"].get("concurrent jobs", 1),
+                is_adjust_pool_size=self.conf["scheduler"].get("limit max tasks based on plugins load", False),
+                node_conf=self.conf.get("node configuration", None)
+            )
+        else:
+            raise KeyError(f"Unknown manager type: {m_type}")
 
         node_init_retries = 0
         while True:
@@ -114,7 +124,6 @@ class Native(runners.TryLessMemoryRunner):
         self._node_name = nodes[0]
         data = self._manager.node_info(self._node_name)
         self._cpu_cores = data["CPU number"]
-        utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:
@@ -183,7 +192,7 @@ class Native(runners.TryLessMemoryRunner):
         """
         # todo: Need refactoring!
         # Use resource manager to manage resources
-        cancel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
+        cancel_jobs, cancel_tasks = self._manager.update_system_status(wait_controller)
         # todo: how to provide jobs or tasks to cancel?
         if len(cancel_tasks) > 0 or len(cancel_jobs) > 0:
             self.logger.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
@@ -449,6 +458,12 @@ class Native(runners.TryLessMemoryRunner):
                         termination_reason = fp.read()
                         raise schedulers.SchedulerException(termination_reason)
 
+                if mode == 'task':
+                    results_file = os.path.join(work_dir, "decision results.json")
+                    self.logger.debug("Read decision results from the disk: {}".format(os.path.abspath(results_file)))
+                    with open(results_file, encoding="utf-8") as fp:
+                        task_results = json.loads(fp.read())
+
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf-8") as f:
@@ -503,6 +518,9 @@ class Native(runners.TryLessMemoryRunner):
                     not self.conf["scheduler"]["keep working directory"]:
                 self.logger.debug("Clean task working directory {} for {}".format(work_dir, identifier))
                 shutil.rmtree(work_dir)
+
+        if mode == 'task':
+            return "FINISHED", task_results
 
         return "FINISHED"
 

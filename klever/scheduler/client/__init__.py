@@ -95,7 +95,7 @@ def run_benchexec(mode, conf):
             raise NotImplementedError(f"Provided mode {mode} is not supported by the client")
 
         exit_code = solve(logger, conf, mode, srv)
-    except: # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except
         logger.warning(traceback.format_exc().rstrip())
         exit_code = 1
     finally:
@@ -200,8 +200,7 @@ def solve_task(logger, conf, srv):
         speculative = False
         decision_results['uploaded'] = True
 
-    submit_task_results(logger, srv, "Klever", conf["identifier"], decision_results, os.path.curdir,
-                        speculative=speculative)
+    submit_task_results(logger, srv, conf["identifier"], decision_results, os.path.curdir, speculative=speculative)
 
     return exit_code
 
@@ -247,7 +246,7 @@ def prepare_task_arguments(logger, conf):
         args.append("--allowedCores")
         args.append(','.join(list(map(str, conf["resource limits"]["CPU cores"]))))
 
-    if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
+    if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and \
             conf['client']["benchexec measure disk"]:
         args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], 'MB')[1]])
 

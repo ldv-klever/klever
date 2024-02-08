@@ -18,8 +18,8 @@
 import math
 import sys
 
-from klever.scheduler import utils
 from klever.scheduler.schedulers import SchedulerException
+
 
 def incmean(prevmean, n, x):
     """Calculate incremental mean"""
@@ -58,7 +58,6 @@ class Runner:
         self.logger = logger
         self.work_dir = work_dir
         self.server = server
-        #utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
     @staticmethod
     def scheduler_type():
@@ -243,7 +242,7 @@ class Runner:
         if item["future"].done():
             try:
                 item.pop('error', None)
-                item["status"] = self._process_task_result(identifier, item["future"], item["description"])
+                item["status"], item['solution'] = self._process_task_result(identifier, item["future"], item["description"])
                 self.logger.debug("Task {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
@@ -251,7 +250,6 @@ class Runner:
                 self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
             finally:
-                utils.kv_clear_solutions(self.logger, self.scheduler_type(), identifier)
                 del item["future"]
             return True
 
@@ -359,7 +357,7 @@ class Runner:
         """
         try:
             if item.get("future") and not item["future"].cancel():
-                item["status"] = self._cancel_task(identifier, item["future"])
+                item["status"], _ = self._cancel_task(identifier, item["future"])
                 self.logger.debug("Cancelled task {} finished with status: {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             else:
@@ -398,7 +396,7 @@ class Runner:
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
-        utils.kv_clear_solutions(self.logger, self.scheduler_type())
+        return
 
     def update_nodes(self, wait_controller=False):  # pylint:disable=unused-argument
         """
@@ -454,28 +452,25 @@ class TryLessMemoryRunner(Runner):
         """
         # Get solution in advance before it is cleaned
         if item["future"].done():
-            try:
-                solution = utils.kv_get_solution(self.scheduler_type(), identifier)
-                termination_reason = solution.get("status")
-            except RuntimeError as err:
-                self.logger.warning("Cannot get a solution for task {} due to: {}".
-                                    format(identifier, err))
-                # If we cannot get a solution due to external error, then do not rescheduler task.
-                termination_reason = "FAILURE"
             status = super().process_task_result(identifier, item)
-            if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
-                    item["description"].get('speculative', False):
-                limits = item["description"]["resource limits"]
-                mem_limit = limits['memory size']
-                new_mem_limit = int(mem_limit / self.__reduced_memory_limit)
-                self.logger.info(
-                    f"Reschedule task {identifier} since it exceeded the given memory limitation "
-                    f"({mem_limit}B), new value is {new_mem_limit}B"
-                )
+            if 'solution' in item:
+                termination_reason = item['solution'].get("status")
+                if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
+                        item["description"].get('speculative', False):
+                    limits = item["description"]["resource limits"]
+                    mem_limit = limits['memory size']
+                    new_mem_limit = int(mem_limit / self.__reduced_memory_limit)
+                    self.logger.info(
+                        f"Reschedule task {identifier} since it exceeded the given memory limitation "
+                        f"({mem_limit}B), new value is {new_mem_limit}B"
+                    )
 
-                limits['memory size'] = new_mem_limit
-                self.prepare_task(identifier, item)
-                item["status"] = "PENDING"
-                item["rescheduled"] = True
+                    limits['memory size'] = new_mem_limit
+                    self.prepare_task(identifier, item)
+                    item["status"] = "PENDING"
+                    item["rescheduled"] = True
+            else:
+                self.logger.warning("Cannot get a solution for task {}".format(identifier))
+
             return status
         return False

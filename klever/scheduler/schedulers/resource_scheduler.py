@@ -20,6 +20,7 @@ import copy
 import time
 import requests
 
+from klever.scheduler import utils
 from klever.scheduler.schedulers.global_config import get_workers_cpu_cores
 from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
@@ -35,7 +36,7 @@ class ResourceManager:
     any specific actions to prepare, start or cancel jobs or tasks.
     """
 
-    def __init__(self, logger, max_jobs=1, pool_size=8, is_adjust_pool_size=False):
+    def __init__(self, logger, max_jobs=1, pool_size=8, is_adjust_pool_size=False, node_conf=None):
         """
         Initialize the manager of resources.
 
@@ -51,66 +52,43 @@ class ResourceManager:
         self.__max_tasks = pool_size
         self.__is_adjust_pool_size = is_adjust_pool_size
         self.__last_limitation_error = []
+        if node_conf:
+            self.__node_conf = utils.prepare_node_info(node_conf)
+        else:
+            self.__node_conf = None
 
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
 
-    def update_system_status(self, address, wait_controller=False):
+    def get_node_status(self, node):  # pylint: disable=unused-argument
+        return self.__node_conf
+
+    def get_nodes(self, wait_controller):  # pylint: disable=unused-argument
+        return [self.__node_conf['node name']]
+
+    def update_system_status(self, wait_controller=False):
         """
         Get an information about connected nodes from a scheduler controller. If a user reduces an amount of available
         resources the method checks the invariant and reports jobs and tasks to cancel to prevent scheduling deadlocks.
 
-        :param address: Controllers address to make the request.
         :param wait_controller: Wait until controller initializes its KV storage.
         :raise ValueError: If the request to controller fails then raise the exception.
         :return: [list of identifiers of jobs to cancel], [list of identifiers of tasks to cancel].
         """
-        def request(kv_url):
-            try:
-                r = requests.get(kv_url, timeout=10)
-            except requests.exceptions.Timeout as exp:
-                raise ValueError("Timeout while requesting {}".format(kv_url)) from exp
-            if not r.ok:
-                raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
-                                 format(kv_url, r.status_code, r.reason))
-            nds = r.json()
-            nds = [data["Node"] for data in nds]
-
-            # test
-            if len(nds) == 0:
-                raise KeyError("Expect at least one working node to operate")
-
-            return nds
-
-        url = address + "/v1/catalog/nodes"
-        nodes = []
-        if wait_controller:
-            done = False
-            while not done:
-                try:
-                    nodes = request(url)
-                    done = True
-                except (requests.exceptions.ConnectionError, KeyError, ValueError):
-                    time.sleep(10)
-        else:
-            nodes = request(url)
-
-        consul_client = consul.Session()
 
         cancel_jobs = []
         cancel_tasks = []
+        nodes = self.get_nodes(wait_controller)
         for node in nodes:
-            response = consul_client.kv_get("states/" + node)
-            if not response:
+            node_status = self.get_node_status(node)
+            if not node_status:
                 self.__logger.warning(f"Node {node} was not connected yet.")
                 continue
-
-            node_status = json.loads(response)
 
             # Get dictionary and compare it with existing one
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":
                 if self.__system_status[node]["available for jobs"] and not node_status["available for jobs"]:
                     self.__logger.warning("Cancel jobs: {}".
-                                          format(str(self.__system_status[node]["running verification jobs"])))
+                                         format(str(self.__system_status[node]["running verification jobs"])))
                     cancel_jobs.extend(self.__system_status[node]["running verification jobs"])
                 self.__system_status[node]["available for jobs"] = node_status["available for jobs"]
 
@@ -124,7 +102,7 @@ class ResourceManager:
                     verdict, data = self.__check_invariant()
                     if not verdict:
                         self.__logger.warning("Deadlock can happen after amount of resources available at {!r} reduced"
-                                              ", cancelling running tasks and jobs there".format(node))
+                                             ", cancelling running tasks and jobs there".format(node))
                         # Remove jobs
                         self.__logger.warning("Cancel jobs: {}".format(str(data)))
                         cancel_jobs.extend(data)
@@ -143,10 +121,10 @@ class ResourceManager:
         # Check disconnected nodes
         for missing in (n for n in self.__system_status if n not in nodes):
             self.__logger.warning("Seems that node {!r} is disconnected, cancel all running tasks and jobs there"
-                                  .format(missing))
+                                 .format(missing))
             self.__logger.warning('Node {!r} is disconnected. Cancel tasks and jobs: {} and {}'.
-                                  format(missing, str(self.__system_status[missing]["running verification jobs"]),
-                                         str(self.__system_status[missing]["running verification tasks"])))
+                                 format(missing, str(self.__system_status[missing]["running verification jobs"]),
+                                        str(self.__system_status[missing]["running verification tasks"])))
             cancel_jobs.extend(self.__system_status[missing]["running verification jobs"])
             cancel_tasks.extend(self.__system_status[missing]["running verification tasks"])
             self.__system_status[missing]["status"] = "DISCONNECTED"
@@ -194,7 +172,8 @@ class ResourceManager:
             # Collect all such nodes
             nodes = [primer]
             for suits in (s for s in node_pool if equal(s, primer, "CPU model") and
-                          equal(s, primer, "available CPU number") and equal(s, primer, "available disk memory")):
+                                                  equal(s, primer, "available CPU number") and equal(s, primer,
+                                                                                                     "available disk memory")):
                 nodes.append(suits)
                 node_pool.remove(suits)
 
@@ -202,15 +181,15 @@ class ResourceManager:
             conf = {
                 "cpu_model": self.__system_status[primer]["CPU model"],
                 "cpu_number": self.__system_status[primer]["available CPU number"],
-                "ram_memory": int(self.__system_status[primer]["available RAM memory"] / 10**9),
-                "disk_memory": int(self.__system_status[primer]["available disk memory"] / 10**9),
+                "ram_memory": int(self.__system_status[primer]["available RAM memory"] / 10 ** 9),
+                "disk_memory": int(self.__system_status[primer]["available disk memory"] / 10 ** 9),
                 "nodes": [{
                     "hostname": n,
                     "status": self.__system_status[n]["status"],
                     "workload": {
                         "reserved_cpu_number": self.__system_status[n]["reserved CPU number"],
-                        "reserved_ram_memory": int(self.__system_status[n]["reserved RAM memory"] / 10**9),
-                        "reserved_disk_memory": int(self.__system_status[n]["reserved disk memory"] / 10**9),
+                        "reserved_ram_memory": int(self.__system_status[n]["reserved RAM memory"] / 10 ** 9),
+                        "reserved_disk_memory": int(self.__system_status[n]["reserved disk memory"] / 10 ** 9),
                         "running_verification_jobs": len(self.__system_status[n]["running verification jobs"]),
                         "running_verification_tasks": len(self.__system_status[n]["running verification tasks"]),
                         "available_for_jobs": self.__system_status[n]["available for jobs"],
@@ -480,14 +459,14 @@ class ResourceManager:
                                    f'and {task_restrictions["number of CPU cores"]} for a task',
             "memory size": "available {} of memory but requested {} for the"
                            " job and {} for a task".format(
-                                memory_units_converter(memory, outunit='GB')[-1],
-                                memory_units_converter(job_restrictions["memory size"], outunit='GB')[-1],
-                                memory_units_converter(task_restrictions["memory size"], outunit='GB')[-1]),
+                memory_units_converter(memory, outunit='GB')[-1],
+                memory_units_converter(job_restrictions["memory size"], outunit='GB')[-1],
+                memory_units_converter(task_restrictions["memory size"], outunit='GB')[-1]),
             "disk memory size": "available {} of disk memory but requested {} for the"
                                 " job and {} for a task".format(
-                                    memory_units_converter(disk, outunit='GB')[-1],
-                                    memory_units_converter(job_restrictions["disk memory size"], outunit='GB')[-1],
-                                    memory_units_converter(task_restrictions["disk memory size"], outunit='GB')[-1])
+                memory_units_converter(disk, outunit='GB')[-1],
+                memory_units_converter(job_restrictions["disk memory size"], outunit='GB')[-1],
+                memory_units_converter(task_restrictions["disk memory size"], outunit='GB')[-1])
         }
         return error_block
 
@@ -595,7 +574,7 @@ class ResourceManager:
                     'CPU model': given_model
                 }
                 for r in ["number of CPU cores", "memory size", "disk memory size"]:
-                    m = max(restrictions, key=lambda e: e[r]) # pylint: disable=cell-var-from-loop
+                    m = max(restrictions, key=lambda e: e[r])  # pylint: disable=cell-var-from-loop
                     restriction[r] = m[r]
             else:
                 restriction = {
@@ -629,7 +608,7 @@ class ResourceManager:
 
         jobs = self.__processing_jobs
         jobs = [[j, self.__jobs_config[j[0]]] for j in jobs] if not job else \
-               [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
+            [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
 
         if len(jobs) > 0:
             # Now check the invariant
@@ -651,7 +630,7 @@ class ResourceManager:
                           j[1]['configuration']['task resource limits']['disk memory size'] >=
                           mx_task['disk memory size'] or
                           j[1]['configuration']['task resource limits']['number of CPU cores'] >=
-                             mx_task['number of CPU cores'])]
+                          mx_task['number of CPU cores'])]
 
                     if len(suitable) == 0:
                         raise ValueError("Cannot determine job with CPU model {!r} given for tasks to cancel".
@@ -827,3 +806,51 @@ class ResourceManager:
         disk_memory = conf["available disk memory"] - conf["reserved disk memory"]
 
         return [f(cpu_number), f(ram_memory), f(disk_memory)]
+
+
+class ConsulResourceManager(ResourceManager):
+    def __init__(self, logger, address, max_jobs=1, pool_size=8, is_adjust_pool_size=False):
+        super().__init__(logger, max_jobs, pool_size, is_adjust_pool_size, None)
+        self.__address = address
+        self.__consul_client = consul.Session()
+
+    def get_node_status(self, node):
+        response = self.__consul_client.kv_get("states/" + node)
+        if not response:
+            return None
+
+        return json.loads(response)
+
+    @staticmethod
+    def __request(kv_url):
+        try:
+            r = requests.get(kv_url, timeout=10)
+        except requests.exceptions.Timeout as exp:
+            raise ValueError("Timeout while requesting {}".format(kv_url)) from exp
+        if not r.ok:
+            raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
+                             format(kv_url, r.status_code, r.reason))
+        nds = r.json()
+        nds = [data["Node"] for data in nds]
+
+        # test
+        if len(nds) == 0:
+            raise KeyError("Expect at least one working node to operate")
+
+        return nds
+
+    def get_nodes(self, wait_controller):
+        url = self.__address + "/v1/catalog/nodes"
+        nodes = []
+        if wait_controller:
+            done = False
+            while not done:
+                try:
+                    nodes = self.__request(url)
+                    done = True
+                except (requests.exceptions.ConnectionError, KeyError, ValueError):
+                    time.sleep(10)
+        else:
+            nodes = self.__request(url)
+
+        return nodes

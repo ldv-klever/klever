@@ -38,7 +38,7 @@ class ListeningThread(threading.Thread):
     conf = None
 
     def __init__(self, local_queue, accept_jobs, accept_tag, cnf=None):
-        super().__init__()
+        super().__init__(daemon=True)
         self._is_interrupted = False
         self.accept_jobs = accept_jobs
         self.accept_tag = accept_tag
@@ -102,9 +102,7 @@ class Scheduler:
         self._tools = None
         self._iteration_period = 0.5
         self._server_queue = None
-        self._channel = None
         self._listening_thread = None
-        self._loop_thread = None
         self.production = self.conf["scheduler"].setdefault("production", False)
 
         logging.getLogger("pika").setLevel(logging.WARNING)
@@ -122,9 +120,6 @@ class Scheduler:
         self._server_queue = queue.Queue()
         self.server = Server(self.logger, self.conf["Klever Bridge"], os.path.join(self.work_dir, "requests"))
 
-        _old_tasks_status = None
-        _old_jobs_status = None
-
         # Check configuration completeness
         self.logger.debug("Check whether configuration contains all necessary data")
 
@@ -137,7 +132,6 @@ class Scheduler:
         # Create listening thread
         if self._listening_thread and not self._listening_thread.is_alive():
             self._listening_thread.stop()
-            self._listening_thread.join()
         self._listening_thread = ListeningThread(self._server_queue, self._runner_class.accept_jobs,
                                                  self._runner_class.accept_tag,
                                                  self.conf["Klever jobs and tasks queue"])
@@ -392,14 +386,12 @@ class Scheduler:
                 self.logger.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
                 self._listening_thread.stop()
-                self._listening_thread.join()
                 sys.exit(137)
             except Exception:  # pylint:disable=broad-exception-caught
                 exception_info = 'An error occurred:\n{}'.format(traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
                 self.terminate()
                 self._listening_thread.stop()
-                self._listening_thread.join()
                 if self.production:
                     self.logger.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
                     time.sleep(30)

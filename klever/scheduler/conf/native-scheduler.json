@@ -17,6 +17,7 @@
     "disable CPU cores account": false,
     "concurrent jobs": 1,
     "processes": 1.0,
+    "manager": "local",
     "controller address": "http://localhost:8500",
     "keep working directory": false,
     "job client configuration": "/abs/path/to/job-client.json",

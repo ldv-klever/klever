@@ -14,6 +14,7 @@ import argparse
 
 from klever.cli import Cli
 
+
 def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -52,9 +53,11 @@ def error(logger, msg):
     logger.error(msg)
     sys.exit(1)
 
+
 def run_job(job, logger):
     logger.info('Start decision of job {0} ({1})'.format(job['name'], job['id']))
-    run_data = 'ci-config/validation job decision configuration.json' if job.get('validation') else 'ci-config/job decision configuration.json'
+    run_data = 'ci-config/validation job decision configuration.json' if job.get(
+        'validation') else 'ci-config/job decision configuration.json'
 
     cli = Cli('localhost:8998', 'manager', 'manager')
     _, job_uuid = cli.create_job(job['id'])
@@ -75,6 +78,7 @@ def run_job(job, logger):
         error(logger, 'No results found for {}'.format(job['name']))
 
     return results
+
 
 def compare_results(job, regr_test_results, job_version_solution_results):
     def mark_in(mark_id, verdict_type, verdict):
@@ -101,7 +105,7 @@ def compare_results(job, regr_test_results, job_version_solution_results):
 
         for mark_id in job_verdict_result['marks'].keys():
             if all(not mark_in(mark_id, verdict_type, verdict) for verdict_type in
-                    ('ideal verdicts', 'current verdicts')):
+                   ('ideal verdicts', 'current verdicts')):
                 new_marks.append(mark_id)
             else:
                 matched_marks.append(mark_id)
@@ -112,8 +116,8 @@ def compare_results(job, regr_test_results, job_version_solution_results):
                         dif = report['marks'][mark_id] if verdict == 'unsafes' else 1
 
                         if mark_in(mark_id, 'ideal verdicts', verdict) and \
-                            (regr_test_results['ideal verdicts'][verdict][mark_id] > 0 or \
-                            not mark_in(mark_id, 'current verdicts', verdict)):
+                                (regr_test_results['ideal verdicts'][verdict][mark_id] > 0 or \
+                                 not mark_in(mark_id, 'current verdicts', verdict)):
                             target_verdict = 'ideal verdicts'
                         else:
                             target_verdict = 'current verdicts'
@@ -140,8 +144,8 @@ def compare_results(job, regr_test_results, job_version_solution_results):
                         error_msgs.append(
                             'There are {0} associations for mark "{1}" of verdict "{2}", '
                             'job "{3}" as expected'
-                                .format('more' if regr_test_results[verdict_type][verdict][mark_id] < 0
-                                        else 'less', mark_id, verdict, job))
+                            .format('more' if regr_test_results[verdict_type][verdict][mark_id] < 0
+                                    else 'less', mark_id, verdict, job))
 
         if new_marks:
             error_msgs.append(
@@ -152,15 +156,16 @@ def compare_results(job, regr_test_results, job_version_solution_results):
 
 
 def main(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description="Run asm parser")
+    logger = get_logger(None)
+    parser = argparse.ArgumentParser(description="Run CI script")
     parser.add_argument('--job_file', type=str, help='Job file to run')
+    parser.add_argument('--job_name', type=str, help='Job name to run')
 
     args = parser.parse_args(args)
     if not args.job_file:
         error(logger, 'No configuration file specified')
 
     error_msgs = []
-    logger = get_logger(None)
     # Decide testing/validation jobs and obtain their results.
     job_versions_solution_results = {}
 
@@ -177,6 +182,8 @@ def main(args=sys.argv[1:]):
         if job['id'] not in regr_test_results:
             error_msgs.append('There are new testing/validation jobs with unknown previous results: ' + ', '.join(job))
         else:
+            if args.job_name and args.job_name != job['name']:
+                continue
             results = run_job(job, logger)
             job_versions_solution_results[job['id']] = results
             logger.info('Compare results for job "{0}"'.format(job['id']))
@@ -184,6 +191,9 @@ def main(args=sys.argv[1:]):
 
         if error_msgs:
             error(logger, '\n'.join(error_msgs))
+
+    if args.job_name and not job_versions_solution_results:
+        error(logger, "Do not find a job {}".format(args.job_name))
 
     # This file will be attached to e-mail.
     with open('job-versions-solution-results.yaml', 'w') as fp:
