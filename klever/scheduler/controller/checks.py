@@ -32,8 +32,7 @@ def set_data(consul_client, conf):
 
 
 def set_status(logger, st, conf):
-    session = bridge.Session(logger, conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
-                             conf["Klever Bridge"]["password"])
+    session = bridge.Session(logger, conf["name"], conf["user"], conf["password"])
     logging.info("Consul set status")
     for scheduler, status in st.items():
         session.json_exchange("service/scheduler/{0}/".format(scheduler), data={'status': status}, method='PATCH')
@@ -123,7 +122,7 @@ def main():
         conf = json.load(fh)
 
     resources_checks(conf, expect_file)
-    schedulers_checks(conf)
+    schedulers_checks(conf["Klever Bridge"])
 
     sys.exit(0)
 
