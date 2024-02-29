@@ -105,9 +105,9 @@ class VRP(klever.core.components.Component):
         self.logger.info('Source paths to be trimmed file names: %s', source_paths)
 
         def submit_processing_task(status, t):
-            task_data, tryattempt = pending[t]
+            task_data = pending[t]
             self.logger.info('Track processing task %s', str(task_data[1]))
-            self.mqs['processing tasks'].put([status.lower(), task_data, tryattempt, source_paths])
+            self.mqs['processing tasks'].put([status.lower(), task_data, source_paths])
 
         receiving = True
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -128,7 +128,7 @@ class VRP(klever.core.components.Component):
                         receiving = False
                         self.logger.info("Expect no tasks to be generated")
                     else:
-                        pending[item[0][0]] = item
+                        pending[item[0]] = item
 
             # Plan for processing new tasks
             if len(pending) > 0:
@@ -169,22 +169,13 @@ class VRP(klever.core.components.Component):
             if element is None:
                 break
 
-            status, data, attempt, source_paths = element
+            status, data, source_paths = element
             pf, _, envmodel, requirement, _, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
             self.logger.info('Receive solution %s', result_key)
             attrs = None
-            if attempt:
-                self.logger.info('Rescheduling attempt %s', attempt)
-                new_id = "RP/{}/{}/{}/{}".format(pf, envmodel, requirement, attempt)
-                workdir = os.path.join(pf, envmodel, requirement, str(attempt))
-                attrs = [{
-                    "name": "Rescheduling attempt",
-                    "value": str(attempt)
-                }]
-            else:
-                new_id = "RP/{}/{}/{}".format(pf, envmodel, requirement)
-                workdir = os.path.join(pf, envmodel, requirement)
+            new_id = "RP/{}/{}/{}".format(pf, envmodel, requirement)
+            workdir = os.path.join(pf, envmodel, requirement)
             self.vals['task solution triples'][result_key] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,

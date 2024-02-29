@@ -25,13 +25,12 @@ import collections
 import multiprocessing
 import resource
 
-
 import klever.core.components
 import klever.core.utils
 import klever.core.session
 
-from klever.core.vtg.scheduling import Governer
 from klever.scheduler.schedulers.global_config import clear_workers_cpu_cores
+
 
 @klever.core.components.before_callback  # pylint: disable=no-member
 def __launch_sub_job_components(context):
@@ -324,8 +323,7 @@ class VTG(klever.core.components.Component):
             quota -= 1
             submitted += 1
             element = items_queue.pop()
-            task, *rest = element
-            self.mqs['prepare'].put((type(task).__name__, tuple(task), *rest))
+            self.mqs['prepare'].put((type(element).__name__, tuple(element)))
         if submitted > 0:
             self.logger.debug("Submitted %s items", submitted)
         return submitted
@@ -372,12 +370,11 @@ class VTG(klever.core.components.Component):
         keep_dirs = self.conf['keep intermediate files']
 
         self.logger.info('Generate all abstract verification task descriptions')
-        governer = Governer(self.conf, self.logger, {})
 
         # Get abstract tasks from program fragment descriptions
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
-            prepare.append((atask,))
+            prepare.append(atask)
         self.logger.info('There are %s abstract tasks in total', len(prepare))
 
         # Get the number of abstract tasks
@@ -393,7 +390,6 @@ class VTG(klever.core.components.Component):
             self.logger.info(
                 'Submit the total number of tasks expecting a single environment model per a fragment: %s', total_tasks)
             self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
-            governer.set_total_tasks(total_tasks)
 
         self.logger.info('Go to the main working loop for abstract tasks')
         while prepare or waiting or solving:
@@ -427,8 +423,7 @@ class VTG(klever.core.components.Component):
                                 if not keep_dirs:
                                     atask_tasks[atask].add(new)
 
-                                limitations = governer.resource_limitations(new)
-                                prepare.append((new, limitations, 0))
+                                prepare.append(new)
                                 if not single_model:
                                     total_tasks += 1
                     else:
@@ -441,61 +436,35 @@ class VTG(klever.core.components.Component):
                         # Submit the number of tasks
                         self.logger.info('Submit the total number of tasks: %s', total_tasks)
                         self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
-                        governer.set_total_tasks(total_tasks)
                     elif not single_model:
                         self.logger.debug('Wait for abstract tasks %s', left_abstract_tasks)
                 else:
                     task = Task(*desc)
-                    atask = Abstract(task.fragment, task.rule_class)
 
                     # Check solution
-                    accepted = True
                     if other:
-                        solution_status = other.pop()
                         self.logger.info('Received solution for %s', task)
                         status = 'finished'
-
-                        accepted = governer.add_solution(task, solution_status)
-                        if not accepted:
-                            self.logger.info('Repeat solution for %s later', task)
                     else:
                         self.logger.info('No solution received for %s', task)
-                        governer.add_solution(task)
                         status = 'failed'
 
-                    if status == 'failed' or accepted:
-                        # Send status to the progress watcher
-                        self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], status))
+                    # Send status to the progress watcher
+                    self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], status))
 
-                        # Delete task working directory
-                        if not self.conf['keep intermediate files']:
-                            self.logger.debug('Delete task working directory %s', task.workdir)
-                            klever.core.utils.reliable_rmtree(self.logger, task.workdir)
+                    # Delete abstract task working directory (with EMG dir)
+                    if not keep_dirs:
+                        self.logger.debug('Delete task working directory %s', task.workdir)
+                        klever.core.utils.reliable_rmtree(self.logger, task.workdir)
 
-                        # Delete abstract task working directory (with EMG dir)
-                        if not keep_dirs:
-                            atask_tasks[atask].remove(task)
-                            if not atask_tasks[atask]:
-                                self.logger.debug('Delete working directories related to %s: %s',
-                                                  atask, atask_work_dirs[atask])
-                                klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
-                                del atask_tasks[atask]
-                                del atask_work_dirs[atask]
-
-                    # If there are tasks to schedule do this
-                    if governer.rescheduling:
-                        self.logger.info('We can repeat solution of timeouts now')
-                        for _, task in governer.limitation_tasks:
-                            if not governer.is_running(task):
-                                attempt = governer.do_rescheduling(task)
-                                if attempt:
-                                    limitations = governer.resource_limitations(task)
-                                    prepare.insert(0, (task, limitations, attempt))
-                                else:
-                                    # Add a solution and delete the task
-                                    governer.add_solution(task)
-                                    self.mqs['finished and failed tasks'].put(
-                                        (self.conf['sub-job identifier'], 'finished'))
+                        atask = Abstract(task.fragment, task.rule_class)
+                        atask_tasks[atask].remove(task)
+                        if not atask_tasks[atask]:
+                            self.logger.debug('Delete working directories related to %s: %s',
+                                              atask, atask_work_dirs[atask])
+                            klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
+                            del atask_tasks[atask]
+                            del atask_work_dirs[atask]
 
         # Close the queue
         self.mqs['prepare'].put(None)
@@ -519,6 +488,7 @@ class VTGWL(klever.core.components.Component):
 
         self.fragment_desc_files = FRAGMENT_DESC_FIELS
         self.req_spec_classes = REQ_SPEC_CLASSES
+        self.resource_limits = klever.core.utils.read_max_resource_limitations(self.logger, self.conf)
 
     def task_generating_loop(self):
         emg_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'EMG')
@@ -531,10 +501,8 @@ class VTGWL(klever.core.components.Component):
         self.logger.info("Terminate VTGL worker")
 
     def factory(self, item):
-        resource_limits = None
-        rescheduling_attempt = None
 
-        kind, args, *other = item
+        kind, args = item
         if kind == Abstract.__name__:
             task = Abstract(*args)
             worker_class = EMGW
@@ -542,21 +510,13 @@ class VTGWL(klever.core.components.Component):
             workdir = os.path.join(task.fragment, task.rule_class)
         else:
             task = Task(*args)
-            resource_limits, rescheduling_attempt = other
-            if rescheduling_attempt:
-                worker_class = REPEAT
-                identifier = "REPEAT/{}/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule,
-                                                            rescheduling_attempt)
-                workdir = os.path.join(task.workdir, f'{task.rule}/{rescheduling_attempt}')
-            else:
-                worker_class = PLUGINS
-                identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
-                workdir = task.workdir
+            worker_class = PLUGINS
+            identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
+            workdir = task.workdir
         self.logger.info('Create worker for %s', task)
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
-                            fragment_desc_files=self.fragment_desc_files, task=task, resource_limits=resource_limits,
-                            rescheduling_attempt=rescheduling_attempt)
+                            fragment_desc_files=self.fragment_desc_files, task=task, resource_limits=self.resource_limits)
 
     main = task_generating_loop
 
@@ -565,7 +525,7 @@ class VTGW(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
-                 fragment_desc_files=None, task=None, resource_limits=None, rescheduling_attempt=None):
+                 fragment_desc_files=None, task=None, resource_limits=None):
         super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
@@ -579,7 +539,6 @@ class VTGW(klever.core.components.Component):
         self.resource_limits = resource_limits
         self.req_spec_classes = req_spec_classes
         self.fragment_desc_files = fragment_desc_files
-        self.rescheduling_attempt = rescheduling_attempt
 
         self.fragment_desc = self.__extract_fragment_desc(self.task.fragment)
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -688,10 +647,10 @@ class VTGW(klever.core.components.Component):
                 final_task_data = json.load(fp)
 
             # Plan for checking status
-            self.mqs['pending tasks'].put([
+            self.mqs['pending tasks'].put(
                 [str(task_id), tuple(self.task), final_task_data["result processing"], self.fragment_desc,
                  final_task_data['verifier'], final_task_data['additional sources'],
-                 final_task_data['verification task files']], self.rescheduling_attempt])
+                 final_task_data['verification task files']])
 
             self.logger.info("Submitted successfully verification task %s for solution",
                              os.path.join(plugin_work_dir, 'task.json'))
@@ -887,27 +846,3 @@ class PLUGINS(VTGW):
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
             self._submit_task(plugin_desc, out_abstract_task_desc_file)
-
-
-class REPEAT(PLUGINS):
-
-    def _submit_attrs(self):
-        self.attrs.append(
-            {
-                "name": "Rescheduling attempt",
-                "value": str(self.rescheduling_attempt)
-            }
-        )
-        super()._submit_attrs()
-
-    def _get_plugins(self):
-        return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1:]
-
-    def _prepare_initial_task_desc(self):
-        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.final_abstract_task_desc_file)
-        plugin_desc = self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1]
-
-        self.logger.info("Prepare repeating solution of %s", self.task)
-        self.logger.info("Instead of running the %r plugin obtain results for the original run",
-                         plugin_desc['name'])
-        os.symlink(initial_abstract_task_desc_file, self.initial_abstract_task_desc_file)
