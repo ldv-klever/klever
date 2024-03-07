@@ -34,7 +34,6 @@ class EMG(Plugin):
     written specifications using various generators and translation. Generated environment model contains C files and
     aspect files for merging with the original sources. As input, the plugin requires also results of source analysis.
     """
-    depend_on_requirement = False
 
     def generate_environment(self):
         """

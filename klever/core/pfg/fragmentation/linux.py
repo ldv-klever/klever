@@ -25,8 +25,8 @@ class Linux(FragmentationAlgorythm):
 
     CLADE_PRESET = 'linux_kernel'
 
-    def __init__(self, logger, conf, tactic, pf_dir):
-        super().__init__(logger, conf, tactic, pf_dir)
+    def __init__(self, logger, conf, tactic):
+        super().__init__(logger, conf, tactic)
         self._max_size = tactic.get("maximum fragment size")
         self._separate_nested = tactic.get("separate nested subsystems", True)
         self.kernel = tactic.get("kernel", False)

@@ -80,15 +80,13 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         def constructor(extra_cc_index):
             weaver_worker = WeaverWorker(self.conf, self.logger, self.id, self.callbacks, self.mqs,
                                          vals,
-                                         cur_id=str(extra_cc_index),
-                                         separate_from_parent=False,
-                                         include_child_resources=True,
-                                         search_dirs=search_dirs,
-                                         clade=clade, clade_meta=clade_meta,
-                                         env=env,
-                                         grp_id=self.extra_ccs[extra_cc_index][0],
-                                         extra_cc=self.extra_ccs[extra_cc_index][1],
-                                         lock=lock)
+                                         str(extra_cc_index),
+                                         search_dirs,
+                                         clade, clade_meta,
+                                         env,
+                                         self.extra_ccs[extra_cc_index][0],
+                                         self.extra_ccs[extra_cc_index][1],
+                                         lock)
 
             return weaver_worker
 
@@ -163,11 +161,10 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
 
 class WeaverWorker(klever.core.components.Component):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, search_dirs=None, clade=None,
-                 clade_meta=None, env=None, grp_id=None, extra_cc=None, lock=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                                           separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id,
+                 search_dirs, clade, clade_meta, env, grp_id, extra_cc, lock):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id,
+                         separate_from_parent=False, include_child_resources=True)
 
         self.name += cur_id
 
@@ -299,7 +296,7 @@ class WeaverWorker(klever.core.components.Component):
                     if not os.path.exists(outfile):
                         raise FileExistsError('Cache misses woven in C file (perhaps your models are broken)')
                     self.vals['extra C files'].append(
-                         {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
+                        {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
                     if self.conf['code coverage details'] != 'Original C source files':
                         self.logger.info('Get cross references from cache')
                         additional_srcs = os.path.join(cache_dir, 'additional sources')
@@ -335,7 +332,7 @@ class WeaverWorker(klever.core.components.Component):
                     '--general-opts',
                     '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
                     '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
-                    if 'aspect preprocessing options' in self.conf else '',
+                if 'aspect preprocessing options' in self.conf else '',
                     '--out', os.path.realpath(outfile),
                     '--back-end', 'src',
                     '--debug', 'QUIET'
@@ -352,7 +349,7 @@ class WeaverWorker(klever.core.components.Component):
             filter_func=klever.core.vtg.utils.CIFErrorFilter())
 
         self.vals['extra C files'].append(
-             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
+            {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
     def __get_cross_refs(self, infile, opts, outfile, cwd):
         # Get cross references and everything required for them.

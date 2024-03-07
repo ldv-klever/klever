@@ -70,6 +70,12 @@ class ErrorTraceParser:
         sink_nodes_map = self.__parse_witness_nodes(graph)
         self.__parse_witness_edges(graph, sink_nodes_map)
 
+    @staticmethod
+    def reset():
+        ErrorTraceParser.PROGRAMFILE_LINE_MAP = {}
+        ErrorTraceParser.PROGRAMFILE_CONTENT = ''
+        ErrorTraceParser.FILE_NAMES = collections.OrderedDict()
+
     def __parse_witness_data(self, graph):
         for data in graph.findall('graphml:data', self.WITNESS_NS):
             if 'klever-attrs' in data.attrib and data.attrib['klever-attrs'] == 'true':

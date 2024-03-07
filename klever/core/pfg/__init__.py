@@ -27,7 +27,6 @@ import klever.core.utils
 class PFG(klever.core.components.Component):
 
     PF_FILE = 'program fragments.txt'
-    PF_DIR = 'program fragments'
 
     def generate_program_fragments(self):
         """
@@ -46,7 +45,7 @@ class PFG(klever.core.components.Component):
         strategy = self._get_fragmentation_strategy(self.conf['project'])
 
         # Fragmentation
-        strategy = strategy(self.logger, self.conf, tactic, self.PF_DIR)
+        strategy = strategy(self.logger, self.conf, tactic)
         attr_data, pairs = strategy.fragmentation(fset, tactic_name, fset_name)
 
         # Prepare attributes
@@ -55,8 +54,7 @@ class PFG(klever.core.components.Component):
         self.common_attrs.extend(attr_data[0])
         self.submit_common_attrs(self.common_attrs)
 
-        with open(attr_data[1]) as fp:
-            data = json.load(fp)
+        data = attr_data[1]
         data.update({'type': 'PFG'})
         klever.core.utils.report(
             self.logger,
@@ -70,9 +68,6 @@ class PFG(klever.core.components.Component):
             self.conf['main working directory'])
 
         self.prepare_descriptions_file(pairs)
-        self.excluded_clean = [self.PF_DIR, self.PF_FILE]
-        self.excluded_clean.append(attr_data[1])
-        self.logger.debug("Excluded %s", ', '.join(self.excluded_clean))
         self.clean_dir = True
 
     main = generate_program_fragments
@@ -101,10 +96,11 @@ class PFG(klever.core.components.Component):
 
         :param pairs: The list of name and program fragment description files pairs.
         """
-        self.logger.info("Save file with program fragments descriptions %r", self.PF_FILE)
-        with open(self.PF_FILE, 'w') as fp:
-            fp.writelines((name + ':=' + os.path.relpath(file, self.conf['main working directory']) + '\n'
-                          for name, file in pairs))
+        self.mqs['program fragment desc'].put(pairs)
+        if self.conf.get('keep intermediate files'):
+            self.logger.info("Save file with program fragments descriptions %r", self.PF_FILE)
+            with open(self.PF_FILE, 'w') as fp:
+                json.dump(pairs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _merge_configurations(self, db, program):
         """

@@ -24,10 +24,9 @@ import klever.core.components
 
 class PW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, total_subjobs=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                                 separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, total_subjobs):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
+                         include_child_resources=True)
         # Initialize shared values and queues
         self.mqs['finished and failed tasks'] = multiprocessing.Queue()
         self.mqs['total tasks'] = multiprocessing.Queue()
@@ -173,7 +172,7 @@ class PW(klever.core.components.Component):
             changes = [i for i in self.subjobs.keys() if i not in self.subjobs_cache]
             if any(changes):
                 for job_id in (i for i, stat in self.subjobs.items() if stat == 'failed' and
-                               i not in self.subjobs_cache):
+                                                                        i not in self.subjobs_cache):
                     self.logger.debug("The job %r has failed", job_id)
                     if job_id in self.total_tasks_data:
                         number = self.total_tasks_data[job_id] - \
@@ -192,7 +191,7 @@ class PW(klever.core.components.Component):
                         self.total_tasks_data[job_id] = total
                 # Check solved job
                 if any(True for i, stat in self.subjobs.items()
-                        if stat == 'finished' and i not in self.subjobs_cache):
+                       if stat == 'finished' and i not in self.subjobs_cache):
                     self.logger.debug("Set new time as some jobs has been finished")
                     subjobs_update_time = time.time()
                 for i in changes:

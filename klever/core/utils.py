@@ -32,6 +32,8 @@ import shutil
 import resource
 import traceback
 
+import klever
+
 
 class Cd:
     def __init__(self, path):
@@ -174,8 +176,8 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
         with open('problem desc.txt', 'a', encoding='utf-8') as fp:
             out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
-        sys.exit(1)
-    elif collect_all_stdout:
+        raise klever.core.components.ComponentError('"{0}" exited with "{1}"'.format(cmd, p.poll()))
+    if collect_all_stdout:
         return out_q.output
     return None
 

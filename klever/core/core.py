@@ -142,7 +142,7 @@ class Core(klever.core.components.CallbacksCaller):
                     report.update(klever.core.components.count_consumed_resources(
                         self.logger, self.start_time, child_resources=child_resources))
 
-                    if os.path.isfile('log.txt'):
+                    if os.path.isfile('log.txt') and self.conf['weight'] == "0":
                         report['log'] = klever.core.utils.ArchiveFiles(['log.txt'])
 
                     klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,

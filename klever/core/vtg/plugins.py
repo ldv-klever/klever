@@ -15,26 +15,17 @@
 # limitations under the License.
 #
 
-import json
-import os
-
 import klever.core.components
 import klever.core.utils
 
 
 class Plugin(klever.core.components.Component):
-    depend_on_requirement = True
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, abstract_task_desc=None, cur_id=None,
+                 work_dir=None, attrs=None, include_child_resources=False):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs, True,
+                         include_child_resources)
+        self.abstract_task_desc = abstract_task_desc
 
     def run(self):
-        in_abstract_task_desc_file = os.path.relpath(
-            os.path.join(self.conf['main working directory'], self.conf['in abstract task desc file']))
-        with open(in_abstract_task_desc_file, encoding='utf-8') as fp:
-            self.abstract_task_desc = json.load(fp)
         super().run()
-        out_abstract_task_desc_file = os.path.relpath(
-            os.path.join(self.conf['main working directory'], self.conf['out abstract task desc file']))
-        self.logger.info(
-            'Put modified abstract verification task description to file "%s"', out_abstract_task_desc_file)
-        with open(out_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
-            klever.core.utils.json_dump(self.abstract_task_desc, fp, self.conf['keep intermediate files'])
         self.logger.info('Plugin has finished')

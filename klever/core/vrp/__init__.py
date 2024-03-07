@@ -32,7 +32,7 @@ import klever.core.components
 import klever.core.session
 import klever.core.utils
 from klever.core.coverage import LCOV
-from klever.core.vrp.et import import_error_trace
+from klever.core.vrp.et import import_error_trace, ErrorTraceParser
 
 MEA_LIB = os.path.join("MEA", "scripts")
 
@@ -160,8 +160,6 @@ class VRP(klever.core.components.Component):
     def __loop_worker(self):
         self.logger.info("VRP fetcher is ready to work")
 
-        # First get QOS resource limitations
-        qos_resource_limits = klever.core.utils.read_max_resource_limitations(self.logger, self.conf)
         self.vals['task solution triples'] = multiprocessing.Manager().dict()
 
         while True:
@@ -178,11 +176,12 @@ class VRP(klever.core.components.Component):
             workdir = os.path.join(pf, envmodel, requirement)
             self.vals['task solution triples'][result_key] = [None, None, None]
             try:
+                if not os.path.isdir(workdir):
+                    os.makedirs(workdir.encode('utf-8'))
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
-                        workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
-                        source_paths=source_paths, element=[status, data])
-                rp.start()
-                rp.join()
+                        workdir, attrs, source_paths, [status, data])
+                rp.run()
+                #rp.join()
                 self.logger.info('Successfully processed %s', result_key)
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed %r, %r failed", pf, requirement)
@@ -207,10 +206,8 @@ class VRP(klever.core.components.Component):
 
 class RP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 # pylint:disable=unused-argument
-                 separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, source_paths=None,
-                 element=None):
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+                 source_paths, element):
         # Read this in a callback
         self.element = element
         self.verdict = None
@@ -226,7 +223,7 @@ class RP(klever.core.components.Component):
         self.verification_task_files = None
         # Common initialization
         super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent, include_child_resources)
+                         separate_from_parent=True, include_child_resources=False)
 
         self.clean_dir = True
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -239,6 +236,8 @@ class RP(klever.core.components.Component):
 
         self.search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
         self.verification_report_id = None
+        # Reset global maps
+        ErrorTraceParser.reset()
 
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
@@ -543,7 +542,7 @@ class RP(klever.core.components.Component):
         data[1] = decision_results['resources']
         self.vals['task solution triples'][self.results_key] = data
 
-        if not self.logger.disabled and log_file:
+        if not self.logger.disabled and log_file and self.conf['weight'] == "0":
             report['log'] = klever.core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload verifier input files']:

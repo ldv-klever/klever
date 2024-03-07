@@ -76,7 +76,12 @@ class BasicGenerationStrategy:
         opts, safe_prps = common.get_verifier_opts_and_safe_prps(self.logger, resource_limits, self.conf)
 
         # Then add options
-        self._prepare_run_definition(benchmark, opts)
+        rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
+
+        # Add options to the XML description
+        for opt in opts:
+            for name in opt:
+                ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
 
         # Files
         files = self._prepare_task_files(benchmark)
@@ -139,23 +144,6 @@ class BasicGenerationStrategy:
         task_desc['additional sources'] = self.abstract_task_desc['additional sources']
 
         return task_desc
-
-    @staticmethod
-    def _prepare_run_definition(benchmark_definition, options):
-        """
-        The function should add a new subelement with name 'rundefinition' to the XML description of the given
-        benchmark. The new element should contains a list of options for the given verifier.
-
-        :param benchmark_definition: ElementTree.Element.
-        :param options: Dictionary with options.
-        :return: None.
-        """
-        rundefinition = ElementTree.SubElement(benchmark_definition, "rundefinition")
-
-        # Add options to the XML description
-        for opt in options:
-            for name in opt:
-                ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
 
     def _prepare_task_files(self, benchmark_definition):
         """

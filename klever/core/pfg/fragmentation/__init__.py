@@ -33,7 +33,7 @@ class FragmentationAlgorythm:
     """
     CLADE_PRESET = 'base'
 
-    def __init__(self, logger, conf, tactic, pf_dir):
+    def __init__(self, logger, conf, tactic):
         """
         The strategy needs a logger and configuration as the rest Klever components but also it requires Clade interface
         object (uninitialized yet) and the description of the fragmentation set.
@@ -41,13 +41,11 @@ class FragmentationAlgorythm:
         :param logger: logging Logger object.
         :param conf: Dictionary.
         :param tactic: Dictionary with options.
-        :param pf_dir: program fragments descriptions storage dir.
         """
         # Simple attributes
         self.logger = logger
         self.conf = conf
         self.tactic = tactic
-        self.pf_dir = pf_dir
         self.files_to_keep = []
         self.project_attrs = []
 
@@ -306,9 +304,10 @@ class FragmentationAlgorythm:
                 "size": str(sum(int(f.size) for f in frags))
             }
 
-        with open('aggregations description.json', 'w', encoding='utf-8') as fp:
-            ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
-                       escape_forward_slashes=False)
+        if self.conf.get('weight') == "0" or self.conf.get('keep intermediate files'):
+            with open('aggregations description.json', 'w', encoding='utf-8') as fp:
+                ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
+                           escape_forward_slashes=False)
 
         return [{
             'name': 'Program fragmentation',
@@ -322,7 +321,7 @@ class FragmentationAlgorythm:
                     'value': fragmentation_set
                 }
             ]
-        }], 'aggregations description.json'
+        }], data
 
     def __get_project_attrs(self):
         """
@@ -343,9 +342,9 @@ class FragmentationAlgorythm:
         :param grps: Dictionary with program fragments with dependencies.
         :return: A list of pairs of fragment and related file names.
         """
-        pairs = []
+        pairs = {}
         for name, grp in grps.items():
-            pairs.append((name, self.__describe_program_fragment(program, name, grp)))
+            pairs[name] = self.__describe_program_fragment(program, name, grp)
         return pairs
 
     def __describe_program_fragment(self, program, name, grp):
@@ -384,17 +383,7 @@ class FragmentationAlgorythm:
                                           if succ in fragments]
         self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))
 
-        pf_desc_file = os.path.join(self.pf_dir, pf_desc['fragment'] + '.json')
-        if os.path.isfile(pf_desc_file):
-            raise FileExistsError('Program fragment description file {!r} already exists'.format(pf_desc_file))
-        self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['fragment'], pf_desc_file))
-        dir_path = os.path.dirname(pf_desc_file).encode('utf-8')
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
-
-        with open(pf_desc_file, 'w', encoding='utf-8') as fp:
-            ujson.dump(pf_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
-        return pf_desc_file
+        return pf_desc
 
     def __print_fragments(self, program):
         """

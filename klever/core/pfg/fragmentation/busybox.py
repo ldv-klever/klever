@@ -25,8 +25,8 @@ from klever.core.pfg.fragmentation import FragmentationAlgorythm
 class Busybox(FragmentationAlgorythm):
     CLADE_PRESET = 'busybox_linux'
 
-    def __init__(self, logger, conf, tactic, pf_dir):
-        super().__init__(logger, conf, tactic, pf_dir)
+    def __init__(self, logger, conf, tactic):
+        super().__init__(logger, conf, tactic)
         self._incorporate_libbb = tactic.get("include dependencies from libbb to applets fragments")
         self._match_files = {}
 

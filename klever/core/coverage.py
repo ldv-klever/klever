@@ -333,10 +333,9 @@ class JCR(klever.core.components.Component):
 
     COVERAGE_FILE_NAME = "cached coverage.json"
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir,
-                         attrs, separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, queues_to_terminate):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
+                         include_child_resources=True)
 
         # This function adds callbacks and it should work until we call it in the new process
         self.mqs['req spec ids and coverage info files'] = multiprocessing.Queue()

@@ -110,12 +110,13 @@ class ScenarioModelgenerator(AbstractGenerator):
         instance_maps, data = generate_instances(self.logger, self.conf, source, interfaces, chosen_processes,
                                                  instance_maps)
 
-        # Dump to disk instance map
-        instance_map_file = 'instance map.json'
-        self.logger.info("Dump information on chosen instances to file {!r}".format(instance_map_file))
-        with open(instance_map_file, "w", encoding="utf-8") as fd:
-            fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
-                                      escape_forward_slashes=False))
+        if self.conf.get('keep intermediate files'):
+            # Dump to disk instance map
+            instance_map_file = 'instance map.json'
+            self.logger.info("Dump information on chosen instances to file {!r}".format(instance_map_file))
+            with open(instance_map_file, "w", encoding="utf-8") as fd:
+                fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
+                                          escape_forward_slashes=False))
 
         puredecoder = CollectionDecoder(self.logger, self.conf)
         new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data), ProcessCollection())

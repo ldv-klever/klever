@@ -396,6 +396,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.clean_dir = False
         self.excluded_clean = []
+        self._cur_dir = None
 
     def start(self):
         # Component working directory will be created in parent process.
@@ -426,6 +427,8 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         if self.separate_from_parent:
             self.logger.info('Change working directory to "%s" for component "%s"', self.work_dir, self.name)
+            # dir restore
+            self._cur_dir = os.getcwd()
             os.chdir(self.work_dir)
 
         # Try to launch component.
@@ -463,7 +466,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         finally:
             self.__finalize(exception=exception)
 
-    def __finalize(self, exception=False, stopped=False):
+    def __finalize(self, exception=False):
         # Like in Core at least print information about unexpected exceptions in code below and properly exit.
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
@@ -489,7 +492,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 if self.coverage:
                     report['coverage'] = self.coverage
 
-                if os.path.isfile('log.txt'):
+                if os.path.isfile('log.txt') and self.conf['weight'] == "0":
                     report['log'] = klever.core.utils.ArchiveFiles(['log.txt'])
 
                 klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
@@ -513,13 +516,11 @@ class Component(multiprocessing.Process, CallbacksCaller):
                         os.remove(to_del)
                     elif os.path.isdir(to_del):
                         shutil.rmtree(to_del)
-            if stopped or exception:
-                # Treat component stopping as normal termination.
-                exit_code = os.EX_SOFTWARE if exception else os.EX_OK
-                self.logger.info('Exit with code "%s"', exit_code)
-                # Do not perform any pre-exit operations like waiting for reading filled queues since this can lead to
-                # deadlocks.
-                os._exit(exit_code)
+            if self._cur_dir:
+                # restore dir
+                os.chdir(self._cur_dir)
+            if exception:
+                raise klever.core.components.ComponentError
 
     def __get_subcomponent_name(self):
         return '' if self.separate_from_parent else '[{0}] '.format(self.name)
@@ -549,7 +550,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.logger.error('%s Stop since some other component(s) likely failed', self.__get_subcomponent_name())
 
-        self.__finalize(stopped=True)
+        self.__finalize()
 
     def join(self, timeout=None, stopped=False):
         # Actually join process.
@@ -565,6 +566,12 @@ class Component(multiprocessing.Process, CallbacksCaller):
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
         return 0
+
+    def dump_if_necessary(self, file_name, data, desc):
+        if self.conf['keep intermediate files']:
+            self.logger.debug('Put "%s" to file %s', desc, file_name)
+            with open(file_name, 'w', encoding='utf-8') as fp:
+                klever.core.utils.json_dump(data, fp, self.conf['keep intermediate files'])
 
     def function_to_subcomponent(self, include_child_resources, name, executable):
         """

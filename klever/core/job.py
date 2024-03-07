@@ -35,7 +35,6 @@ from klever.core.cross_refs import CrossRefs
 from klever.core.progress import PW
 from klever.core.coverage import JCR
 
-
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
 NECESSARY_FILES = [
@@ -45,42 +44,42 @@ NECESSARY_FILES = [
 ]
 DEFAULT_ARCH = 'x86-64'
 DEFAULT_ARCH_OPTS = {
-  'ARM': {
-    'CIF': {
-      'cross compile prefix': 'arm-unknown-eabi-'
+    'ARM': {
+        'CIF': {
+            'cross compile prefix': 'arm-unknown-eabi-'
+        },
+        'CIL': {
+            'machine': 'gcc_arm_32'
+        },
+        'Clade': {
+            'preset': 'klever_linux_kernel_arm'
+        }
     },
-    'CIL': {
-      'machine': 'gcc_arm_32'
+    'ARM64': {
+        'CIF': {
+            'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
+        },
+        # As above.
+        'CIL': {
+            'machine': 'gcc_arm_64'
+        },
+        'Clade': {
+            'preset': 'klever_linux_kernel_arm'
+        }
     },
-    'Clade': {
-      'preset': 'klever_linux_kernel_arm'
+    'x86-64': {
+        'CIF': {
+            'cross compile prefix': ''
+        },
+        'CIL': {
+            'machine': 'gcc_x86_64'
+        },
+        # Hey! Everybody will use Linux kernel specific preset for Clade. Let's hope that it does not matter since at the
+        # moment this is used just for getting cross references.
+        'Clade': {
+            'preset': 'klever_linux_kernel'
+        }
     }
-  },
-  'ARM64': {
-    'CIF': {
-      'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
-    },
-    # As above.
-    'CIL': {
-      'machine': 'gcc_arm_64'
-    },
-    'Clade': {
-      'preset': 'klever_linux_kernel_arm'
-    }
-  },
-  'x86-64': {
-    'CIF': {
-      'cross compile prefix': ''
-    },
-    'CIL': {
-      'machine': 'gcc_x86_64'
-    },
-    # Hey! Everybody will use Linux kernel specific preset for Clade. Let's hope that it does not matter since at the
-    # moment this is used just for getting cross references.
-    'Clade': {
-      'preset': 'klever_linux_kernel'
-    }
-  }
 }
 CODE_COVERAGE_DETAILS_MAP = {
     '0': 'Original C source files',
@@ -135,8 +134,7 @@ def start_jobs(core_obj, vals):
         queues_to_terminate = []
 
         pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
-                separate_from_parent=False, include_child_resources=True,
-                total_subjobs=(len(common_components_conf['sub-jobs']) if 'sub-jobs' in common_components_conf else 0))
+                len(common_components_conf['sub-jobs']) if 'sub-jobs' in common_components_conf else 0)
         pc.start()
         subcomponents.append(pc)
 
@@ -159,7 +157,7 @@ def start_jobs(core_obj, vals):
                 })
 
             cr = JCR(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
-                     separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
+                     queues_to_terminate)
             # This can be done only in this module otherwise callbacks will be missed
             klever.core.components.set_component_callbacks(core_obj.logger, Job,
                                                            [after_launch_sub_job_components,
@@ -169,7 +167,7 @@ def start_jobs(core_obj, vals):
 
         if 'extra results processing' in common_components_conf:
             ra = REP(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
-                     separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
+                     queues_to_terminate)
             ra.start()
             subcomponents.append(ra)
 
@@ -184,10 +182,8 @@ def start_jobs(core_obj, vals):
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 vals,
-                cur_id='Job',
-                work_dir=os.path.join(os.path.curdir, 'job'),
-                separate_from_parent=True,
-                include_child_resources=False,
+                'Job',
+                os.path.join(os.path.curdir, 'job'),
                 components_common_conf=common_components_conf)
             klever.core.components.launch_workers(core_obj.logger, [job], subcomponents +
                                                   [core_obj.uploading_reports_process])
@@ -249,8 +245,8 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
         job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
-            cur_id='Sub-job-{0}'.format(number),
-            work_dir='sub-job-{0}'.format(number),
+            'Sub-job-{0}'.format(number),
+            'sub-job-{0}'.format(number),
             attrs=[{
                 'name': 'Sub-job identifier',
                 'value': str(number),
@@ -269,8 +265,6 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                 # pretty names since correspondence of ordinal numbers breaks.
                 'compare': True,
             }],
-            separate_from_parent=True,
-            include_child_resources=False,
             components_common_conf=sub_job_concrete_conf
         )
 
@@ -323,10 +317,9 @@ def _vtg_plugin_callback(context):
 
 class REP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, queues_to_terminate):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
+                         include_child_resources=True)
         self.data = {}
 
         self.mqs['verification statuses'] = multiprocessing.Queue()
@@ -352,9 +345,9 @@ class REP(klever.core.components.Component):
                 # tasks and directories add identifier suffix in addition.
                 test_id = os.path.join(sub_job_id, id_suffix)
                 self.logger.info('Ideal/obtained verdict for test "%s" is "%s"/"%s"%s',
-                    test_id, verification_result['ideal verdict'], verification_result['verdict'],
-                    ' ("{0}")'.format(verification_result['comment'])
-                    if verification_result['comment'] else '')
+                                 test_id, verification_result['ideal verdict'], verification_result['verdict'],
+                                 ' ("{0}")'.format(verification_result['comment'])
+                                 if verification_result['comment'] else '')
                 results_dir = os.path.join('results', test_id)
                 data = {
                     'type': 'testing',
@@ -454,7 +447,7 @@ class REP(klever.core.components.Component):
 
         # This suffix will help to distinguish sub-jobs easier.
         if envmodel_id == SINGLE_ENV_NAME:
-            id_suffix = os.path.join(program_fragment_id, req_spec_id)\
+            id_suffix = os.path.join(program_fragment_id, req_spec_id) \
                 if program_fragment_id and req_spec_id else ''
         else:
             id_suffix = os.path.join(program_fragment_id, req_spec_id, envmodel_id) \
@@ -542,7 +535,7 @@ class Job(klever.core.components.Component):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, components_common_conf=None):
         super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
+                         separate_from_parent, include_child_resources)
         self.common_components_conf = components_common_conf
 
         if work_dir:
@@ -859,7 +852,7 @@ class Job(klever.core.components.Component):
                            for component in self.CORE_COMPONENTS]
 
         self.logger.debug('Components to be launched: "%s"',
-            ', '.join([component.__name__ for component in self.components]))
+                          ', '.join([component.__name__ for component in self.components]))
 
     def launch_sub_job_components(self):
         """Has callbacks"""

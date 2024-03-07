@@ -79,35 +79,37 @@ def translate_intermediate_model(logger, conf, avt, source, collection, udemses,
     if collection.attributed_name != collection.name:
         os.symlink(model_path, collection.attributed_name, target_is_directory=True)
 
-    # Save processes
-    model_file = os.path.join(model_path, 'input model.json')
-    with open(model_file, mode='w', encoding='utf-8') as fp:
-        json.dump(collection, fp, cls=CollectionEncoder, indent=2)
+    # Dump images and graphs only for fullweight run
+    if conf['weight'] == "0" or conf.get('keep intermediate files'):
+        # Save processes
+        model_file = os.path.join(model_path, 'input model.json')
+        with open(model_file, mode='w', encoding='utf-8') as fp:
+            json.dump(collection, fp, cls=CollectionEncoder, indent=2)
 
-    udems = {
-        conf["specifications set"]: [{
-            "fragments": [program_fragment],
-            "model": collection
-        }]
-    }
-    udemses[collection.name] = json.dumps(udems, cls=CollectionEncoder, indent=2)
+        udems = {
+            conf["specifications set"]: [{
+                "fragments": [program_fragment],
+                "model": collection
+            }]
+        }
+        udemses[collection.name] = json.dumps(udems, cls=CollectionEncoder, indent=2)
 
-    # Save images of processes
-    collection.save_digraphs(os.path.join(model_path, 'images'))
+        # Save images of processes
+        collection.save_digraphs(os.path.join(model_path, 'images'))
 
-    for root, _, filenames in os.walk(os.path.join(model_path, 'images')):
-        for fname in filenames:
-            if os.path.splitext(fname)[-1] != '.dot':
-                continue
-            dot_file = os.path.join(root, fname)
-            image_file = os.path.join(root, fname + '.png')
-            if os.path.isfile(image_file):
-                images.append((
-                    'Model {0}/process "{1}"'
-                    .format(collection.name, os.path.splitext(os.path.basename(dot_file))[0]),
-                    dot_file, image_file))
-            else:
-                logger.warn('Image "{0}" does not exist'.format(image_file))
+        for root, _, filenames in os.walk(os.path.join(model_path, 'images')):
+            for fname in filenames:
+                if os.path.splitext(fname)[-1] != '.dot':
+                    continue
+                dot_file = os.path.join(root, fname)
+                image_file = os.path.join(root, fname + '.png')
+                if os.path.isfile(image_file):
+                    images.append((
+                        'Model {0}/process "{1}"'
+                        .format(collection.name, os.path.splitext(os.path.basename(dot_file))[0]),
+                        dot_file, image_file))
+                else:
+                    logger.warn('Image "{0}" does not exist'.format(image_file))
 
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
