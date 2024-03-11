@@ -32,6 +32,7 @@ pylint:
   script:
   - venv/bin/python3 ci-option-inject.py --config ci-config/options-injection-config.yml --name $OPTION_NAME
   - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
+  - sleep 10s # TODO: Bridge somehow can not be initialized after deployment, need to wait a bit
   - venv/bin/python3 ci-test-run.py --job_file=ci-config/job-sample.yml --job_name="Loadable kernel modules sample"
 
 consul-option:
@@ -46,6 +47,7 @@ consul-option:
   script:
   # build bases are very large and should be prepared separately
   - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
+  - sleep 10s # TODO: Bridge somehow can not be initialized after deployment, need to wait a bit
   - venv/bin/python3 ci-test-run.py --job_file=$JOB_FILE
   artifacts:
     paths:
