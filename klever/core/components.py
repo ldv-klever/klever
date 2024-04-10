@@ -567,6 +567,18 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         return 0
 
+    def send_data_report_if_necessary(self, report_id, data):
+        if self.conf['weight'] == "0":
+            # data reports are not saved in lightweight mode
+            klever.core.utils.report(
+                self.logger,
+                'patch',
+                {'identifier': report_id, 'data': data},
+                self.mqs['report files'],
+                self.vals['report id'],
+                self.conf['main working directory']
+            )
+
     def dump_if_necessary(self, file_name, data, desc):
         if self.conf['keep intermediate files']:
             self.logger.debug('Put "%s" to file %s', desc, file_name)

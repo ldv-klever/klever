@@ -56,16 +56,7 @@ class PFG(klever.core.components.Component):
 
         data = attr_data[1]
         data.update({'type': 'PFG'})
-        klever.core.utils.report(
-            self.logger,
-            'patch',
-            {
-              'identifier': self.id,
-              'data': data
-            },
-            self.mqs['report files'],
-            self.vals['report id'],
-            self.conf['main working directory'])
+        self.send_data_report_if_necessary(self.id, data)
 
         self.prepare_descriptions_file(pairs)
         self.clean_dir = True

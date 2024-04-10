@@ -165,7 +165,8 @@ def start_jobs(core_obj, vals):
             cr.start()
             subcomponents.append(cr)
 
-        if 'extra results processing' in common_components_conf:
+        if 'extra results processing' in common_components_conf and common_components_conf['weight'] == '0':
+            # data reports from REP are ignored in lightweight mode
             ra = REP(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
                      queues_to_terminate)
             ra.start()

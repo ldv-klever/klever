@@ -87,8 +87,7 @@ class EMG(Plugin):
             raise ValueError('There is no generated environment models')
 
         self.logger.info("Send data report to the server")
-        report(self.logger, 'patch', {'identifier': self.id, 'data': data_report}, self.mqs['report files'],
-               self.vals['report id'], get_or_die(self.conf, "main working directory"))
+        self.send_data_report_if_necessary(self.id, data_report)
 
         # Send images only for full-weight decisions. Bridge fails to accept them for lightweight decisions, but
         # they will be deleted for them anyway, so there is no sense to send them.
