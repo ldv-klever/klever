@@ -84,6 +84,11 @@ rule-tests:
   variables:
     JOB_FILE: ci-config/job-reqs.yml
 
+model-tests:
+  <<: *integration-tests
+  variables:
+    JOB_FILE: ci-config/job-models.yml
+
 components-tests:
   <<: *integration-tests-nightly
   variables:
