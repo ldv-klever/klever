@@ -46,7 +46,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
             self._process_starter = original_executor
         self.logger.warning('You should start Klever Core yourself (most likely in the debug mode)')
 
-    def _postprocess_solution(self, identifier, future, mode):
+    def _postprocess_solution(self, identifier, future, mode, fault_tolerant=False):
         """
         Mark resources as released, clean the working directory.
 

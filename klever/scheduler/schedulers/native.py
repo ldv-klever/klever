@@ -412,14 +412,15 @@ class Native(runners.TryLessMemoryRunner):
                 process.join()
             except Exception as err:  # pylint:disable=broad-exception-caught
                 self.logger.warning('Cannot terminate process {}: {}'.format(process.pid, err))
-        return self._postprocess_solution(identifier, future, mode)
+        return self._postprocess_solution(identifier, future, mode, True)
 
-    def _postprocess_solution(self, identifier, future, mode):
+    def _postprocess_solution(self, identifier, future, mode, fault_tolerant=False):
         """
         Mark resources as released, clean the working directory.
 
         :param identifier: A job or task identifier
         :param mode: 'task' or 'job'.
+        :param fault_tolerant: in case of cancel results are inconsistent, do not raise an exception in this case.
         :raise SchedulerException: Raised if an exception occurred during the solution or if results are inconsistent.
         """
         if mode == 'task':
@@ -444,6 +445,9 @@ class Native(runners.TryLessMemoryRunner):
             reserved_space = 0
 
         self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
+        # Track just last error
+        error_msg = None
+        task_results = None
         try:
             if future:
                 self._manager.release_resources(identifier, self._node_name, mode == 'job',
@@ -461,8 +465,11 @@ class Native(runners.TryLessMemoryRunner):
                 if mode == 'task':
                     results_file = os.path.join(work_dir, "decision results.json")
                     self.logger.debug("Read decision results from the disk: {}".format(os.path.abspath(results_file)))
-                    with open(results_file, encoding="utf-8") as fp:
-                        task_results = json.loads(fp.read())
+                    if not os.path.isfile(results_file):
+                        error_msg = "Results file ({}) is not found".format(results_file)
+                    else:
+                        with open(results_file, encoding="utf-8") as fp:
+                            task_results = json.loads(fp.read())
 
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
@@ -476,7 +483,6 @@ class Native(runners.TryLessMemoryRunner):
                     with open(errors_file, mode='r', encoding="utf-8") as f:
                         errors = [l.strip() for l in f.readlines()]
 
-                    new_errors = []
                     for msg in list(errors):
                         if not msg:
                             continue
@@ -491,15 +497,9 @@ class Native(runners.TryLessMemoryRunner):
                             continue
                         if re.search(r'benchexec(.*) outputted to STDERR', msg):
                             continue
-                        new_errors.append(msg)
-                    errors = new_errors
-                else:
-                    errors = []
+                        error_msg = msg
 
-                if errors:
-                    error_msg = errors[-1]
-                else:
-                    error_msg = None
+                if not error_msg:
                     try:
                         result = int(result)
                     except ValueError:
@@ -508,8 +508,10 @@ class Native(runners.TryLessMemoryRunner):
                         if result != 0:
                             error_msg = "Exited with exit code: {}".format(result)
 
-                if error_msg:
+                if error_msg and not fault_tolerant:
                     raise schedulers.SchedulerException(error_msg + " (please, inspect unknown reports and logs)")
+                if error_msg:
+                    self.logger.warning(error_msg)
             else:
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         finally:
@@ -520,7 +522,9 @@ class Native(runners.TryLessMemoryRunner):
                 shutil.rmtree(work_dir)
 
         if mode == 'task':
-            return "FINISHED", task_results
+            if task_results:
+                return "FINISHED", task_results
+            return "ERROR", None
 
         return "FINISHED"
 
