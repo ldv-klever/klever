@@ -31,26 +31,6 @@ import klever.core.session
 
 from klever.scheduler.schedulers.global_config import clear_workers_cpu_cores
 
-
-@klever.core.components.before_callback  # pylint: disable=no-member
-def __launch_sub_job_components(context):
-    context.mqs['VTG common attrs'] = multiprocessing.Queue()
-
-    # Queues used exclusively in VTG
-    context.mqs['program fragment desc'] = multiprocessing.Queue()
-    context.mqs['prepare'] = multiprocessing.Queue()
-
-    # Queues shared by VRP
-    context.mqs['pending tasks'] = multiprocessing.Queue()
-    context.mqs['processing tasks'] = multiprocessing.Queue()
-    context.mqs['processed'] = multiprocessing.Queue()
-
-
-@klever.core.components.after_callback  # pylint: disable=no-member
-def __submit_common_attrs(context):
-    context.mqs['VTG common attrs'].put(context.common_attrs)
-
-
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
 Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir, envattrs')
@@ -68,8 +48,9 @@ class VTG(klever.core.components.Component):
                          separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.req_spec_descs = []
-        self.req_spec_classes = {}
+        self.req_spec_classes = []
         self.fragment_descs = {}
+        self.mqs['prepare'] = multiprocessing.Queue()
 
     def generate_verification_tasks(self):
         klever.core.utils.report(self.logger,
@@ -92,10 +73,8 @@ class VTG(klever.core.components.Component):
         FRAGMENT_DESC_FIELS = self.fragment_descs
 
         # Start plugins
-        if not self.conf['keep intermediate files']:
-            self.mqs['delete dir'] = multiprocessing.Queue()
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
-        self.launch_subcomponents(False, *subcomponents)
+        self.launch_subcomponents(*subcomponents)
 
         self.clean_dir = True
         self.logger.info('Terminating the last queues')
@@ -291,23 +270,24 @@ class VTG(klever.core.components.Component):
 
     def __classify_req_spec_descs(self):
         # Determine requirement specification classes.
+        # Divide classes by EMG options
+        tmp_classes = {}
         for req_desc in self.req_spec_descs:
-            hashes = {}
-            for plugin in (p for p in req_desc['plugins'] if p['name'] in ['SA', 'EMG']):
-                hashes[plugin['name']] = plugin['options']
-
-            if len(hashes) > 0:
-                opt_cache = hashlib.sha224(str(hashes).encode('UTF8')).hexdigest()
-                if opt_cache in self.req_spec_classes:
-                    self.req_spec_classes[opt_cache].append(req_desc)
-                else:
-                    self.req_spec_classes[opt_cache] = [req_desc]
+            for plugin in req_desc['plugins']:
+                if plugin['name'] == 'EMG':
+                    opt_cache = hashlib.sha224(str(plugin['options']).encode('UTF8')).hexdigest()
+                    if opt_cache in tmp_classes:
+                        tmp_classes[opt_cache].append(req_desc)
+                    else:
+                        tmp_classes[opt_cache] = [req_desc]
+                    break
             else:
-                self.req_spec_classes[req_desc['identifier']] = [req_desc]
+                # Strange, that there is no EMG
+                tmp_classes[req_desc['identifier']] = [req_desc]
 
         # Replace hashes by rule names and convert lists to dictionary
-        self.req_spec_classes = {rules[0]['identifier']: {r['identifier']: r for r in rules}
-                                 for rules in self.req_spec_classes.values()}
+        self.req_spec_classes = [{r['identifier']: r for r in rules}
+                                 for rules in tmp_classes.values()]
 
         self.logger.info("Generated %s requirement classes from given descriptions", len(self.req_spec_classes))
 
@@ -348,8 +328,8 @@ class VTG(klever.core.components.Component):
                 self.logger.warning('Program fragment %s will not be verified since requirement specifications'
                                     ' are not specified', fragment)
             else:
-                for rule_class in self.req_spec_classes:
-                    task = Abstract(fragment, rule_class)
+                for rule_class_id, _ in enumerate(self.req_spec_classes):
+                    task = Abstract(fragment, rule_class_id)
                     self.logger.debug('Create abstract task %s', task)
                     prepare.append(task)
 
@@ -363,8 +343,7 @@ class VTG(klever.core.components.Component):
         # Check that we can generate a variable number of environment models
         single_model = self.conf.get('single environment model per fragment', True)
         if single_model:
-            total_tasks = len(self.fragment_descs) * len([1 for cl in self.req_spec_classes
-                                                               for _ in self.req_spec_classes[cl]])
+            total_tasks = len(self.fragment_descs) * len([1 for cl in self.req_spec_classes for _ in cl])
             # Submit the number of tasks
             self.logger.info(
                 'Submit the total number of tasks expecting a single environment model per a fragment: %s', total_tasks)
@@ -445,7 +424,6 @@ class VTG(klever.core.components.Component):
                             del atask_tasks[atask]
                             del atask_work_dirs[atask]
 
-
         # Close the queue
         self.mqs['prepare'].put(None)
         self.mqs['processed'].close()
@@ -461,10 +439,8 @@ class VTG(klever.core.components.Component):
 
 class VTGWL(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals)
 
         self.fragment_descs = FRAGMENT_DESC_FIELS
         self.req_spec_classes = REQ_SPEC_CLASSES
@@ -477,7 +453,7 @@ class VTGWL(klever.core.components.Component):
         self.logger.info("Start %s EMG workers, %s Plugins workers", emg_threads, plugins_threads)
         clear_workers_cpu_cores()
         klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'], self.factory,
-                                                    [emg_threads, plugins_threads], True)
+                                                    [emg_threads, plugins_threads])
         self.logger.info("Terminate VTGL worker")
 
     def factory(self, item):
@@ -487,39 +463,37 @@ class VTGWL(klever.core.components.Component):
             task = Abstract(*args)
             worker_class = EMGW
             identifier = "EMGW/{}/{}".format(task.fragment, task.rule_class)
-            workdir = os.path.join(task.fragment, task.rule_class)
+            workdir = os.path.join(task.fragment, "rule_class_{}".format(task.rule_class))
+            plugin_conf = next(iter(self.req_spec_classes[task.rule_class].values()))['plugins'][0]
         else:
             task = Task(*args)
             worker_class = PLUGINS
             identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
             workdir = task.workdir
+            plugin_conf = self.req_spec_classes[task.rule_class][task.rule]['plugins'][1:]
         self.logger.info('Create worker for %s', task)
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
-                            workdir, [], True, req_spec_classes=self.req_spec_classes,
-                            fragment_desc=self.fragment_descs[task.fragment], task=task,
-                            resource_limits=self.resource_limits)
+                            workdir, plugin_conf, self.fragment_descs[task.fragment], task, self.resource_limits)
 
     main = task_generating_loop
 
 
 class VTGW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
-                 fragment_desc=None, task=None, resource_limits=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent, include_child_resources)
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, plugin_conf,
+                 fragment_desc, task, resource_limits):
+        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, [], True)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
         self.out_abstract_task_desc_file = 'abstract tasks.json'
         self.final_abstract_task_desc_file = 'final abstract task.json'
-        self.send_data = multiprocessing.Value('i', 1)
 
         # Get tuple and convert it back
         self.task = task
         self.resource_limits = resource_limits
-        self.req_spec_classes = req_spec_classes
+        self.plugins_conf = plugin_conf
 
         self.fragment_desc = fragment_desc
+        self.prepared_tasks = []
 
     def tasks_generator_worker(self):
         self._submit_attrs()
@@ -530,28 +504,9 @@ class VTGW(klever.core.components.Component):
 
     main = tasks_generator_worker
 
-    def join(self, timeout=None, stopped=False):
-        try:
-            super().join(timeout, stopped)
-        finally:
-            if not self.is_alive() and self.send_data.value:
-                prepared_data = self._get_prepared_data()
-                if prepared_data:
-                    self.logger.debug("Now send the data to the VTG for %s", self.task)
-                    self.mqs['processed'].put(prepared_data)
-                else:
-                    self.logger.debug("Skip sending any results for the %s", self.task)
-
-                # Send data only once
-                self.send_data.value = 0
-
     def _generate_abstract_verification_task_desc(self):
         # Implement the method to do the workload
         pass
-
-    def _get_prepared_data(self):
-        self.logger.debug("There is no data has been prepared for %s", self.task)
-        return type(self.task).__name__, tuple(self.task)
 
     def _run_plugin(self, plugin_desc, abstract_task_desc):
         plugin_name = plugin_desc['name']
@@ -590,46 +545,14 @@ class VTGW(klever.core.components.Component):
     def plugin_fail_processing(self):
         """Has a callback in job.py!"""
         self.logger.debug('Submit the information about the failure to the Job processing class')
-
-    def _submit_task(self, plugin_desc, final_task_data):
-        plugin_work_dir = plugin_desc['name'].lower()
-
-        if self.conf['keep intermediate files']:
-            self.logger.debug('Put final abstract verification task description to file "%s"',
-                              self.final_abstract_task_desc_file)
-            # Final abstract verification task description equals to abstract verification task description received
-            # from last plugin.
-            with open(self.final_abstract_task_desc_file, 'w', encoding='utf-8') as handle:
-                klever.core.utils.json_dump(final_task_data, handle, self.conf['keep intermediate files'])
-
-        # Disable send as we prepared final task
-        self.send_data.value = 0
-        # VTG will consume this abstract verification task description file.
-        if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
-                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
-            session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-            task_id = session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
-                                            os.path.join(plugin_work_dir, 'task files.zip'))
-
-            # Plan for checking status
-            self.mqs['pending tasks'].put(
-                [str(task_id), tuple(self.task), final_task_data["result processing"], self.fragment_desc,
-                 final_task_data['verifier'], final_task_data['additional sources'],
-                 final_task_data['verification task files']])
-
-            self.logger.info("Submitted successfully verification task %s for solution",
-                             os.path.join(plugin_work_dir, 'task.json'))
-        else:
-            self.logger.warning("There is no verification task generated by the last plugin, expect %s",
-                                os.path.join(plugin_work_dir, 'task.json'))
+        data = type(self.task).__name__, tuple(self.task)
+        self.mqs['processed'].put(data)
 
     def _submit_attrs(self):
-        files_list_files = []
-
         # Prepare program fragment description file
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(self.fragment_desc, files_list_file)
-        files_list_files.append(files_list_file)
+        files_list_files = [files_list_file]
 
         # Add attributes
         self.attrs.extend(
@@ -642,7 +565,7 @@ class VTGW(klever.core.components.Component):
                 },
                 {
                     "name": "Requirements specification class",
-                    "value": self.task.rule_class
+                    "value": str(self.task.rule_class)
                 }
             ]
         )
@@ -663,48 +586,45 @@ class VTGW(klever.core.components.Component):
 
 class EMGW(VTGW):
 
-    def _get_prepared_data(self):
-        triples = []
+    def tasks_generator_worker(self):
+        super().tasks_generator_worker()
+        self._send_prepared_data()
 
-        def create_task(task, model, pathname, envattrs):
-            task_workdir = os.path.join(self.work_dir, pathname)
-            os.makedirs(task_workdir, exist_ok=True)
-            task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
-            with open(task_file, 'w', encoding='utf-8') as handle:
-                klever.core.utils.json_dump(task, handle, self.conf['keep intermediate files'])
-            triples.append([model, task_workdir, envattrs])
+    main = tasks_generator_worker
 
+    def _send_prepared_data(self):
         # Send tasks to the VTG
-        out_file = os.path.join(self.work_dir, self.out_abstract_task_desc_file)
-
-        # Now read the final tasks
-        self.logger.info('Read file with generated descriptions %s', out_file)
-        if os.path.isfile(out_file):
-            with open(out_file, 'r', encoding="utf-8") as fp:
-                tasks = json.load(fp)
-            self.logger.info('Found %s generated tasks', len(tasks))
+        if self.prepared_tasks:
+            self.logger.info('Found %s generated tasks', len(self.prepared_tasks))
         else:
             self.logger.info('There is no environment models generated for %s', self.task)
-            tasks = []
 
+        triples = []
         # Generate task descriptions for further tasks
-        for task_desc in tasks:
+        for task_desc in self.prepared_tasks:
             env_path = task_desc.get("environment model pathname")
             env_attrs = tuple(sorted(task_desc.get("environment model attributes", {}).items(), key=lambda x: x[0]))
-            create_task(task_desc, env_path, env_path, env_attrs)
+            task_workdir = os.path.join(self.work_dir, env_path)
+            os.makedirs(env_path, exist_ok=True)
+            task_file = os.path.join(env_path, self.initial_abstract_task_desc_file)
+            with open(task_file, 'w', encoding='utf-8') as handle:
+                klever.core.utils.json_dump(task_desc, handle, self.conf['keep intermediate files'])
+            triples.append([env_path, task_workdir, env_attrs])
 
         # Submit new tasks to the VTG
-        return type(self.task).__name__, tuple(self.task), self.work_dir, triples
+        prepared_data = type(self.task).__name__, tuple(self.task), self.work_dir, triples
+
+        self.logger.info("Now send the data to the VTG for %s", self.task)
+        self.mqs['processed'].put(prepared_data)
 
     def _generate_abstract_verification_task_desc(self):
         fragment = self.task.fragment
         rule_class = self.task.rule_class
-        options = self.__get_plugin_conf(rule_class)
 
         self.logger.info("Start generating tasks for %s and requirements specification %s", fragment, rule_class)
         cur_abstract_task_desc = self.__prepare_initial_abstract_task(fragment, rule_class)
 
-        # Update recource limits
+        # Update resource limits
         soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
         soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
         cpu_time_limit = self.conf["resource limits"]["CPU time for EMG"]
@@ -718,12 +638,9 @@ class EMGW(VTGW):
 
         # Here plugin will put modified abstract verification task description.
         try:
-            abstract_task_desc = self._run_plugin(options, cur_abstract_task_desc)
-            # Plugins do not dump the data in lightweight mode
-            self.logger.info(
-                'Put modified abstract verification task description to file "%s"', self.out_abstract_task_desc_file)
-            with open(self.out_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
-                klever.core.utils.json_dump(abstract_task_desc, fp, self.conf['keep intermediate files'])
+            self.prepared_tasks = self._run_plugin(self.plugins_conf, cur_abstract_task_desc)
+            self.dump_if_necessary(self.out_abstract_task_desc_file, self.prepared_tasks,
+                                   "modified abstract verification task description")
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
             self.plugin_fail_processing()
@@ -732,14 +649,9 @@ class EMGW(VTGW):
         resource.prlimit(0, resource.RLIMIT_CPU, (soft_time, hard_time))
         resource.prlimit(0, resource.RLIMIT_AS, (soft_mem, hard_mem))
 
-    def __get_plugin_conf(self, rule_class):
-        return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
-
     def __prepare_initial_abstract_task(self, fragment, rule_class):
-        fragment_desc = self.fragment_desc
-
         # Initial abstract verification task looks like corresponding program fragment.
-        initial_abstract_task_desc = copy.deepcopy(fragment_desc)
+        initial_abstract_task_desc = copy.deepcopy(self.fragment_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(fragment, rule_class)
         initial_abstract_task_desc['attrs'] = ()
 
@@ -776,7 +688,7 @@ class PLUGINS(VTGW):
         # Initial abstract verification task looks like corresponding program fragment.
         with open(initial_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
             initial_abstract_task_desc = json.load(fp)
-        initial_abstract_task_desc['id'] = '/'.join((self.task.fragment, self.task.rule_class, self.task.envmodel,
+        initial_abstract_task_desc['id'] = '/'.join((self.task.fragment, str(self.task.rule_class), self.task.envmodel,
                                                      self.task.rule))
 
         self.dump_if_necessary(self.initial_abstract_task_desc_file, initial_abstract_task_desc,
@@ -784,18 +696,38 @@ class PLUGINS(VTGW):
 
         return initial_abstract_task_desc
 
-    def _get_plugins(self):
-        return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][1:]
+    def _submit_task(self, plugin_desc, final_task_data):
+        plugin_work_dir = plugin_desc['name'].lower()
+
+        self.dump_if_necessary(self.final_abstract_task_desc_file, final_task_data,
+                               "abstract verification task description")
+
+        # VTG will consume this abstract verification task description file.
+        if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
+                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
+            session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+            task_id = session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
+                                            os.path.join(plugin_work_dir, 'task files.zip'))
+
+            # Plan for checking status
+            self.mqs['pending tasks'].put(
+                [str(task_id), tuple(self.task), final_task_data["result processing"], self.fragment_desc,
+                 final_task_data['verifier'], final_task_data['additional sources'],
+                 final_task_data['verification task files']])
+
+            self.logger.info("Submitted successfully verification task %s for solution",
+                             os.path.join(plugin_work_dir, 'task.json'))
+        else:
+            self.logger.warning("There is no verification task generated by the last plugin, expect %s",
+                                os.path.join(plugin_work_dir, 'task.json'))
 
     def _generate_abstract_verification_task_desc(self):
-        plugins = self._get_plugins()
-
         # Prepare initial task desc
         self.logger.info("Start generating tasks for %s", self.task)
         cur_abstract_task_desc = self._prepare_initial_task_desc()
 
         # Invoke all plugins one by one.
-        for plugin_desc in plugins:
+        for plugin_desc in self.plugins_conf:
             plugin_desc.get('options', {}).update({
                 'solution class': self.task.rule,
                 'override resource limits': self.resource_limits

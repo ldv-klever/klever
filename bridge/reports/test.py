@@ -53,7 +53,7 @@ COMPUTER = {
     ]
 }
 
-# Only components ['VTGW', 'ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver', 'RP'] can be "failed"
+# Only components ['VTGW', 'ASE', 'EMG', 'FVTP', 'RSG', 'TR', 'Weaver', 'RP'] can be "failed"
 SJC_1 = [
     {
         'requirement': 'linux:mutex',
@@ -959,7 +959,7 @@ class TestReports(KleverTestCase):
                 {'name': 'Requirement', 'value': subjob['requirement']},
                 {'name': 'Program fragment', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
-            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
                 self.__upload_finish_report(cmp_id)
             self.__upload_finish_report(vtgw)
@@ -994,7 +994,7 @@ class TestReports(KleverTestCase):
                 {'name': 'Requirement', 'value': chunk['requirement']},
                 {'name': 'Program fragment', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
-            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
                 self.__upload_finish_report(cmp_id)
             self.__upload_finish_report(vtgw)
@@ -1456,7 +1456,7 @@ class DecideJob:
                 {'name': 'Requirement', 'value': subjob['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Program fragment', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
-            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
@@ -1492,7 +1492,7 @@ class DecideJob:
                 {'name': 'Requirement', 'value': chunk['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Program fragment', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
-            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)

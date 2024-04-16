@@ -545,7 +545,6 @@ class Job(klever.core.components.Component):
 
         self.clade = None
         self.components = []
-        self.component_processes = []
 
     def decide_job_or_sub_job(self):
         self.logger.info('Decide job/sub-job "%s"', self.id)
@@ -825,7 +824,7 @@ class Job(klever.core.components.Component):
         subcomponents = [('PSFS', self.__process_source_files)]
         for _ in range(self.workers_num):
             subcomponents.append(('PSF', self.__process_source_file))
-        self.launch_subcomponents(False, *subcomponents)
+        self.launch_subcomponents(*subcomponents)
         self.mqs['file names'].close()
 
         self.logger.info('Compress original sources')
@@ -856,15 +855,24 @@ class Job(klever.core.components.Component):
                           ', '.join([component.__name__ for component in self.components]))
 
     def launch_sub_job_components(self):
-        """Has callbacks"""
         self.logger.info('Launch components for sub-job "%s"', self.id)
+        self.mqs['VRP common attrs'] = multiprocessing.Queue()
+        self.mqs['VTG common attrs'] = multiprocessing.Queue()
 
+        # Queues used exclusively in VTG
+        self.mqs['program fragment desc'] = multiprocessing.Queue()
+
+        # Queues shared by VRP
+        self.mqs['pending tasks'] = multiprocessing.Queue()
+        self.mqs['processed'] = multiprocessing.Queue()
+
+        component_processes = []
         for component in self.components:
             p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,
                           self.vals, separate_from_parent=True)
-            self.component_processes.append(p)
+            component_processes.append(p)
 
-        klever.core.components.launch_workers(self.logger, self.component_processes)
+        klever.core.components.launch_workers(self.logger, component_processes)
 
 
 class SubJob(Job):

@@ -92,7 +92,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Weaving')
         if klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
-                                                       fail_tolerant=True, sleep_interval=0.05):
+                                                       sleep_interval=0.05):
             # One of Weaver workers has failed. We can not set fail_tolerant to False above since if one of Weaver
             # workers fail, killing other ones may result to invalid, infinitely locked cache entries. This can result
             # in deadlocks for other verification tasks (other groups of Weaver workers) that will expect that somebody

@@ -37,17 +37,6 @@ from klever.core.vrp.et import import_error_trace, ErrorTraceParser
 MEA_LIB = os.path.join("MEA", "scripts")
 
 
-@klever.core.components.before_callback  # pylint: disable=no-member
-def __launch_sub_job_components(context):
-    context.mqs['VRP common attrs'] = multiprocessing.Queue()
-    context.mqs['processing tasks'] = multiprocessing.Queue()
-
-
-@klever.core.components.after_callback  # pylint: disable=no-member
-def __submit_common_attrs(context):
-    context.mqs['VRP common attrs'].put(context.common_attrs)
-
-
 class VRP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
@@ -63,6 +52,7 @@ class VRP(klever.core.components.Component):
         # Common initialization
         super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
+        self.mqs['processing tasks'] = multiprocessing.Queue()
 
     def process_results(self):
         self.__workers = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
@@ -82,7 +72,7 @@ class VRP(klever.core.components.Component):
         subcomponents = [('RPL', self.__result_processing)]
         for _ in range(self.__workers):
             subcomponents.append(('RPWL', self.__loop_worker))
-        self.launch_subcomponents(False, *subcomponents)
+        self.launch_subcomponents(*subcomponents)
 
         self.clean_dir = True
         # Finalize
@@ -181,7 +171,6 @@ class VRP(klever.core.components.Component):
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
                         workdir, attrs, source_paths, [status, data])
                 rp.run()
-                #rp.join()
                 self.logger.info('Successfully processed %s', result_key)
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed %r, %r failed", pf, requirement)

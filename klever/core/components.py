@@ -33,26 +33,6 @@ from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores,
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
-# Generate decorators to use them across the project
-for tp in CALLBACK_KINDS:
-    # Access namespace of the decorated function and insert there a new one with the name like 'before_' + function_name
-    def new_decorator(decorated_function, tp=tp):
-        if decorated_function.__name__[0:2] != '__':
-            raise ValueError("Callbacks should be private, call function {!r} with '__' prefix".
-                             format(decorated_function.__name__))
-        callback_function_name = "{}_{}".format(str(tp), decorated_function.__name__[2:])
-        if hasattr(sys.modules[decorated_function.__module__], callback_function_name):
-            raise KeyError("Cannot create callback {!r} in {!r}".
-                           format(callback_function_name, decorated_function.__module__))
-
-        setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
-
-        return decorated_function
-
-    # Add new decorator to this module to use it
-    globals()[tp + '_callback'] = new_decorator
-    new_decorator = None
-
 
 def set_component_callbacks(logger, component, callbacks):
     logger.info('Set callbacks for component "{0}"'.format(component.__name__))
@@ -179,7 +159,7 @@ def launch_workers(logger, workers, monitoring_list=None):
     logger.info('All components finished')
 
 
-def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant, monitoring_list=None,
+def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant=True, monitoring_list=None,
                          sleep_interval=1):
     """
     Blocking function that run given number of workers processing elements of particular queue.
@@ -395,7 +375,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.__pid = None
 
         self.clean_dir = False
-        self.excluded_clean = []
         self._cur_dir = None
 
     def start(self):
@@ -510,8 +489,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
             if self.clean_dir and not self.conf['keep intermediate files']:
                 self.logger.debug('Going to clean %s', os.path.abspath('.'))
                 for to_del in os.listdir('.'):
-                    if to_del in self.excluded_clean:
-                        continue
                     if os.path.isfile(to_del) or os.path.islink(to_del):
                         os.remove(to_del)
                     elif os.path.isdir(to_del):
@@ -585,25 +562,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             with open(file_name, 'w', encoding='utf-8') as fp:
                 klever.core.utils.json_dump(data, fp, self.conf['keep intermediate files'])
 
-    def function_to_subcomponent(self, include_child_resources, name, executable):
-        """
-        Convert given function or component into Component to run it as a subcomponent.
-
-        :param include_child_resources: Flag.
-        :param name: Component name string.
-        :param executable: Function or Class.
-        :return: Component
-        """
-        if isinstance(executable, (types.MethodType, types.FunctionType)):
-            subcomponent_class = types.new_class(name, (type(self),))
-            setattr(subcomponent_class, 'main', executable)
-        else:
-            subcomponent_class = types.new_class(name, (executable,))
-        p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
-                               separate_from_parent=False, include_child_resources=include_child_resources)
-        return p
-
-    def launch_subcomponents(self, include_child_resources, *subcomponents):
+    def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         for index, subcomponent in enumerate(subcomponents):
             # Do not try to separate these subcomponents from their parents - it is a true headache.
@@ -612,10 +571,13 @@ class Component(multiprocessing.Process, CallbacksCaller):
             if isinstance(subcomponent, (list, tuple)):
                 name = 'KleverSubcomponent' + subcomponent[0] + str(index)
                 executable = subcomponent[1]
+                subcomponent_class = types.new_class(name, (type(self),))
+                setattr(subcomponent_class, 'main', executable)
             else:
                 name = 'KleverSubcomponent' + str(subcomponent.__name__) + str(index)
                 executable = subcomponent
-            p = self.function_to_subcomponent(include_child_resources, name, executable)
+                subcomponent_class = types.new_class(name, (executable,))
+            p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals)
             subcomponent_processes.append(p)
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)

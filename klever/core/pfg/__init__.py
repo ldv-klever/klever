@@ -65,12 +65,13 @@ class PFG(klever.core.components.Component):
 
     def submit_common_attrs(self, attrs):
         """
-        !Has a callback!
         Submit common attributes to Bridge.
 
         :param attrs: Prepared list of attributes.
         :param dfiles: Files to attach as data attribute values.
         """
+        self.mqs['VTG common attrs'].put(attrs)
+        self.mqs['VRP common attrs'].put(attrs)
         klever.core.utils.report(self.logger,
                                  'patch',
                                  {
