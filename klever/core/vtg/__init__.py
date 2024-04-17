@@ -364,12 +364,14 @@ class VTG(klever.core.components.Component):
                 self.logger.debug('Received item %s', kind)
                 if kind == Abstract.__name__:
                     atask = Abstract(*desc)
-                    aworkdir, models = other
                     left_abstract_tasks -= 1
+                    models = None
+                    if other:
+                        aworkdir, models = other
 
-                    if not keep_dirs:
-                        atask_work_dirs[atask] = aworkdir
-                        atask_tasks[atask] = set()
+                        if not keep_dirs:
+                            atask_work_dirs[atask] = aworkdir
+                            atask_tasks[atask] = set()
 
                     # Generate a verification task per a new environment model and rule
                     if models:

@@ -403,6 +403,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # consumed resources and creating reports will be performed in self.__finalize() both when components terminate
         # normally and are stopped.
         signal.signal(signal.SIGUSR1, self.__stop)
+        signal.signal(signal.SIGXCPU, self.__cpu_exceed)
 
         if self.separate_from_parent:
             self.logger.info('Change working directory to "%s" for component "%s"', self.work_dir, self.name)
@@ -528,6 +529,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.logger.error('%s Stop since some other component(s) likely failed', self.__get_subcomponent_name())
 
         self.__finalize()
+
+    def __cpu_exceed(self, signum, frame):  # pylint:disable=unused-argument
+        raise ComponentError('Component "{0}" reaches CPU limit'.format(self.name))
 
     def join(self, timeout=None, stopped=False):
         # Actually join process.
