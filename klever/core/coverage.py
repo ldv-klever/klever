@@ -333,8 +333,8 @@ class JCR(klever.core.components.Component):
 
     COVERAGE_FILE_NAME = "cached coverage.json"
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, queues_to_terminate):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
+    def __init__(self, conf, logger, parent_id, mqs, vals, queues_to_terminate):
+        super().__init__(conf, logger, parent_id, mqs, vals, separate_from_parent=False,
                          include_child_resources=True)
 
         # This function adds callbacks and it should work until we call it in the new process

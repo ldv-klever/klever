@@ -42,9 +42,9 @@ FRAGMENT_DESC_FIELS = None
 
 class VTG(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.req_spec_descs = []
@@ -441,8 +441,8 @@ class VTG(klever.core.components.Component):
 
 class VTGWL(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals)
+    def __init__(self, conf, logger, parent_id, mqs, vals):
+        super().__init__(conf, logger, parent_id, mqs, vals)
 
         self.fragment_descs = FRAGMENT_DESC_FIELS
         self.req_spec_classes = REQ_SPEC_CLASSES
@@ -474,7 +474,7 @@ class VTGWL(klever.core.components.Component):
             workdir = task.workdir
             plugin_conf = self.req_spec_classes[task.rule_class][task.rule]['plugins'][1:]
         self.logger.info('Create worker for %s', task)
-        return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
+        return worker_class(self.conf, self.logger, self.parent_id, self.mqs, self.vals, identifier,
                             workdir, plugin_conf, self.fragment_descs[task.fragment], task, self.resource_limits)
 
     main = task_generating_loop
@@ -482,9 +482,9 @@ class VTGWL(klever.core.components.Component):
 
 class VTGW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, plugin_conf,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id, work_dir, plugin_conf,
                  fragment_desc, task, resource_limits):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, [], True)
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, [], True)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
         self.out_abstract_task_desc_file = 'abstract tasks.json'
         self.final_abstract_task_desc_file = 'final abstract task.json'
@@ -526,7 +526,7 @@ class VTGW(klever.core.components.Component):
         self.dump_if_necessary(plugin_conf_file, plugin_conf, "configuration of plugin {}".format(plugin_name))
 
         plugin = getattr(importlib.import_module(f'.{plugin_name.lower()}', 'klever.core.vtg'), plugin_name)
-        p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, abstract_task_desc,
+        p = plugin(plugin_conf, self.logger, self.id, self.mqs, self.vals, abstract_task_desc,
                    plugin_name, plugin_work_dir,
                    # Weaver can execute workers in parallel but it does not launch any heavyweight subprocesses for
                    # which it is necessary to include child resources. These workers can execute time consuming CIF and
@@ -545,10 +545,19 @@ class VTGW(klever.core.components.Component):
         return p.abstract_task_desc
 
     def plugin_fail_processing(self):
-        """Has a callback in job.py!"""
         self.logger.debug('Submit the information about the failure to the Job processing class')
         data = type(self.task).__name__, tuple(self.task)
         self.mqs['processed'].put(data)
+        if 'verification statuses' in self.mqs:
+            self.mqs['verification statuses'].put({
+                'program fragment id': self.task.fragment,
+                'req spec id': self.task.rule if hasattr(self.task, 'rule') else self.task.rule_class,
+                'environment model': self.task.envmodel if hasattr(self.task, 'envmodel') else 'base',
+                'verdict': 'non-verifier unknown',
+                'sub-job identifier': self.conf['sub-job identifier'],
+                'ideal verdicts': self.conf['ideal verdicts'],
+                'data': self.conf.get('data')
+            })
 
     def _submit_attrs(self):
         # Prepare program fragment description file

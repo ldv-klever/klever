@@ -34,7 +34,7 @@ import klever.core.utils
 from klever.core.session import BridgeError
 
 
-class Core(klever.core.components.CallbacksCaller):
+class Core:
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
 
@@ -49,7 +49,6 @@ class Core(klever.core.components.CallbacksCaller):
         self.report_id = multiprocessing.Value('i', 1)
         self.uploading_reports_process = None
         self.uploading_reports_process_exitcode = multiprocessing.Value('i', 0)
-        self.callbacks = {}
         self.is_start_report_uploaded = False
 
     def main(self):
@@ -72,7 +71,7 @@ class Core(klever.core.components.CallbacksCaller):
 
             os.makedirs('child resources'.encode('utf-8'))
 
-            self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
+            self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.mqs,
                                                       {'report id': self.report_id})
             self.uploading_reports_process.start()
 
@@ -153,7 +152,7 @@ class Core(klever.core.components.CallbacksCaller):
 
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
-                        self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
+                        self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID,
                                                                   self.mqs, {'report id': self.report_id})
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')

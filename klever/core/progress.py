@@ -24,8 +24,8 @@ import klever.core.components
 
 class PW(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, total_subjobs):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
+    def __init__(self, conf, logger, parent_id, mqs, vals, total_subjobs):
+        super().__init__(conf, logger, parent_id, mqs, vals, separate_from_parent=False,
                          include_child_resources=True)
         # Initialize shared values and queues
         self.mqs['finished and failed tasks'] = multiprocessing.Queue()

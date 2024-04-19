@@ -133,7 +133,7 @@ def start_jobs(core_obj, vals):
     try:
         queues_to_terminate = []
 
-        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
+        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.mqs, vals,
                 len(common_components_conf['sub-jobs']) if 'sub-jobs' in common_components_conf else 0)
         pc.start()
         subcomponents.append(pc)
@@ -141,34 +141,15 @@ def start_jobs(core_obj, vals):
         # TODO: split collecting total code coverage for sub-jobs. Otherwise there is too much redundant data.
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
-            def after_process_finished_task(context):
-                coverage_info_file = os.path.join(context.conf['main working directory'], context.coverage_info_file)
-                if os.path.isfile(coverage_info_file):
-                    context.mqs['req spec ids and coverage info files'].put({
-                        'sub-job identifier': context.conf['sub-job identifier'],
-                        'req spec id': context.req_spec_id,
-                        'coverage info file': coverage_info_file
-                    })
 
-            def after_launch_sub_job_components(context):
-                context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
-                context.mqs['req spec ids and coverage info files'].put({
-                    'sub-job identifier': context.common_components_conf['sub-job identifier']
-                })
-
-            cr = JCR(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
+            cr = JCR(common_components_conf, core_obj.logger, core_obj.ID, core_obj.mqs, vals,
                      queues_to_terminate)
-            # This can be done only in this module otherwise callbacks will be missed
-            klever.core.components.set_component_callbacks(core_obj.logger, Job,
-                                                           [after_launch_sub_job_components,
-                                                            after_process_finished_task])
             cr.start()
             subcomponents.append(cr)
 
         if 'extra results processing' in common_components_conf and common_components_conf['weight'] == '0':
             # data reports from REP are ignored in lightweight mode
-            ra = REP(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
-                     queues_to_terminate)
+            ra = REP(common_components_conf, core_obj.logger, core_obj.ID, core_obj.mqs, vals, queues_to_terminate)
             ra.start()
             subcomponents.append(ra)
 
@@ -181,7 +162,7 @@ def start_jobs(core_obj, vals):
                              subcomponents + [core_obj.uploading_reports_process])
         else:
             job = Job(
-                core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                core_obj.conf, core_obj.logger, core_obj.ID, core_obj.mqs,
                 vals,
                 'Job',
                 os.path.join(os.path.curdir, 'job'),
@@ -244,7 +225,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                                                               components_common_conf['sub-jobs'][number])
 
         job = SubJob(
-            core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+            core_obj.conf, core_obj.logger, core_obj.ID, core_obj.mqs,
             vals,
             'Sub-job-{0}'.format(number),
             'sub-job-{0}'.format(number),
@@ -289,43 +270,14 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                                                 components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
-SINGLE_ENV_NAME = 'base'
-
-
-def _vrp_callback(context):
-    context.mqs['verification statuses'].put({
-        'program fragment id': context.program_fragment_id,
-        'environment model': context.envmodel,
-        'req spec id': context.req_spec_id,
-        'verdict': context.verdict,
-        'sub-job identifier': context.conf['sub-job identifier'],
-        'ideal verdicts': context.conf['ideal verdicts'],
-        'data': context.conf.get('data')
-    })
-
-
-def _vtg_plugin_callback(context):
-    context.mqs['verification statuses'].put({
-        'program fragment id': context.task.fragment,
-        'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
-        'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else SINGLE_ENV_NAME,
-        'verdict': 'non-verifier unknown',
-        'sub-job identifier': context.conf['sub-job identifier'],
-        'ideal verdicts': context.conf['ideal verdicts'],
-        'data': context.conf.get('data')
-    })
-
-
 class REP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, queues_to_terminate):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, separate_from_parent=False,
-                         include_child_resources=True)
+    def __init__(self, conf, logger, parent_id, mqs, vals, queues_to_terminate):
+        super().__init__(conf, logger, parent_id, mqs, vals, separate_from_parent=False, include_child_resources=True)
         self.data = {}
 
         self.mqs['verification statuses'] = multiprocessing.Queue()
         queues_to_terminate.append('verification statuses')
-        self.__set_callbacks()
 
     def process_results_extra(self):
         os.mkdir('results')
@@ -390,27 +342,6 @@ class REP(klever.core.components.Component):
 
     main = process_results_extra
 
-    def __set_callbacks(self):
-
-        def after_plugin_fail_processing(context):
-            _vtg_plugin_callback(context)
-
-        def after_process_failed_task(context):
-            _vrp_callback(context)
-
-        def after_process_single_verdict(context):
-            _vrp_callback(context)
-
-        klever.core.components.set_component_callbacks(
-            self.logger,
-            type(self),
-            (
-                after_plugin_fail_processing,
-                after_process_single_verdict,
-                after_process_failed_task
-            )
-        )
-
     def __match_ideal_verdict(self, verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
@@ -447,7 +378,7 @@ class REP(klever.core.components.Component):
                 'specification "{2}"'.format(program_fragment_id, envmodel_id, req_spec_id))
 
         # This suffix will help to distinguish sub-jobs easier.
-        if envmodel_id == SINGLE_ENV_NAME:
+        if envmodel_id == 'base':
             id_suffix = os.path.join(program_fragment_id, req_spec_id) \
                 if program_fragment_id and req_spec_id else ''
         else:
@@ -533,9 +464,9 @@ class Job(klever.core.components.Component):
         'VRP'
     ]
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, components_common_conf=None):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
         self.common_components_conf = components_common_conf
 
@@ -589,7 +520,6 @@ class Job(klever.core.components.Component):
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.__get_job_or_sub_job_components()
-        self.callbacks = klever.core.components.get_component_callbacks(self.logger, [type(self)] + self.components)
         self.launch_sub_job_components()
 
         self.clean_dir = True
@@ -868,11 +798,17 @@ class Job(klever.core.components.Component):
 
         component_processes = []
         for component in self.components:
-            p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,
+            p = component(self.common_components_conf, self.logger, self.id, self.mqs,
                           self.vals, separate_from_parent=True)
             component_processes.append(p)
 
         klever.core.components.launch_workers(self.logger, component_processes)
+
+        self.logger.debug('Put "%s" sub-job identifier for finish coverage', self.id)
+        if 'req spec ids and coverage info files' in self.mqs:
+            self.mqs['req spec ids and coverage info files'].put({
+                'sub-job identifier': self.common_components_conf['sub-job identifier']
+            })
 
 
 class SubJob(Job):

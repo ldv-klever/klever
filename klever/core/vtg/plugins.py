@@ -20,9 +20,9 @@ import klever.core.utils
 
 
 class Plugin(klever.core.components.Component):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, abstract_task_desc=None, cur_id=None,
+    def __init__(self, conf, logger, parent_id, mqs, vals, abstract_task_desc=None, cur_id=None,
                  work_dir=None, attrs=None, include_child_resources=False):
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs, True,
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs, True,
                          include_child_resources)
         self.abstract_task_desc = abstract_task_desc
 

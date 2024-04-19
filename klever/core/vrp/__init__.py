@@ -39,7 +39,7 @@ MEA_LIB = os.path.join("MEA", "scripts")
 
 class VRP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Requirement specification descriptions were already extracted when getting VTG callbacks.
         self.__workers = None
@@ -50,7 +50,7 @@ class VRP(klever.core.components.Component):
         self.program_fragment = None
 
         # Common initialization
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
         self.mqs['processing tasks'] = multiprocessing.Queue()
 
@@ -168,7 +168,7 @@ class VRP(klever.core.components.Component):
             try:
                 if not os.path.isdir(workdir):
                     os.makedirs(workdir.encode('utf-8'))
-                rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
+                rp = RP(self.conf, self.logger, self.id, self.mqs, self.vals, new_id,
                         workdir, attrs, source_paths, [status, data])
                 rp.run()
                 self.logger.info('Successfully processed %s', result_key)
@@ -195,7 +195,7 @@ class VRP(klever.core.components.Component):
 
 class RP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                  source_paths, element):
         # Read this in a callback
         self.element = element
@@ -211,7 +211,7 @@ class RP(klever.core.components.Component):
         self.additional_srcs = None
         self.verification_task_files = None
         # Common initialization
-        super().__init__(conf, logger, parent_id, callbacks, mqs, vals, cur_id, work_dir, attrs,
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent=True, include_child_resources=False)
 
         self.clean_dir = True
@@ -468,12 +468,19 @@ class RP(klever.core.components.Component):
                 )
 
     def process_failed_task(self, task_id):
-        """The function has a callback at Job module."""
+        if 'verification statuses' in self.mqs:
+            self.mqs['verification statuses'].put({
+                'program fragment id': self.program_fragment_id,
+                'environment model': self.envmodel,
+                'req spec id': self.req_spec_id,
+                'verdict': 'non-verifier unknown',
+                'sub-job identifier': self.conf['sub-job identifier'],
+                'ideal verdicts': self.conf['ideal verdicts'],
+                'data': self.conf.get('data')
+            })
         self.task_error = self.session.get_task_error(task_id)
         # We do not need task and its files anymore.
         self.session.remove_task(task_id)
-
-        self.verdict = 'non-verifier unknown'
 
     def process_finished_task(self, task_id, opts, verifier):
         """Function has a callback at Job.py."""
@@ -566,6 +573,15 @@ class RP(klever.core.components.Component):
                      os.path.join(self.conf['main working directory'], self.coverage_info_file),
                      os.path.join(self.conf['main working directory'], coverage_info_dir),
                      self.verification_task_files)
+
+                if 'req spec ids and coverage info files' in self.mqs:
+                    coverage_info_file = os.path.join(self.conf['main working directory'], self.coverage_info_file)
+                    if os.path.isfile(coverage_info_file):
+                        self.mqs['req spec ids and coverage info files'].put({
+                            'sub-job identifier': self.conf['sub-job identifier'],
+                            'req spec id': self.req_spec_id,
+                            'coverage info file': coverage_info_file
+                        })
             except Exception as err:  # pylint: disable=broad-except
                 exception = err
             else:
@@ -584,6 +600,16 @@ class RP(klever.core.components.Component):
             # Submit a verdict
             self.process_single_verdict(decision_results, log_file)
         finally:
+            if 'verification statuses' in self.mqs:
+                self.mqs['verification statuses'].put({
+                    'program fragment id': self.program_fragment_id,
+                    'environment model': self.envmodel,
+                    'req spec id': self.req_spec_id,
+                    'verdict': self.verdict,
+                    'sub-job identifier': self.conf['sub-job identifier'],
+                    'ideal verdicts': self.conf['ideal verdicts'],
+                    'data': self.conf.get('data')
+                })
             # Submit a closing report
             klever.core.utils.report(self.logger,
                                      'verification finish',

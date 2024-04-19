@@ -26,56 +26,9 @@ import time
 import traceback
 import types
 import resource
-import re
 
 import klever.core.utils
 from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores, clear_workers_cpu_cores
-
-CALLBACK_KINDS = ('before', 'instead', 'after')
-
-
-def set_component_callbacks(logger, component, callbacks):
-    logger.info('Set callbacks for component "{0}"'.format(component.__name__))
-
-    modl = sys.modules[component.__module__]
-    for callback in callbacks:
-        logger.debug('Set callback "{0}" for component "{1}"'.format(callback.__name__, component.__name__))
-        if not any(callback.__name__.startswith(kind) for kind in CALLBACK_KINDS):
-            raise ValueError('Callback "{0}" does not start with one of {1}'.format(callback.__name__, ', '.join(
-                ('"{0}"'.format(kind) for kind in CALLBACK_KINDS))))
-        if callback.__name__ in dir(modl):
-            raise ValueError(
-                'Callback "{0}" already exists for component "{1}"'.format(callback.__name__, component.__name__))
-        setattr(modl, callback.__name__, callback)
-
-
-def get_component_callbacks(logger, components):
-    logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
-
-    # At the beginning there is no callbacks of any kind.
-    callbacks = {kind: {} for kind in CALLBACK_KINDS}
-
-    for component in components:
-        modl = sys.modules[component.__module__]
-        for attr in dir(modl):
-            for kind in CALLBACK_KINDS:
-                match = re.search(r'^{0}_(.+)$'.format(kind), attr)
-                if match:
-                    event = match.groups()[0]
-                    if event not in callbacks[kind]:
-                        callbacks[kind][event] = []
-                    callbacks[kind][event].append((component.__name__, getattr(modl, attr)))
-
-    return callbacks
-
-
-def remove_component_callbacks(logger, component):
-    logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
-
-    modl = sys.modules[component.__module__]
-    for attr in dir(modl):
-        if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
-            delattr(modl, attr)
 
 
 def all_child_resources():
@@ -295,41 +248,10 @@ class ComponentError(ChildProcessError):
     pass
 
 
-class CallbacksCaller:
-    def __getattribute__(self, name):
-        attr = object.__getattribute__(self, name)
-        if callable(attr) and not attr.__name__.startswith('_'):
-            def callbacks_caller(*args, **kwargs):
-                ret = None
-
-                for kind in CALLBACK_KINDS:
-                    # Invoke callbacks if so.
-                    if kind in self.callbacks and name in self.callbacks[kind]:
-                        for component, callback in self.callbacks[kind][name]:
-                            self.logger.debug(
-                                'Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
-                            ret = callback(self)
-                    # Invoke event itself.
-                    elif kind == 'instead':
-                        # Do not pass auxiliary objects created for subcomponents to methods that implement them and
-                        # that are actually component object methods.
-                        if args and type(args[0]).__name__.startswith('KleverSubcomponent'):
-                            ret = attr(*args[1:], **kwargs)
-                        else:
-                            ret = attr(*args, **kwargs)
-
-                # Return what event or instead/after callbacks returned.
-                return ret
-
-            return callbacks_caller
-
-        return attr
-
-
-class Component(multiprocessing.Process, CallbacksCaller):
+class Component(multiprocessing.Process):
     MAX_ID_LEN = 200
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, cur_id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -339,7 +261,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # avoid to use parent logger in component process.
         self.logger = logger
         self.parent_id = parent_id
-        self.callbacks = callbacks
         self.mqs = mqs
         self.vals = vals
         self.attrs = attrs
@@ -581,7 +502,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 name = 'KleverSubcomponent' + str(subcomponent.__name__) + str(index)
                 executable = subcomponent
                 subcomponent_class = types.new_class(name, (executable,))
-            p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals)
+            p = subcomponent_class(self.conf, self.logger, self.id, self.mqs, self.vals)
             subcomponent_processes.append(p)
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)
