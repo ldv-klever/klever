@@ -449,7 +449,7 @@ class Component(multiprocessing.Process):
 
         self.logger.error('%s Stop since some other component(s) likely failed', self.__get_subcomponent_name())
 
-        self.__finalize()
+        sys.exit(0)
 
     def __cpu_exceed(self, signum, frame):  # pylint:disable=unused-argument
         raise ComponentError('Component "{0}" reaches CPU limit'.format(self.name))

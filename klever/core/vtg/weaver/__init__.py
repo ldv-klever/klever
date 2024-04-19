@@ -99,7 +99,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             # will fill these cache entries sooner or later. There were not such issues when Weaver operated
             # sequentially.
             # Raising SystemExit allows to avoid useless stack traces in Unknown reports of Weaver.
-            raise SystemExit
+            raise klever.core.components.ComponentError('Weaver failed')
 
         self.abstract_task_desc['extra C files'] = list(vals['extra C files'])
         extra_cc_indexes_queue.close()
