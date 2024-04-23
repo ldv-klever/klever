@@ -24,7 +24,7 @@ from klever.core.vtg.emg.generators.linuxModule.interface import Resource, Callb
 
 def yield_categories(logger, conf, collection, sa):
     """
-    Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
+    Analyze all new types found by Clade and yield final set of interface categories built from manually prepared
     interface specifications and global variables. All new categories and interfaces are added directly to the
     InterfaceCategoriesSpecification object. Also all types declarations are updated according with new imported C
     types. However, there are still unused interfaces present in the collection after this function termination.

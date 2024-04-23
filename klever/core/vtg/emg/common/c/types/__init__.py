@@ -76,7 +76,7 @@ def import_typedefs(tds, dependencies):
     """
     Get collection from source analysis with typedefs and import them into collection.
 
-    :param tds: Raw dictionary from SA: {'file': [typedef definitions]}
+    :param tds: Raw dictionary from Clade: {'file': [typedef definitions]}
     :param dependencies: Dictionary with {dep->{C files}} structure.
     :return: None
     """

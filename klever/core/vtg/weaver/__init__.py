@@ -93,12 +93,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Weaving')
         if klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
                                                        sleep_interval=0.05):
-            # One of Weaver workers has failed. We can not set fail_tolerant to False above since if one of Weaver
-            # workers fail, killing other ones may result to invalid, infinitely locked cache entries. This can result
-            # in deadlocks for other verification tasks (other groups of Weaver workers) that will expect that somebody
-            # will fill these cache entries sooner or later. There were not such issues when Weaver operated
-            # sequentially.
-            # Raising SystemExit allows to avoid useless stack traces in Unknown reports of Weaver.
             raise klever.core.components.ComponentError('Weaver failed')
 
         self.abstract_task_desc['extra C files'] = list(vals['extra C files'])
