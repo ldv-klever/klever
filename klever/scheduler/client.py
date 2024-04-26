@@ -28,7 +28,6 @@ import re
 from klever.core.utils import time_units_converter
 from klever.scheduler.server import Server
 from klever.scheduler.utils import execute, process_task_results, submit_task_results, memory_units_converter
-from klever.scheduler.client.options import adjust_options
 
 
 def run_benchexec(mode, conf):
@@ -411,3 +410,36 @@ def run(selflogger, args, conf, logger=None):
         ec = job_exit
 
     return ec
+
+def adjust_options(file, conf):
+    """
+    Get a name of the verifier and the file with options. For each verifier there might be a function for tuning options
+    and replacing file.
+
+    :param file: XML file for BenchExec.
+    :param conf: Dictionary with the configuration of the client.
+    :return: None
+    """
+    if conf['verifier']['name'] == 'CPAchecker':
+        cpa_adjustment(file, conf)
+
+
+def cpa_adjustment(file, conf):  # pylint:disable=unused-argument
+    """
+    This function adds fixes to configuration.
+
+    :param file: XML file for BenchExec.
+    :param conf: Dictionary with the configuration of the client.
+    :return:
+    """
+    # Here we can add any changes to CPAchecker config for speculative schedulers.
+
+    # tree = ElementTree.parse(file)
+    # root = tree.getroot()
+    # rewrite = False
+    # for rundefinition in root.findall('rundefinition'):
+    #     for option in rundefinition.findall('option'):
+    #         pass
+    #
+    # if rewrite:
+    #     tree.write(file, encoding='utf-8')
