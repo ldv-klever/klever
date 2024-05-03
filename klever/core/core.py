@@ -48,7 +48,6 @@ class Core:
         self.mqs = {}
         self.report_id = multiprocessing.Value('i', 1)
         self.uploading_reports_process = None
-        self.uploading_reports_process_exitcode = multiprocessing.Value('i', 0)
         self.is_start_report_uploaded = False
 
     def main(self):
@@ -59,7 +58,6 @@ class Core:
             self.get_conf()
 
             self.prepare_work_dir()
-            self.change_work_dir()
 
             self.logger = klever.core.utils.get_logger(type(self).__name__, self.conf['logging'])
             self.logger.info('Solve job "%s"', self.conf['identifier'])
@@ -195,7 +193,6 @@ class Core:
         # Create directory where all reports and report files archives will be actually written to.
         os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
 
-    def change_work_dir(self):
         # Change working directory forever.
         os.chdir(self.conf['working directory'])
         self.conf['main working directory'] = os.path.abspath(os.path.curdir)

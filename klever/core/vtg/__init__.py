@@ -597,12 +597,6 @@ class VTGW(klever.core.components.Component):
 
 class EMGW(VTGW):
 
-    def tasks_generator_worker(self):
-        super().tasks_generator_worker()
-        self._send_prepared_data()
-
-    main = tasks_generator_worker
-
     def _send_prepared_data(self):
         # Send tasks to the VTG
         if self.prepared_tasks:
@@ -652,6 +646,9 @@ class EMGW(VTGW):
             self.prepared_tasks = self._run_plugin(self.plugins_conf, cur_abstract_task_desc)
             self.dump_if_necessary(self.out_abstract_task_desc_file, self.prepared_tasks,
                                    "modified abstract verification task description")
+            # If we send it later, in case of failure the data is sent twice:
+            # in _send_prepared_data() and in plugin_fail_processing()
+            self._send_prepared_data()
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
             self.plugin_fail_processing()
