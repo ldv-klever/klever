@@ -340,7 +340,6 @@ class Component(multiprocessing.Process):
             if self.separate_from_parent:
                 # Create special directory where child resources of processes separated from parents will be printed.
                 self.logger.info('Create child resources directory "child resources"')
-                os.makedirs('child resources'.encode('utf-8'))
 
                 report = {
                     'identifier': self.id,
@@ -365,9 +364,9 @@ class Component(multiprocessing.Process):
                     fp.write('\n')
                 fp.write(exception_info)
         finally:
-            self.__finalize(exception=exception)
+            self.__finalize(exception)
 
-    def __finalize(self, exception=False):
+    def __finalize(self, exception):
         # Like in Core at least print information about unexpected exceptions in code below and properly exit.
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
@@ -399,6 +398,7 @@ class Component(multiprocessing.Process):
                 klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
                                          self.vals['report id'], self.conf['main working directory'])
             else:
+                os.makedirs('child resources'.encode('utf-8'), exist_ok=True)
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf-8') as fp:
                     klever.core.utils.json_dump(count_consumed_resources(self.logger, self.tasks_start_time,
                                                                          self.include_child_resources),

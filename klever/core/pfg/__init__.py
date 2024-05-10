@@ -49,16 +49,16 @@ class PFG(klever.core.components.Component):
         attr_data, pairs = strategy.fragmentation(fset, tactic_name, fset_name)
 
         # Prepare attributes
-        self.source_paths = strategy.source_paths
-        self.common_attrs = strategy.project_attrs
-        self.common_attrs.extend(attr_data[0])
-        self.submit_common_attrs(self.common_attrs)
+        common_attrs = strategy.project_attrs
+        common_attrs.extend(attr_data[0])
+        self.submit_common_attrs(common_attrs)
 
         data = attr_data[1]
         data.update({'type': 'PFG'})
         self.send_data_report_if_necessary(self.id, data)
 
-        self.prepare_descriptions_file(pairs)
+        self.mqs['program fragment desc'].put(pairs)
+        self.dump_if_necessary(self.PF_FILE, pairs, "program fragments descriptions")
         self.clean_dir = True
 
     main = generate_program_fragments
@@ -68,7 +68,6 @@ class PFG(klever.core.components.Component):
         Submit common attributes to Bridge.
 
         :param attrs: Prepared list of attributes.
-        :param dfiles: Files to attach as data attribute values.
         """
         self.mqs['VTG common attrs'].put(attrs)
         self.mqs['VRP common attrs'].put(attrs)
@@ -81,18 +80,6 @@ class PFG(klever.core.components.Component):
                                  self.mqs['report files'],
                                  self.vals['report id'],
                                  self.conf['main working directory'])
-
-    def prepare_descriptions_file(self, pairs):
-        """
-        Get the list of file with program fragments descriptions and save it to the file to provide it to VTG.
-
-        :param pairs: The list of name and program fragment description files pairs.
-        """
-        self.mqs['program fragment desc'].put(pairs)
-        if self.conf.get('keep intermediate files'):
-            self.logger.info("Save file with program fragments descriptions %r", self.PF_FILE)
-            with open(self.PF_FILE, 'w') as fp:
-                json.dump(pairs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _merge_configurations(self, db, program):
         """

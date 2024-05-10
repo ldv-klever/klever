@@ -41,22 +41,20 @@ class VRP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        # Requirement specification descriptions were already extracted when getting VTG callbacks.
         self.__workers = None
-
-        # Read this in a callback
-        self.verdict = None
-        self.requirement = None
-        self.program_fragment = None
-
         # Common initialization
         super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
                          separate_from_parent, include_child_resources)
-        self.mqs['processing tasks'] = multiprocessing.Queue()
+
+        self.source_paths = None
+        self.processing_tasks = multiprocessing.Queue()
 
     def process_results(self):
         self.__workers = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
         self.logger.info("Going to start %s workers to process results", self.__workers)
+
+        self.source_paths = self.conf['working source trees']
+        self.logger.info('Source paths to be trimmed file names: %s', self.source_paths)
 
         # Do result processing
         klever.core.utils.report(self.logger,
@@ -75,11 +73,6 @@ class VRP(klever.core.components.Component):
         self.launch_subcomponents(*subcomponents)
 
         self.clean_dir = True
-        # Finalize
-        self.finish_task_results_processing()
-
-    def finish_task_results_processing(self):
-        """Function has a callback at Job.py."""
         self.logger.info('Task results processing has finished')
 
     main = process_results
@@ -89,15 +82,6 @@ class VRP(klever.core.components.Component):
         pending = {}
         # todo: implement them in GUI
         solution_timeout = 1
-        generation_timeout = 1
-
-        source_paths = self.conf['working source trees']
-        self.logger.info('Source paths to be trimmed file names: %s', source_paths)
-
-        def submit_processing_task(status, t):
-            task_data = pending[t]
-            self.logger.info('Track processing task %s', str(task_data[1]))
-            self.mqs['processing tasks'].put([status.lower(), task_data, source_paths])
 
         receiving = True
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -105,42 +89,38 @@ class VRP(klever.core.components.Component):
             # Get new tasks
             if receiving:
                 # Functions below close the queue!
-                if len(pending) > 0:
-                    data = []
-                    klever.core.utils.drain_queue(data, self.mqs['pending tasks'])
-                else:
-                    data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
+                data = []
+                res = klever.core.utils.drain_queue(data, self.mqs['pending tasks'])
+                if not res:
+                    receiving = False
+                    self.logger.info("Expect no tasks to be generated")
 
                 if data:
-                    self.logger.info('Received %s items with timeout %s s', len(data), generation_timeout)
+                    self.logger.info('Received %s items', len(data))
                 for item in data:
-                    if not item:
-                        receiving = False
-                        self.logger.info("Expect no tasks to be generated")
-                    else:
-                        pending[item[0]] = item
+                    assert item
+                    pending[item[0]] = item
 
             # Plan for processing new tasks
-            if len(pending) > 0:
+            if pending:
                 tasks_statuses = session.get_tasks_statuses()
                 for item in tasks_statuses:
                     task = str(item['id'])
                     if task in pending:
-                        if item['status'] == 'FINISHED':
-                            submit_processing_task('FINISHED', task)
-                            del pending[task]
-                        elif item['status'] == 'ERROR':
-                            submit_processing_task('error', task)
+                        if item['status'] in ('FINISHED', 'ERROR'):
+                            task_data = pending[task]
+                            self.logger.info('Track processing task %s', str(task_data[1]))
+                            self.processing_tasks.put([item['status'].lower(), task_data])
                             del pending[task]
                         elif item['status'] in ('PENDING', 'PROCESSING'):
                             pass
                         else:
                             raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
 
-            if not receiving and len(pending) == 0:
+            if not receiving and not pending:
                 for _ in range(self.__workers):
-                    self.mqs['processing tasks'].put(None)
-                self.mqs['processing tasks'].close()
+                    self.processing_tasks.put(None)
+                self.processing_tasks.close()
                 break
 
             time.sleep(solution_timeout)
@@ -150,35 +130,26 @@ class VRP(klever.core.components.Component):
     def __loop_worker(self):
         self.logger.info("VRP fetcher is ready to work")
 
-        self.vals['task solution triples'] = multiprocessing.Manager().dict()
-
         while True:
-            element = self.mqs['processing tasks'].get()
+            element = self.processing_tasks.get()
             if element is None:
                 break
 
-            status, data, source_paths = element
+            status, data = element
             pf, _, envmodel, requirement, _, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
             self.logger.info('Receive solution %s', result_key)
-            attrs = None
             new_id = "RP/{}/{}/{}".format(pf, envmodel, requirement)
             workdir = os.path.join(pf, envmodel, requirement)
-            self.vals['task solution triples'][result_key] = [None, None, None]
             try:
                 if not os.path.isdir(workdir):
                     os.makedirs(workdir.encode('utf-8'))
                 rp = RP(self.conf, self.logger, self.id, self.mqs, self.vals, new_id,
-                        workdir, attrs, source_paths, [status, data])
+                        workdir, self.source_paths, [status, data])
                 rp.run()
                 self.logger.info('Successfully processed %s', result_key)
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed %r, %r failed", pf, requirement)
-            finally:
-                self.logger.info('Submit solution for %s', result_key)
-                solution = tuple(self.vals['task solution triples'].get(result_key))
-                del self.vals['task solution triples'][result_key]
-                self.mqs['processed'].put(('Task', tuple(data[1]), solution))
             self.logger.debug('Continue fetching items after processing %s', result_key)
 
         self.logger.info("VRP fetcher finishes its work")
@@ -195,8 +166,7 @@ class VRP(klever.core.components.Component):
 
 class RP(klever.core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
-                 source_paths, element):
+    def __init__(self, conf, logger, parent_id, mqs, vals, cur_id, work_dir, source_paths, element):
         # Read this in a callback
         self.element = element
         self.verdict = None
@@ -207,12 +177,11 @@ class RP(klever.core.components.Component):
         self.files_list_file = 'files list.txt'
         self.task_error = None
         self.source_paths = source_paths
-        self.results_key = None
         self.additional_srcs = None
         self.verification_task_files = None
+        self.processed_data = [None, None, None]
         # Common initialization
-        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent=True, include_child_resources=False)
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, separate_from_parent=True)
 
         self.clean_dir = True
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -230,12 +199,9 @@ class RP(klever.core.components.Component):
 
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
-        element = self.element
-        status, data = element
-        task_id, task_desc, opts, program_fragment_desc, verifier, additional_srcs, verification_task_files = data
+        status, data = self.element
+        task_id, task_desc, opts, program_fragment_desc, verifier, self.additional_srcs, verification_task_files = data
         self.program_fragment_id, _, self.envmodel, self.req_spec_id, _, envattrs = task_desc
-        self.results_key = f'{self.program_fragment_id}:{self.envmodel}:{self.req_spec_id}'
-        self.additional_srcs = additional_srcs
         self.verification_task_files = verification_task_files
         self.logger.debug("Process results of task %s", task_id)
 
@@ -282,18 +248,21 @@ class RP(klever.core.components.Component):
             attr["associate"] = True
 
         # Update solution status
-        data = list(self.vals['task solution triples'][self.results_key])
-        data[0] = status
-        self.vals['task solution triples'][self.results_key] = data
+        self.processed_data[0] = status
 
-        if status == 'finished':
-            self.process_finished_task(task_id, opts, verifier)
-        elif status == 'error':
-            self.process_failed_task(task_id)
-            # Raise exception just here since the method above has callbacks.
-            raise RuntimeError(self.task_error)
-        else:
-            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        try:
+            if status == 'finished':
+                self.process_finished_task(task_id, opts, verifier)
+            elif status == 'error':
+                self.process_failed_task(task_id)
+                # Raise exception just here since the method above has callbacks.
+                raise RuntimeError(self.task_error)
+            else:
+                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        finally:
+            results_key = f'{self.program_fragment_id}:{self.envmodel}:{self.req_spec_id}'
+            self.logger.info('Submit solution for %s', results_key)
+            self.mqs['processed'].put(('Task', tuple(data[1]), self.processed_data))
 
     main = fetcher
 
@@ -442,9 +411,7 @@ class RP(klever.core.components.Component):
                         fp.write(msg)
 
                     if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
-                        data = list(self.vals['task solution triples'][self.results_key])
-                        data[2] = decision_results['status']
-                        self.vals['task solution triples'][self.results_key] = data
+                        self.processed_data[2] = decision_results['status']
                 else:
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
@@ -534,9 +501,7 @@ class RP(klever.core.components.Component):
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
         # Update solution progress. It is necessary to update the whole list to sync changes
-        data = list(self.vals['task solution triples'][self.results_key])
-        data[1] = decision_results['resources']
-        self.vals['task solution triples'][self.results_key] = data
+        self.processed_data[1] = decision_results['resources']
 
         if not self.logger.disabled and log_file and self.conf['weight'] == "0":
             report['log'] = klever.core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
