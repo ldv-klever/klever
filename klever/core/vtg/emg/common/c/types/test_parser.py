@@ -171,7 +171,8 @@ def test_nameless_unions():
 @parser_test
 def test_typedefs():
     return [
-        'mytypedef * a'
+        'mytypedef * a',
+        '__int128 unsigned __u128'
     ]
 
 

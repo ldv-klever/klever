@@ -498,7 +498,8 @@ def p_enumerator(p):
 
 def p_typedef(p):
     """
-    typedef : IDENTIFIER attribute_dict
+    typedef : IDENTIFIER TYPE_SPECIFIER
+            | IDENTIFIER attribute_dict
             | IDENTIFIER
     """
     identifier, *attrs = p[1:]  # pylint: disable=unused-variable

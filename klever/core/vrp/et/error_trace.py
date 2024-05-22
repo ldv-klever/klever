@@ -788,7 +788,7 @@ class ErrorTrace:
                 data = threads[edge['thread']]
 
             if 'return' in edge:
-                if len(data) == 0:
+                if len(data) == 0:  # pylint: disable=possibly-used-before-assignment
                     raise ValueError('Unexpected return from function {!r} in thread {}'.
                                      format(self.resolve_function(edge['return']), edge['thread']))
                 if edge['return'] != data[-1]:
