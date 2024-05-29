@@ -22,22 +22,17 @@ import copy
 import hashlib
 import importlib
 import collections
-import multiprocessing
 import resource
 
 import klever.core.components
 import klever.core.utils
 import klever.core.session
 
-from klever.scheduler.schedulers.global_config import clear_workers_cpu_cores
+from klever.scheduler.schedulers.global_config import clear_workers_cpu_cores, reserve_workers_cpu_cores
 
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
 Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir, envattrs')
-
-# Global values to be set once and used by other components running in parallel with the VTG
-REQ_SPEC_CLASSES = None
-FRAGMENT_DESC_FIELS = None
 
 
 class VTG(klever.core.components.Component):
@@ -50,7 +45,8 @@ class VTG(klever.core.components.Component):
         self.req_spec_descs = []
         self.req_spec_classes = []
         self.fragment_descs = {}
-        self.mqs['prepare'] = multiprocessing.Queue()
+        self.resource_limits = klever.core.utils.read_max_resource_limitations(self.logger, self.conf)
+        self.max_worker_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'EMG')
 
     def generate_verification_tasks(self):
         klever.core.utils.report(self.logger,
@@ -67,14 +63,8 @@ class VTG(klever.core.components.Component):
         self.__extract_req_spec_descs()
         self.__classify_req_spec_descs()
 
-        # Set global shared values (read-only)
-        global REQ_SPEC_CLASSES, FRAGMENT_DESC_FIELS  # pylint: disable=global-statement
-        REQ_SPEC_CLASSES = self.req_spec_classes
-        FRAGMENT_DESC_FIELS = self.fragment_descs
-
-        # Start plugins
-        subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
-        self.launch_subcomponents(*subcomponents)
+        # Wait until all tasks are generated
+        self.__generate_all_abstract_verification_task_descs()
 
         self.clean_dir = True
         self.logger.info('Terminating the last queues')
@@ -292,14 +282,23 @@ class VTG(klever.core.components.Component):
         self.logger.info("Generated %s requirement classes from given descriptions", len(self.req_spec_classes))
 
     def __gradual_submit(self, items_queue, quota):
-        submitted = 0
-        while 0 < quota and len(items_queue) > 0:
+        # Because we use i for deletion we always delete the element near the end to not break order of
+        # following of the rest unprocessed elements
+        for i, p in reversed(list(enumerate(list(self.prepare_workers)))):
+            if not p.is_alive():
+                # Just remove it
+                self.prepare_workers.pop(i)
+
+        quota = min(quota, len(items_queue), self.max_worker_threads - len(self.prepare_workers))
+        # It is possible, that quota < 0, when we change max_worker_threads
+        submitted = max(0, quota)
+        self.logger.info("Going to start %s new workers", quota)
+        while 0 < quota:
             quota -= 1
-            submitted += 1
-            element = items_queue.pop()
-            self.mqs['prepare'].put((type(element).__name__, tuple(element)))
-        if submitted > 0:
-            self.logger.debug("Submitted %s items", submitted)
+            worker = items_queue.pop()
+            self.prepare_workers.append(worker)
+            worker.start()
+
         return submitted
 
     def __extract_fragments_descs(self):
@@ -311,7 +310,6 @@ class VTG(klever.core.components.Component):
     def __generate_all_abstract_verification_task_descs(self):
         # Statuses
         waiting = 0
-        solving = 0
         prepare = []
         atask_work_dirs = {}
         atask_tasks = {}
@@ -331,7 +329,12 @@ class VTG(klever.core.components.Component):
                 for rule_class_id, _ in enumerate(self.req_spec_classes):
                     task = Abstract(fragment, rule_class_id)
                     self.logger.debug('Create abstract task %s', task)
-                    prepare.append(task)
+                    identifier = "EMGW/{}/{}".format(fragment, rule_class_id)
+                    workdir = os.path.join(fragment, "rule_class_{}".format(rule_class_id))
+                    plugin_conf = next(iter(self.req_spec_classes[rule_class_id].values()))['plugins'][0]
+                    worker = EMGW(self.conf, self.logger, self.parent_id, self.mqs, self.vals, identifier,
+                                  workdir, plugin_conf, self.fragment_descs[fragment], task, self.resource_limits)
+                    prepare.append(worker)
 
         self.logger.info('There are %s abstract tasks in total', len(prepare))
 
@@ -350,7 +353,11 @@ class VTG(klever.core.components.Component):
             self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
 
         self.logger.info('Go to the main working loop for abstract tasks')
-        while prepare or waiting or solving:
+        self.prepare_workers = []
+        is_agile_threads = True
+        clear_workers_cpu_cores()
+
+        while prepare or waiting:
             self.logger.debug('Going to process %s tasks and abstract tasks and wait for %s', len(prepare), waiting)
 
             # Submit more work to do
@@ -383,7 +390,13 @@ class VTG(klever.core.components.Component):
                                 if not keep_dirs:
                                     atask_tasks[atask].add(new)
 
-                                prepare.append(new)
+                                identifier = "PLUGINS/{}/{}/{}/{}".format(atask.fragment, atask.rule_class,
+                                                                          env_model, rule)
+                                plugin_conf = self.req_spec_classes[atask.rule_class][rule]['plugins'][1:]
+                                worker = PLUGINS(self.conf, self.logger, self.parent_id, self.mqs, self.vals,
+                                                 identifier, new_workdir, plugin_conf,
+                                                 self.fragment_descs[atask.fragment], new, self.resource_limits)
+                                prepare.append(worker)
                                 if not single_model:
                                     total_tasks += 1
                     else:
@@ -398,6 +411,14 @@ class VTG(klever.core.components.Component):
                         self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
                     elif not single_model:
                         self.logger.debug('Wait for abstract tasks %s', left_abstract_tasks)
+
+                    used_cores = len(self.prepare_workers)
+                    reserve_workers_cpu_cores(used_cores)
+                    self.logger.debug("Reserve %s cores for tasks preparation", used_cores)
+                    if is_agile_threads:
+                        self.max_worker_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Plugins')
+                        is_agile_threads = False
+                        self.logger.info("Change number of workers to %s", self.max_worker_threads)
                 else:
                     task = Task(*desc)
 
@@ -426,8 +447,8 @@ class VTG(klever.core.components.Component):
                             del atask_tasks[atask]
                             del atask_work_dirs[atask]
 
+        clear_workers_cpu_cores()
         # Close the queue
-        self.mqs['prepare'].put(None)
         self.mqs['processed'].close()
 
         self.logger.info("Stop generating verification tasks")
@@ -437,47 +458,6 @@ class VTG(klever.core.components.Component):
         common_attrs = self.mqs['VTG common attrs'].get()
         self.mqs['VTG common attrs'].close()
         return common_attrs
-
-
-class VTGWL(klever.core.components.Component):
-
-    def __init__(self, conf, logger, parent_id, mqs, vals):
-        super().__init__(conf, logger, parent_id, mqs, vals)
-
-        self.fragment_descs = FRAGMENT_DESC_FIELS
-        self.req_spec_classes = REQ_SPEC_CLASSES
-        self.resource_limits = klever.core.utils.read_max_resource_limitations(self.logger, self.conf)
-
-    def task_generating_loop(self):
-        emg_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'EMG')
-        plugins_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Plugins')
-
-        self.logger.info("Start %s EMG workers, %s Plugins workers", emg_threads, plugins_threads)
-        clear_workers_cpu_cores()
-        klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'], self.factory,
-                                                    [emg_threads, plugins_threads])
-        self.logger.info("Terminate VTGL worker")
-
-    def factory(self, item):
-
-        kind, args = item
-        if kind == Abstract.__name__:
-            task = Abstract(*args)
-            worker_class = EMGW
-            identifier = "EMGW/{}/{}".format(task.fragment, task.rule_class)
-            workdir = os.path.join(task.fragment, "rule_class_{}".format(task.rule_class))
-            plugin_conf = next(iter(self.req_spec_classes[task.rule_class].values()))['plugins'][0]
-        else:
-            task = Task(*args)
-            worker_class = PLUGINS
-            identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
-            workdir = task.workdir
-            plugin_conf = self.req_spec_classes[task.rule_class][task.rule]['plugins'][1:]
-        self.logger.info('Create worker for %s', task)
-        return worker_class(self.conf, self.logger, self.parent_id, self.mqs, self.vals, identifier,
-                            workdir, plugin_conf, self.fragment_descs[task.fragment], task, self.resource_limits)
-
-    main = task_generating_loop
 
 
 class VTGW(klever.core.components.Component):

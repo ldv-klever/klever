@@ -28,7 +28,6 @@ import types
 import resource
 
 import klever.core.utils
-from klever.scheduler.schedulers.global_config import reserve_workers_cpu_cores, clear_workers_cpu_cores
 
 
 def all_child_resources():
@@ -120,7 +119,7 @@ def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant=
     :param logger: Logger object.
     :param queue: multiprocessing.Queue
     :param constructor: Function that gets element and returns Component
-    :param max_threads: Max number of simultaneously running workers (may be specified as a list for different components).
+    :param max_threads: Max number of simultaneously running workers.
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
                             them fails then we should also terminate the rest workers.
@@ -131,18 +130,7 @@ def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant=
     elements = []
     components = []
     ret = 0
-    if isinstance(max_threads, list):
-        # If we specify max_threads as a list, then maximum number of parallel running threads will
-        # be changed dynamically. For example, if a thread pool is used for different components,
-        # its size may vary depending on which components are used. In such a case, the number
-        # should be changed later during thread pool main loop iteration.
-        number = max_threads[0]
-        is_agile_threads = True
-    else:
-        number = max_threads
-        is_agile_threads = False
-    logger.info("Start children set with {!r} workers".format(number))
-    is_limit_cores_globally = False
+    logger.info("Start children set with {!r} workers".format(max_threads))
     try:
         while True:
             # Fetch all new elements
@@ -150,30 +138,18 @@ def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant=
                 active = klever.core.utils.drain_queue(elements, queue)
 
             # Then run new workers
-            diff = number - len(components)
-            if len(components) < number and len(elements) > 0:
+            diff = max_threads - len(components)
+            if len(components) < max_threads and len(elements) > 0:
                 logger.debug("Going to start {} new workers".format(diff))
-                for _ in range(min(number - len(components), len(elements))):
+                for _ in range(min(max_threads - len(components), len(elements))):
                     element = elements.pop(0)
                     worker = constructor(element)
                     if isinstance(worker, Component):
                         components.append(worker)
-                        if not is_limit_cores_globally and worker.name == "PLUGINS":
-                            is_limit_cores_globally = True
                         worker.start()
                     else:
                         raise TypeError("Incorrect constructor, expect Component but get {}".
                                         format(type(worker).__name__))
-            if is_limit_cores_globally:
-                used_cores = len(components)
-                reserve_workers_cpu_cores(used_cores)
-                logger.debug(f"Reserve {used_cores} cores for tasks preparation")
-                if is_agile_threads:
-                    # Do not fail if we got list with only one element
-                    if len(max_threads) >= 2:
-                        number = max_threads[1]
-                    is_agile_threads = False
-                    logger.info("Change number of workers to {!r}".format(number))
 
             # Wait for components termination
             finished = 0
@@ -214,12 +190,10 @@ def launch_queue_workers(logger, queue, constructor, max_threads, fail_tolerant=
             if len(components) == 0 and len(elements) == 0:
                 if not active:
                     break
-            if len(components) >= number or len(elements) == 0:
+            if len(components) >= max_threads or len(elements) == 0:
                 # sleep if thread pool is full or there are no new elements
                 time.sleep(sleep_interval)
     finally:
-        if is_limit_cores_globally:
-            clear_workers_cpu_cores()
         for p in components:
             if p.is_alive():
                 p.terminate()
@@ -493,15 +467,11 @@ class Component(multiprocessing.Process):
             # Do not try to separate these subcomponents from their parents - it is a true headache.
             # We always include child resources into resources of these components since otherwise they will
             # disappear from resources statistics.
-            if isinstance(subcomponent, (list, tuple)):
-                name = 'KleverSubcomponent' + subcomponent[0] + str(index)
-                executable = subcomponent[1]
-                subcomponent_class = types.new_class(name, (type(self),))
-                setattr(subcomponent_class, 'main', executable)
-            else:
-                name = 'KleverSubcomponent' + str(subcomponent.__name__) + str(index)
-                executable = subcomponent
-                subcomponent_class = types.new_class(name, (executable,))
+            assert isinstance(subcomponent, tuple)
+            name = 'KleverSubcomponent' + subcomponent[0] + str(index)
+            executable = subcomponent[1]
+            subcomponent_class = types.new_class(name, (type(self),))
+            setattr(subcomponent_class, 'main', executable)
             p = subcomponent_class(self.conf, self.logger, self.id, self.mqs, self.vals)
             subcomponent_processes.append(p)
         # Wait for their termination
