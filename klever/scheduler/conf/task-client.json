@@ -7,7 +7,7 @@
       }
     },
     "benchexec container mode": false,
-    "benchexec measure disk": false,
+    "benchexec measure disk": true,
     "benchexec container mode options": []
   },
   "common": {

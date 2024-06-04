@@ -261,6 +261,9 @@ def dir_size(dir_path):
     """
     if not os.path.isdir(dir_path):
         raise ValueError('Expect existing directory but it is not: {}'.format(dir_path))
+    # TODO: this measurement requires too much overheads
+    # Currently we suggest to turn on options "runexec measure disk" and "benchexec measure disk" to prevent
+    # measurements with du commands.
     output = get_output('du -bs {} | cut -f1'.format(dir_path))
     try:
         res = int(output)

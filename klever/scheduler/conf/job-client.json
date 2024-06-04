@@ -8,7 +8,7 @@
     ],
     "addon python packages": ["/abs/path/to/clade"],
     "runexec container mode": false,
-    "runexec measure disk": false,
+    "runexec measure disk": true,
     "runexec container mode options": [
       "--network-access",
       "--keep-system-config",
