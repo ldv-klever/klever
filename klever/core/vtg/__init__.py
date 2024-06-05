@@ -299,6 +299,10 @@ class VTG(klever.core.components.Component):
             self.prepare_workers.append(worker)
             worker.start()
 
+        used_cores = len(self.prepare_workers)
+        reserve_workers_cpu_cores(used_cores)
+        self.logger.debug("Reserve %s cores for tasks preparation", used_cores)
+
         return submitted
 
     def __extract_fragments_descs(self):
@@ -412,11 +416,9 @@ class VTG(klever.core.components.Component):
                     elif not single_model:
                         self.logger.debug('Wait for abstract tasks %s', left_abstract_tasks)
 
-                    used_cores = len(self.prepare_workers)
-                    reserve_workers_cpu_cores(used_cores)
-                    self.logger.debug("Reserve %s cores for tasks preparation", used_cores)
                     if is_agile_threads:
-                        self.max_worker_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Plugins')
+                        self.max_worker_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf,
+                                                                                             'Plugins')
                         is_agile_threads = False
                         self.logger.info("Change number of workers to %s", self.max_worker_threads)
                 else:
