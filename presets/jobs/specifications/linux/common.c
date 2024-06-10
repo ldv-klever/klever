@@ -23,6 +23,9 @@
  * single thread executed on single CPU core.
  */
 static bool __ldv_in_interrupt_context = false;
+static bool was_in_interrupt_context_schedule = false;
+extern void ldv_save_spinlocks_schedule(void);
+extern void ldv_restore_spinlocks_schedule(void);
 
 
 void ldv_switch_to_interrupt_context(void)
@@ -68,4 +71,25 @@ int ldv_post_probe(int probe_ret_val)
 int ldv_filter_err_code(int ret_val)
 {
 	return ldv_filter_positive_int(ret_val);
+}
+
+void ldv_switch_to_context_for_schedule(void)
+{
+	was_in_interrupt_context_schedule = false;
+  	if (__ldv_in_interrupt_context) {
+      	/* NOTE Switch to process context for schedule*/
+		was_in_interrupt_context_schedule = true;
+      	__ldv_in_interrupt_context = false;
+    }
+  	ldv_save_spinlocks_schedule();
+}
+
+void ldv_switch_out_context_for_schedule(void)
+{
+  	if (was_in_interrupt_context_schedule) {
+      	/* NOTE Switch back to interrupt context for schedule*/
+      	__ldv_in_interrupt_context = true;
+    }
+  	was_in_interrupt_context_schedule = false;
+  	ldv_restore_spinlocks_schedule();
 }

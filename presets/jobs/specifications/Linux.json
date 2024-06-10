@@ -282,6 +282,45 @@
         ]
       },
       {
+        "identifier": "sleep",
+        "children": [
+          {
+            "identifier": "common",
+            "description": "...",
+            "template": "argument signatures for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "ASE",
+                "options": {"request aspects": ["linux/kernel/locking/spinlock.request.aspect"]}
+              },
+              {
+                "name": "TR",
+                "options": {"templates": [
+                  "linux/kernel/locking/spinlock.c.tmpl",
+                  "linux/kernel/locking/spinlock.aspect.tmpl"
+                ]}
+              },
+              {
+                "name": "RSG",
+                "options": {"models": [
+                  {
+                    "model": "$linux/kernel/locking/spinlock.c",
+                    "options": {"sets model": "flag"}
+                  },
+                  "linux/kernel/locking/rwlock.c",
+                  "linux/sleep/common.c"
+                ]}
+              },
+              {
+                "name": "FVTP",
+                "options": {
+                  "verifier profile": "reachability with function pointers"
+                }
+              }
+            ]
+          }]
+      },
+      {
         "identifier": "arch",
         "children": [
           {

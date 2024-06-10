@@ -1,0 +1,57 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/sleep/spinlock/unsafe.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "sleep:common"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'spin_lock'": [
+                    {
+                      "LDV model 'spin_lock_ldv_lock'": []
+                    }
+                  ]
+                },
+                {
+                  "LDV model 'sleep'": [
+                    {
+                      "Instrumented function 'mmiotrace_iounmap'": [
+                        {
+                          "LDV model 'common_sleep'": [
+                            {
+                              "LDV model 'exclusive_spin_is_locked'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}

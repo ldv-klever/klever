@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/sleep/irq/safe.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "sleep:common"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}

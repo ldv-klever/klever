@@ -104,3 +104,13 @@ void ldv_check_final_state(void)
 		/* ASSERT All acquired write locks should be released before finishing operation */
 		ldv_assert();
 }
+
+int ldv_is_rw_locked(void)
+{
+	if (ldv_rlock != 1)
+		return 1;
+
+	if (ldv_wlock != 1)
+		return 1;
+  return 0;
+}

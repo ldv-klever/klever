@@ -21,6 +21,7 @@
 
 // for arg_sign in spinlock_arg_signs
 static int ldv_spin{{ arg_sign.id }} = 1;
+static int ldv_spin_save{{ arg_sign.id }} = 1;
 
 void ldv_spin_lock{{ arg_sign.id }}(void)
 {
@@ -173,4 +174,19 @@ int ldv_exclusive_spin_is_locked(void)
 	// endfor
 	/* NOTE None of the spinlocks are locked */
 	return 0;
+}
+
+void ldv_save_spinlocks_schedule(void) {
+  	/* NOTE save spinlocks */
+	// for arg_sign in spinlock_arg_signs
+  	ldv_spin_save{{ arg_sign.id }} = ldv_spin{{ arg_sign.id }};
+ 	ldv_spin{{ arg_sign.id }} = 1;
+  	// endfor
+}
+
+void ldv_restore_spinlocks_schedule(void) {
+  	/* NOTE restore spinlocks */
+	// for arg_sign in spinlock_arg_signs
+  	ldv_spin{{ arg_sign.id }} = ldv_spin_save{{ arg_sign.id }};
+  	// endfor
 }

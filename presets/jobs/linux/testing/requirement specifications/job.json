@@ -75,7 +75,9 @@
         "ext-modules/linux/memory-safety/memset4.ko",
         "ext-modules/linux/net/core/dev/safe.ko",
         "ext-modules/linux/net/core/rtnetlink/safe.ko",
-        "ext-modules/linux/net/core/sock/safe.ko"
+        "ext-modules/linux/net/core/sock/safe.ko",
+        "ext-modules/linux/sleep/irq/safe.ko",
+        "ext-modules/linux/sleep/spinlock/safe.ko"
       ]
     },
     {"ideal verdict": "unsafe"}
@@ -245,6 +247,14 @@
     {
       "targets": ["ext-modules/linux/net/core/sock"],
       "requirement specifications": ["net:core:sock"]
+    },
+    {
+      "build base": "linux/testing/requirement specifications/sleep",
+      "targets": [
+        "ext-modules/linux/sleep/irq/",
+        "ext-modules/linux/sleep/spinlock/"
+      ],
+      "requirement specifications": ["sleep:common"]
     }
   ],
   "sub-jobs staging": [

@@ -57,7 +57,9 @@
       "inherit": "CPAchecker BAM reachability",
       "add options": [
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.BAMPredicateCPA"},
-        {"-setprop": "cpa.value.ignoreFunctionValue=false"}
+        {"-setprop": "cpa.value.ignoreFunctionValue=false"},
+        {"-setprop": "analysis.matchAssignedFunctionPointers=true"},
+        {"-setprop": "analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments=true"}
       ]
     },
     "CPAchecker BAM reachability bit-precise": {

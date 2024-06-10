@@ -136,4 +136,16 @@ extern void ldv_check_alloc_flags(gfp_t flags);
  */
 extern void ldv_check_alloc_nonatomic(void);
 
+/**
+ * ldv_switch_to_context_for_schedule() - save context before processing scheduled work
+ */
+
+extern void ldv_switch_to_context_for_schedule(void);
+
+/**
+ * ldv_switch_to_context_for_schedule() - restore context after processing scheduled work
+ */
+
+extern void ldv_switch_out_context_for_schedule(void);
+
 #endif /* __LDV_LINUX_COMMON_H */

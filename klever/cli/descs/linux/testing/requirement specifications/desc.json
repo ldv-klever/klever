@@ -51,5 +51,15 @@
         "configuration": "configs/no-lockdep",
         "external modules": "tests",
         "loadable kernel modules": ["ext-modules/linux/kernel/sched/completion-no-lockdep"]
+    },
+    {
+        "build base": "linux/testing/requirement specifications/sleep",
+        "name": "Linux",
+        "git repository version": "v5.10",
+        "external modules": "tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/sleep/irq",
+            "ext-modules/linux/sleep/spinlock"
+        ]
     }
 ]
