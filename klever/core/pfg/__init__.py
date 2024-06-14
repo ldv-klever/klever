@@ -26,8 +26,6 @@ import klever.core.utils
 
 class PFG(klever.core.components.Component):
 
-    PF_FILE = 'program fragments.txt'
-
     def generate_program_fragments(self):
         """
         This is the main function of the Program Fragment Generator. It gets the build base of the program, analyses
@@ -49,37 +47,24 @@ class PFG(klever.core.components.Component):
         attr_data, pairs = strategy.fragmentation(fset, tactic_name, fset_name)
 
         # Prepare attributes
-        common_attrs = strategy.project_attrs
+        common_attrs = strategy.get_project_attrs()
         common_attrs.extend(attr_data[0])
-        self.submit_common_attrs(common_attrs)
+        self.mqs['VRP common attrs'].put(common_attrs)
+        self._report('patch',
+                     {
+                         'identifier': self.id,
+                         'attrs': common_attrs
+                     })
 
         data = attr_data[1]
         data.update({'type': 'PFG'})
         self.send_data_report_if_necessary(self.id, data)
 
-        self.mqs['program fragment desc'].put(pairs)
-        self.dump_if_necessary(self.PF_FILE, pairs, "program fragments descriptions")
+        self.mqs['program fragment desc'].put((pairs, common_attrs))
+        self.dump_if_necessary('program fragments.txt', pairs, "program fragments descriptions")
         self.clean_dir = True
 
     main = generate_program_fragments
-
-    def submit_common_attrs(self, attrs):
-        """
-        Submit common attributes to Bridge.
-
-        :param attrs: Prepared list of attributes.
-        """
-        self.mqs['VTG common attrs'].put(attrs)
-        self.mqs['VRP common attrs'].put(attrs)
-        klever.core.utils.report(self.logger,
-                                 'patch',
-                                 {
-                                   'identifier': self.id,
-                                   'attrs': attrs
-                                 },
-                                 self.mqs['report files'],
-                                 self.vals['report id'],
-                                 self.conf['main working directory'])
 
     def _merge_configurations(self, db, program):
         """
@@ -138,7 +123,8 @@ class PFG(klever.core.components.Component):
                 self.logger.info('Fragmentation set %r', fset_name)
                 fset.update(fsets[fset_name])
             elif fset_name:
-                raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(tactic_name))
+                raise KeyError(
+                    'There is no {!r} fragmentation set in fragmentation sets description file'.format(tactic_name))
             else:
                 fset_name = None
                 if fsets:

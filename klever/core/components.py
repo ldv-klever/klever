@@ -322,8 +322,7 @@ class Component(multiprocessing.Process):
                 }
                 if self.attrs:
                     report.update({'attrs': self.attrs})
-                klever.core.utils.report(self.logger, 'start', report, self.mqs['report files'], self.vals['report id'],
-                                         self.conf['main working directory'])
+                self._report('start', report)
 
             self.main()
         except Exception:  # pylint: disable=broad-exception-caught
@@ -345,18 +344,12 @@ class Component(multiprocessing.Process):
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
-                    klever.core.utils.report(
-                        self.logger,
-                        'unknown',
-                        {
-                            'identifier': self.id + '/',
-                            'parent': self.id,
-                            'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
-                        },
-                        self.mqs['report files'],
-                        self.vals['report id'],
-                        self.conf['main working directory']
-                    )
+                    self._report('unknown',
+                                 {
+                                     'identifier': self.id + '/',
+                                     'parent': self.id,
+                                     'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
+                                 })
 
                 child_resources = all_child_resources()
                 report = {'identifier': self.id}
@@ -369,8 +362,7 @@ class Component(multiprocessing.Process):
                 if os.path.isfile('log.txt') and self.conf['weight'] == "0":
                     report['log'] = klever.core.utils.ArchiveFiles(['log.txt'])
 
-                klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
-                                         self.vals['report id'], self.conf['main working directory'])
+                self._report('finish', report)
             else:
                 os.makedirs('child resources'.encode('utf-8'), exist_ok=True)
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf-8') as fp:
@@ -446,20 +438,19 @@ class Component(multiprocessing.Process):
     def send_data_report_if_necessary(self, report_id, data):
         if self.conf['weight'] == "0":
             # data reports are not saved in lightweight mode
-            klever.core.utils.report(
-                self.logger,
-                'patch',
-                {'identifier': report_id, 'data': data},
-                self.mqs['report files'],
-                self.vals['report id'],
-                self.conf['main working directory']
-            )
+            self._report('patch',
+                         {'identifier': report_id, 'data': data})
 
     def dump_if_necessary(self, file_name, data, desc):
         if self.conf['keep intermediate files']:
             self.logger.debug('Put "%s" to file %s', desc, file_name)
             with open(file_name, 'w', encoding='utf-8') as fp:
                 klever.core.utils.json_dump(data, fp, self.conf['keep intermediate files'])
+
+    def _report(self, kind, report, report_dir='', data_files=None):
+        klever.core.utils.report(self.logger, kind, report, self.mqs['report files'],
+                                 self.vals['report id'], self.conf['main working directory'],
+                                 report_dir, data_files)
 
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
@@ -472,7 +463,8 @@ class Component(multiprocessing.Process):
             executable = subcomponent[1]
             subcomponent_class = types.new_class(name, (type(self),))
             setattr(subcomponent_class, 'main', executable)
-            p = subcomponent_class(self.conf, self.logger, self.id, self.mqs, self.vals)
+            p = subcomponent_class(self.conf, self.logger, self.id, self.mqs, self.vals,
+                                   separate_from_parent=False)
             subcomponent_processes.append(p)
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)

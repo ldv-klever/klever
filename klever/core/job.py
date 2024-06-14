@@ -142,6 +142,7 @@ def start_jobs(core_obj, vals):
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
 
+            vals['coverage src info'] = multiprocessing.Manager().dict()
             cr = JCR(common_components_conf, core_obj.logger, core_obj.ID, core_obj.mqs, vals,
                      queues_to_terminate)
             cr.start()
@@ -327,18 +328,12 @@ class REP(klever.core.components.Component):
 
             os.makedirs(results_dir)
 
-            klever.core.utils.report(
-                self.logger,
-                'patch',
-                {
-                    'identifier': self.parent_id,
-                    'data': data
-                },
-                self.mqs['report files'],
-                self.vals['report id'],
-                self.conf['main working directory'],
-                results_dir
-            )
+            self._report('patch',
+                         {
+                             'identifier': self.parent_id,
+                             'data': data
+                         },
+                         report_dir=results_dir)
 
     main = process_results_extra
 
@@ -465,9 +460,9 @@ class Job(klever.core.components.Component):
     ]
 
     def __init__(self, conf, logger, parent_id, mqs, vals, cur_id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, components_common_conf=None):
+                 separate_from_parent=True, components_common_conf=None):
         super().__init__(conf, logger, parent_id, mqs, vals, cur_id, work_dir, attrs,
-                         separate_from_parent, include_child_resources)
+                         separate_from_parent=separate_from_parent)
         self.common_components_conf = components_common_conf
 
         if work_dir:
@@ -475,7 +470,13 @@ class Job(klever.core.components.Component):
                                                                                        'additional sources')
 
         self.clade = None
-        self.components = []
+        self.logger.info('Get components for sub-job "%s"', self.id)
+
+        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component)
+                           for component in self.CORE_COMPONENTS]
+
+        self.logger.debug('Components to be launched: "%s"',
+                          ', '.join([component.__name__ for component in self.components]))
 
     def decide_job_or_sub_job(self):
         self.logger.info('Decide job/sub-job "%s"', self.id)
@@ -519,7 +520,6 @@ class Job(klever.core.components.Component):
             with open('conf.json', 'w', encoding='utf-8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        self.__get_job_or_sub_job_components()
         self.launch_sub_job_components()
 
         self.clean_dir = True
@@ -656,24 +656,11 @@ class Job(klever.core.components.Component):
         self.common_components_conf['working source trees'] = work_src_trees
 
     def __refer_original_sources(self, src_id):
-        klever.core.utils.report(
-            self.logger,
-            'patch',
-            {
-                'identifier': self.id,
-                'original_sources': src_id
-            },
-            self.mqs['report files'],
-            self.vals['report id'],
-            self.conf['main working directory']
-        )
-
-    def __process_source_files(self):
-        for file_name in self.clade.src_info:
-            self.mqs['file names'].put(file_name)
-
-        for _ in range(self.workers_num):
-            self.mqs['file names'].put(None)
+        self._report('patch',
+                     {
+                         'identifier': self.id,
+                         'original_sources': src_id
+                     })
 
     def __process_source_file(self):
         while True:
@@ -700,6 +687,9 @@ class Job(klever.core.components.Component):
     def __get_original_sources_basic_info(self):
         self.logger.info('Get information on original sources for following visualization of uncovered source files')
 
+        if 'coverage src info' not in self.vals:
+            # No JCR, no need the information
+            return
         # For each source file we need to know the total number of lines and places where functions are defined.
         src_files_info = {}
         for file_name, file_size in self.clade.src_info.items():
@@ -712,10 +702,8 @@ class Job(klever.core.components.Component):
 
             src_file_name = os.path.join('source files', src_file_name)
 
-            src_files_info[src_file_name] = []
-
             # Store source file size.
-            src_files_info[src_file_name].append(file_size['loc'])
+            src_files_info[src_file_name] = [file_size['loc']]
 
             # Store source file function definition lines.
             func_def_lines = []
@@ -727,9 +715,11 @@ class Job(klever.core.components.Component):
 
             src_files_info[src_file_name].append(sorted(func_def_lines))
 
-        # Dump obtain information (huge data!) to load it when reporting total code coverage if everything will be okay.
-        with open('original sources basic information.json', 'w') as fp:
-            klever.core.utils.json_dump(src_files_info, fp, self.conf['keep intermediate files'])
+        self.vals['coverage src info'][self.common_components_conf['sub-job identifier']] = src_files_info
+
+        # Dump obtain information (huge data!)
+        self.dump_if_necessary('original sources basic information.json', src_files_info,
+                               "original sources basic information")
 
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
@@ -750,10 +740,14 @@ class Job(klever.core.components.Component):
             'Cut off working source trees or build directory from original source file names and convert index data')
         os.makedirs('original sources')
         self.mqs['file names'] = multiprocessing.Queue()
-        self.workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf)
-        subcomponents = [('PSFS', self.__process_source_files)]
-        for _ in range(self.workers_num):
+        for file_name in self.clade.src_info:
+            self.mqs['file names'].put(file_name)
+
+        subcomponents = []
+        workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf)
+        for _ in range(workers_num):
             subcomponents.append(('PSF', self.__process_source_file))
+            self.mqs['file names'].put(None)
         self.launch_subcomponents(*subcomponents)
         self.mqs['file names'].close()
 
@@ -775,19 +769,9 @@ class Job(klever.core.components.Component):
             shutil.rmtree('original sources')
             os.remove('original sources.zip')
 
-    def __get_job_or_sub_job_components(self):
-        self.logger.info('Get components for sub-job "%s"', self.id)
-
-        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component)
-                           for component in self.CORE_COMPONENTS]
-
-        self.logger.debug('Components to be launched: "%s"',
-                          ', '.join([component.__name__ for component in self.components]))
-
     def launch_sub_job_components(self):
         self.logger.info('Launch components for sub-job "%s"', self.id)
         self.mqs['VRP common attrs'] = multiprocessing.Queue()
-        self.mqs['VTG common attrs'] = multiprocessing.Queue()
 
         # Queues used exclusively in VTG
         self.mqs['program fragment desc'] = multiprocessing.Queue()
@@ -805,8 +789,8 @@ class Job(klever.core.components.Component):
         klever.core.components.launch_workers(self.logger, component_processes)
 
         self.logger.debug('Put "%s" sub-job identifier for finish coverage', self.id)
-        if 'req spec ids and coverage info files' in self.mqs:
-            self.mqs['req spec ids and coverage info files'].put({
+        if 'req spec ids and coverage info' in self.mqs:
+            self.mqs['req spec ids and coverage info'].put({
                 'sub-job identifier': self.common_components_conf['sub-job identifier']
             })
 

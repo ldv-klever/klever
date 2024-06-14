@@ -46,8 +46,6 @@ class FragmentationAlgorythm:
         self.logger = logger
         self.conf = conf
         self.tactic = tactic
-        self.files_to_keep = []
-        self.project_attrs = []
 
         self.source_paths = self.conf['working source trees']
 
@@ -56,8 +54,6 @@ class FragmentationAlgorythm:
         self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET, conf=clade_conf)
         if not self.clade.work_dir_ok():
             raise RuntimeError('Build base is not OK')
-
-        self.__get_project_attrs()
 
     def fragmentation(self, fragmentation_set, tactic_name, fset_name):
         """
@@ -123,7 +119,9 @@ class FragmentationAlgorythm:
 
         # Prepare program fragments
         self.logger.info("Generate program fragments")
-        pairs = self.__generate_program_fragments_descriptions(deps, grps)
+        pairs = {}
+        for name, grp in grps.items():
+            pairs[name] = self.__describe_program_fragment(deps, name, grp)
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
@@ -323,29 +321,17 @@ class FragmentationAlgorythm:
             ]
         }], data
 
-    def __get_project_attrs(self):
+    def get_project_attrs(self):
         """
         Extract attributes that describe the program from the build base storage.
         """
         clade_meta = self.clade.get_meta()
 
         if 'project attrs' in clade_meta:
-            self.project_attrs = clade_meta['project attrs']
-        else:
-            self.logger.warning("There is no project attributes in build base")
+            return clade_meta['project attrs']
 
-    def __generate_program_fragments_descriptions(self, program, grps):
-        """
-        Generate json files with descriptions of each program fragment that should be verified.
-
-        :param program: Program object.
-        :param grps: Dictionary with program fragments with dependencies.
-        :return: A list of pairs of fragment and related file names.
-        """
-        pairs = {}
-        for name, grp in grps.items():
-            pairs[name] = self.__describe_program_fragment(program, name, grp)
-        return pairs
+        self.logger.warning("There is no project attributes in build base")
+        return []
 
     def __describe_program_fragment(self, program, name, grp):
         """

@@ -157,8 +157,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 class WeaverWorker(klever.core.components.Component):
     def __init__(self, conf, logger, parent_id, mqs, vals, cur_id,
                  search_dirs, clade, clade_meta, env, grp_id, extra_cc, lock):
-        super().__init__(conf, logger, parent_id, mqs, vals, cur_id,
-                         separate_from_parent=False, include_child_resources=True)
+        super().__init__(conf, logger, parent_id, mqs, vals, cur_id, include_child_resources=True)
 
         self.name += cur_id
 

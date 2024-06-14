@@ -49,16 +49,6 @@ class VTG(klever.core.components.Component):
         self.max_worker_threads = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'EMG')
 
     def generate_verification_tasks(self):
-        klever.core.utils.report(self.logger,
-                                 'patch',
-                                 {
-                                     'identifier': self.id,
-                                     'attrs': self.__get_common_attrs()
-                                 },
-                                 self.mqs['report files'],
-                                 self.vals['report id'],
-                                 self.conf['main working directory'])
-
         self.__extract_fragments_descs()
         self.__extract_req_spec_descs()
         self.__classify_req_spec_descs()
@@ -307,9 +297,15 @@ class VTG(klever.core.components.Component):
 
     def __extract_fragments_descs(self):
         # Fetch fragment
-        self.fragment_descs = self.mqs['program fragment desc'].get()
+        self.fragment_descs, attrs = self.mqs['program fragment desc'].get()
         self.mqs['program fragment desc'].close()
         self.logger.debug('Found descriptions of %s fragments', len(self.fragment_descs))
+
+        self._report('patch',
+                     {
+                         'identifier': self.id,
+                         'attrs': attrs
+                     })
 
     def __generate_all_abstract_verification_task_descs(self):
         # Statuses
@@ -455,12 +451,6 @@ class VTG(klever.core.components.Component):
 
         self.logger.info("Stop generating verification tasks")
 
-    def __get_common_attrs(self):
-        self.logger.info('Get common attributes')
-        common_attrs = self.mqs['VTG common attrs'].get()
-        self.mqs['VTG common attrs'].close()
-        return common_attrs
-
 
 class VTGW(klever.core.components.Component):
 
@@ -545,7 +535,6 @@ class VTGW(klever.core.components.Component):
         # Prepare program fragment description file
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(self.fragment_desc, files_list_file)
-        files_list_files = [files_list_file]
 
         # Add attributes
         self.attrs.extend(
@@ -564,17 +553,12 @@ class VTGW(klever.core.components.Component):
         )
 
         # Send attributes to the Bridge
-        klever.core.utils.report(
-            self.logger,
-            'patch',
-            {
-                'identifier': self.id,
-                'attrs': self.attrs
-            },
-            self.mqs['report files'],
-            self.vals['report id'],
-            self.conf['main working directory'],
-            data_files=files_list_files)
+        self._report('patch',
+                     {
+                         'identifier': self.id,
+                         'attrs': self.attrs
+                     },
+                     data_files=[files_list_file])
 
 
 class EMGW(VTGW):
@@ -728,7 +712,7 @@ class PLUGINS(VTGW):
 
                 out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
                 out_abstract_task_desc_file = os.path.relpath(
-                    os.path.join(self.conf['main working directory'], out_abstract_task_desc_file))
+                    os.path.join(os.path.pardir, out_abstract_task_desc_file))
 
                 self.dump_if_necessary(out_abstract_task_desc_file, cur_abstract_task_desc,
                                        "modified abstract verification task description")

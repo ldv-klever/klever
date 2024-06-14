@@ -80,7 +80,8 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                     verifier_op_stats = note['text']
 
                 merged_verifier_op_stats = merge_verifier_op_stats(prev_verifier_op_stats, verifier_op_stats)
-                merged_verifier_assumptions = merge_verifier_assumptions(prev_verifier_assumptions, verifier_assumptions)
+                merged_verifier_assumptions = merge_verifier_assumptions(prev_verifier_assumptions,
+                                                                         verifier_assumptions)
 
                 if merged_verifier_assumptions and merged_verifier_op_stats:
                     merged_coverage_info[file_name]['notes'][line] = {'kind': 'Multiple notes',
@@ -280,14 +281,16 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
     if not total:
         file_most_covered_lines = {}
         for file_name, file_coverage_info in merged_coverage_info.items():
-            sorted_covered_lines = sorted(file_coverage_info['covered lines'].items(), key=lambda kv: kv[1], reverse=True)
+            sorted_covered_lines = sorted(file_coverage_info['covered lines'].items(), key=lambda kv: kv[1],
+                                          reverse=True)
 
             # It is enough to remember not more than the total number of most covered lines per each file.
             for i in range(most_covered_lines_num):
                 if i == len(sorted_covered_lines):
                     break
 
-                file_most_covered_lines["{0}:{1}".format(file_name, sorted_covered_lines[i][0])] = sorted_covered_lines[i][1]
+                file_most_covered_lines["{0}:{1}".format(file_name, sorted_covered_lines[i][0])] = \
+                    sorted_covered_lines[i][1]
 
         sorted_file_most_covered_lines = sorted(file_most_covered_lines.items(), key=lambda kv: kv[1], reverse=True)
 
@@ -338,79 +341,60 @@ class JCR(klever.core.components.Component):
                          include_child_resources=True)
 
         # This function adds callbacks and it should work until we call it in the new process
-        self.mqs['req spec ids and coverage info files'] = multiprocessing.Queue()
-        queues_to_terminate.append('req spec ids and coverage info files')
+        self.mqs['req spec ids and coverage info'] = multiprocessing.Queue()
+        queues_to_terminate.append('req spec ids and coverage info')
         self.coverage = {}
 
     def collect_total_coverage(self):
         self.logger.debug("Begin collecting coverage")
 
         total_coverage_infos = {}
-        arcfiles = {}
         os.mkdir('total coverages')
         counters = {}
         try:
             while True:
-                coverage_info = self.mqs['req spec ids and coverage info files'].get()
+                coverage_info = self.mqs['req spec ids and coverage info'].get()
 
                 if coverage_info is None:
                     self.logger.debug(
-                        'Requirement specification identifiers and coverage info files message queue was terminated')
-                    self.mqs['req spec ids and coverage info files'].close()
+                        'Requirement specification identifiers and coverage info message queue was terminated')
+                    self.mqs['req spec ids and coverage info'].close()
                     break
 
                 sub_job_id = coverage_info['sub-job identifier']
                 self.logger.debug('Get coverage for sub-job %r', sub_job_id)
 
-                if 'coverage info file' in coverage_info:
+                if 'coverage info' in coverage_info:
                     if sub_job_id not in total_coverage_infos:
                         total_coverage_infos[sub_job_id] = {}
-                        arcfiles[sub_job_id] = {}
                     req_spec_id = coverage_info['req spec id']
                     total_coverage_infos[sub_job_id].setdefault(req_spec_id, {})
-                    arcfiles[sub_job_id].setdefault(req_spec_id, {})
 
-                    if os.path.isfile(coverage_info['coverage info file']):
-                        with open(coverage_info['coverage info file'], encoding='utf-8') as fp:
-                            loaded_coverage_info = json.load(fp)
+                    loaded_coverage_info = coverage_info['coverage info']
 
-                        # Clean if needed
-                        if not self.conf['keep intermediate files']:
-                            os.remove(os.path.join(self.conf['main working directory'],
-                                                   coverage_info['coverage info file']))
+                    add_to_coverage(total_coverage_infos[sub_job_id][req_spec_id], loaded_coverage_info)
+                    del loaded_coverage_info
 
-                        add_to_coverage(total_coverage_infos[sub_job_id][req_spec_id], loaded_coverage_info)
-                        for file, file_coverage_info in loaded_coverage_info.items():
-                            arcfiles[sub_job_id][req_spec_id][file_coverage_info['original source file name']] = file
-                        del loaded_coverage_info
-
-                        counters.setdefault(sub_job_id, {})
-                        counters[sub_job_id].setdefault(req_spec_id, 0)
-                        counters[sub_job_id][req_spec_id] += 1
-                        if counters[sub_job_id][req_spec_id] >= 10:
-                            self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
-                            self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
-                            self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
-                            counters[sub_job_id][req_spec_id] = 0
-                    else:
-                        self.logger.warning("There is no coverage file %r",
-                                            coverage_info['coverage info file'])
+                    counters.setdefault(sub_job_id, {})
+                    counters[sub_job_id].setdefault(req_spec_id, 0)
+                    counters[sub_job_id][req_spec_id] += 1
+                    if counters[sub_job_id][req_spec_id] >= 10:
+                        self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
+                        self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
+                        self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
+                        counters[sub_job_id][req_spec_id] = 0
                 elif sub_job_id in total_coverage_infos:
                     self.logger.debug('Calculate total coverage for job %r', sub_job_id)
 
                     total_coverages = {}
                     total_coverage_dirs = []
 
-                    # This is ugly. But this should disappear after implementing TODO at klever.core.job.start_jobs.
-                    sub_job_dir = sub_job_id.lower()
+                    src_files_info = self.vals['coverage src info'][sub_job_id]
 
                     for req_spec_id in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
                         coverage_info = total_coverage_infos[sub_job_id][req_spec_id]
                         total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, req_spec_id), 'report')
-
-                        with open(os.path.join(sub_job_dir, 'original sources basic information.json')) as fp:
-                            src_files_info = json.load(fp)
 
                         convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'],
                                          src_files_info, total=True)
@@ -420,37 +404,28 @@ class JCR(klever.core.components.Component):
                         self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
                         self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
 
+                    del self.vals['coverage src info'][sub_job_id]
+
                     # This isn't great to build component identifier in such the artificial way.
                     # But otherwise we need to pass it everywhere like "sub-job identifier".
                     report_id = os.path.join(os.path.sep, sub_job_id)
 
                     if self.conf['code coverage details'] != 'Original C source files':
-                        klever.core.utils.report(
-                            self.logger,
-                            'patch',
-                            {
-                                'identifier': report_id,
-                                'additional_sources': klever.core.utils.ArchiveFiles(
-                                    [os.path.join(sub_job_dir, 'additional sources')]),
-                            },
-                            self.mqs['report files'],
-                            self.vals['report id'],
-                            self.conf['main working directory'],
-                            os.path.join('total coverages', sub_job_id)
-                        )
+                        sub_job_dir = sub_job_id.lower()
+                        self._report('patch',
+                                     {
+                                         'identifier': report_id,
+                                         'additional_sources': klever.core.utils.ArchiveFiles(
+                                             [os.path.join(sub_job_dir, 'additional sources')]),
+                                     },
+                                     os.path.join('total coverages', sub_job_id))
 
-                    klever.core.utils.report(
-                        self.logger,
-                        'coverage',
-                        {
-                            'identifier': report_id,
-                            'coverage': total_coverages,
-                        },
-                        self.mqs['report files'],
-                        self.vals['report id'],
-                        self.conf['main working directory'],
-                        os.path.join('total coverages', sub_job_id)
-                    )
+                    self._report('coverage',
+                                 {
+                                     'identifier': report_id,
+                                     'coverage': total_coverages,
+                                 },
+                                 os.path.join('total coverages', sub_job_id))
 
                     del total_coverage_infos[sub_job_id]
 
@@ -532,44 +507,41 @@ class LCOV:
     TIMERS_PREFIX = "TIMERS:"
     EOR_PREFIX = "end_of_record"
 
-    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
-                 coverage_id, coverage_info_dir, verification_task_files):
+    def __init__(self, logger, coverage_file, clade_storage_dir, source_dirs, search_dirs, coverage_details,
+                 keep_intermediate_files, coverage_id, verification_task_files):
         # Public
-        self.conf = conf
+        self.keep_intermediate_files = keep_intermediate_files
         self.logger = logger
         self.coverage_file = coverage_file
-        self.clade = clade
+        self.clade_storage_dir = clade_storage_dir
         self.source_dirs = [os.path.normpath(p) for p in source_dirs]
         self.search_dirs = [os.path.normpath(p) for p in search_dirs]
-        self.main_work_dir = main_work_dir
         self.coverage_details = coverage_details
-        self.coverage_info_dir = coverage_info_dir
         self.verification_task_files = verification_task_files
         self.arcnames = {}
+        self.coverage_id = coverage_id
 
         # Sanity checks
         if self.coverage_details not in ('All source files', 'C source files including models',
                                          'Original C source files'):
             raise NotImplementedError("Code coverage details {!r} are not supported".format(self.coverage_details))
 
+    def import_coverage(self):
         # Import coverage
         try:
-            self.coverage_info = self.parse()
+            coverage_info = self.parse()
 
-            with open(coverage_id, 'w', encoding='utf-8') as fp:
-                klever.core.utils.json_dump(self.coverage_info, fp, self.conf['keep intermediate files'])
+            if self.keep_intermediate_files:
+                with open(self.coverage_id, 'w', encoding='utf-8') as fp:
+                    klever.core.utils.json_dump(coverage_info, fp, True)
 
-            coverage = {}
-            add_to_coverage(coverage, self.coverage_info)
-            convert_coverage(coverage, 'coverage', self.conf['keep intermediate files'])
-        except Exception:
+            convert_coverage(coverage_info, 'coverage', self.keep_intermediate_files)
+        except Exception as exception:
             shutil.rmtree('coverage', ignore_errors=True)
-            raise
+            raise exception
+        return coverage_info
 
     def parse(self):
-        if not os.path.isfile(self.coverage_file):
-            raise Exception('There is no coverage file {0}'.format(self.coverage_file))  #pylint: disable=broad-exception-raised
-
         # Parse coverage file.
         coverage_info = {}
         line_map = {}
@@ -665,7 +637,8 @@ class LCOV:
                         coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier assumption', 'text': add}
                         add = None
                     elif timers:
-                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier operation statistics', 'text': timers}
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier operation statistics',
+                                                                        'text': timers}
                         timers = None
                 # Remember data to be associated with the next line.
                 elif line.startswith(self.ADD_PREFIX):
@@ -689,7 +662,7 @@ class LCOV:
             new_coverage_info = {}
             for orig_file, file_coverage_info in coverage_info.items():
                 # Like in klever.core.vrp.RP#__trim_file_names.
-                storage_file = klever.core.utils.make_relative_path([self.clade.storage_dir],
+                storage_file = klever.core.utils.make_relative_path([self.clade_storage_dir],
                                                                     os.path.normpath(orig_file))
                 shrank_src_file_name = storage_file
                 tmp = klever.core.utils.make_relative_path(self.source_dirs, storage_file, absolutize=True)
