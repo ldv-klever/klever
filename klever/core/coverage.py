@@ -479,6 +479,8 @@ class JCR(klever.core.components.Component):
 
             for path in ('covered lines', 'covered functions'):
                 for line, value in large_cache[file_name][path].items():
+                    if isinstance(line, str):
+                        line = int(line)
                     cache[sub_job_id][requirement][file_name][path].setdefault(line, 0)
                     cache[sub_job_id][requirement][file_name][path][line] += value
             if large_cache[file_name].get('covered function names'):
