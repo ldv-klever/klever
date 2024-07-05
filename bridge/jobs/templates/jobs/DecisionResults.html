@@ -225,11 +225,23 @@
         </thead>
         <tbody>
             {% for resource_data in reportdata.data.resources %}
-                <tr{% if resource_data.component == 'total' %} class="active"{% elif resource_data.component == reportdata.report.component %} class="positive"{% endif %}>
+                {% if resource_data.component == 'total' %}
+                <tr class="active">
                     <td class="left aligned">
-                        {% if resource_data.component == 'total' %}
-                            <strong>{% trans 'Total' %}</strong>
-                        {% elif resource_data.component == reportdata.report.component %}
+                        <strong>{% trans 'Total' %}</strong>
+                    </td>
+                    <td>{{ resource_data.instances }}</td>
+                    <td>{{ resource_data.wall_time }}</td>
+                    <td>{{ resource_data.cpu_time }}</td>
+                    <td>{{ resource_data.memory }}</td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            {% for resource_data in reportdata.data.resources %}
+                {% if resource_data.component != 'total' %}
+                <tr{% if resource_data.component == reportdata.report.component %} class="positive"{% endif %}>
+                    <td class="left aligned">
+                        {% if resource_data.component == reportdata.report.component %}
                             <strong>{{ resource_data.component }}</strong>
                         {% else %}
                             <span>{{ resource_data.component }}</span>
@@ -240,6 +252,7 @@
                     <td>{{ resource_data.cpu_time }}</td>
                     <td>{{ resource_data.memory }}</td>
                 </tr>
+                {% endif %}
             {% endfor %}
         </tbody>
     </table>

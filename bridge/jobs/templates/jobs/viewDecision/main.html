@@ -84,30 +84,37 @@
             </div>
 
             {# Decision data table #}
-            <table class="ui selectable compact inverted violet table attached">
-                <thead>
-                    <tr>
-                        <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} - {{ object.get_weight_display|lower }}{% endif %}</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
-                    <tr><th class="right aligned">{% trans 'Scheduler' %}</th><td>{{ object.scheduler.get_type_display }}</td></tr>
-                    <tr><th class="right aligned">{% trans 'Priority' %}</th><td>{{ object.get_priority_display }}</td></tr>
-                    {% if object.operator %}
+            <div class="ui accordion">
+                <table class="title ui selectable compact inverted violet table attached">
+                    <thead>
                         <tr>
-                            <th class="right aligned">{% trans 'Operator' %}</th>
-                            <td><a class="violet-link" href="{% url 'users:show-profile' object.operator.pk %}">{{ object.operator.get_full_name }}</a></td>
+                            <th class="center aligned" colspan="2">
+                                <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} - {{ object.get_weight_display|lower }}{% endif %}</span>
+                            </th>
                         </tr>
-                    {% endif %}
-                    <tr>
-                        <th class="right aligned">{% trans 'Job version parents' %}</th>
-                        <td>{% include 'jobs/parents.html' with parents=parents parent_job=object.job %}</td>
-                    </tr>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <tr><th class="right aligned" width="32%">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Job version parents' %}</th>
+                            <td>{% include 'jobs/parents.html' with parents=parents parent_job=object.job %}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="content ui">
+                    <table class="ui selectable compact inverted violet table attached">
+                        <tr><th class="right aligned" width="32%">{% trans 'Scheduler' %}</th><td>{{ object.scheduler.get_type_display }}</td></tr>
+                        <tr><th class="right aligned">{% trans 'Priority' %}</th><td>{{ object.get_priority_display }}</td></tr>
+                        {% if object.operator %}
+                            <tr>
+                                <th class="right aligned">{% trans 'Operator' %}</th>
+                                <td><a class="violet-link" href="{% url 'users:show-profile' object.operator.pk %}">{{ object.operator.get_full_name }}</a></td>
+                            </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
             {# Files tree #}
             {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
             <br>
