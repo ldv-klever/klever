@@ -42,9 +42,28 @@ struct request *ldv_blk_get_request(gfp_t mask)
 	/* NOTE Generate valid pointer or NULL. */
 	res = (struct request *)ldv_undef_ptr();
 
-	/* NOTE If gfp_mask argument has __GFP_WAIT set, blk_get_request() cannot fail. */
-	if (mask == __GFP_WAIT || mask == GFP_KERNEL || mask == GFP_NOIO)
+	/* NOTE If gfp_mask argument has GFP_NOIO or GFP_KERNEL set, blk_get_request() cannot fail. */
+	if (mask == GFP_KERNEL || mask == GFP_NOIO)
 		ldv_assume(res != NULL);
+
+	if (res != NULL) {
+		/* NOTE Get blk request. */
+		ldv_blk_rq = LDV_BLK_RQ_GOT;
+	}
+
+	return res;
+}
+
+struct request *ldv_blk_get_request_may_fail()
+{
+	struct request *res;
+
+	if (ldv_blk_rq != LDV_BLK_RQ_ZERO_STATE)
+		/* ASSERT blk request could be got just in case when it was not got before. */
+		ldv_assert();
+
+	/* NOTE Generate valid pointer or NULL. */
+	res = (struct request *)ldv_undef_ptr();
 
 	if (res != NULL) {
 		/* NOTE Get blk request. */

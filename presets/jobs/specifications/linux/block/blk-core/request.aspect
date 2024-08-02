@@ -22,13 +22,20 @@ before: file("$this")
 struct request;
 
 struct request *ldv_blk_get_request(gfp_t mask);
+struct request *ldv_blk_get_request_may_fail();
 struct request *ldv_blk_make_request(gfp_t mask);
 void ldv_put_blk_rq(void);
 }
 
-around: call(struct request *blk_get_request(..))
+around: call(struct request *blk_get_request(struct request_queue *, unsigned int op, blk_mq_req_flags_t flags))
 {
-	return ldv_blk_get_request($arg3);
+	return ldv_blk_get_request_may_fail();
+}
+
+around: call(struct request *blk_get_request(struct request_queue *, int op, gfp_t gfp_mask)) ||
+        call(struct request *blk_get_request(struct request_queue *, unsigned int op, gfp_t gfp_mask))
+{
+	return ldv_blk_get_request(gfp_mask);
 }
 
 around: call(struct request *blk_make_request(..))

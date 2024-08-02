@@ -97,7 +97,7 @@ class ExtendedAccess(Access):
         elif self.label and str(self.interface) in self.label.interfaces:
             target = self.label.get_declaration(str(self.interface))
         else:
-            target = self.interface.declaration
+            target = self.interface.declaration  # pylint: disable=no-member
 
         expression = "%{}%".format(label.name)
         accesses = self.list_access[1:]
