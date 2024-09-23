@@ -29,4 +29,5 @@ disable=
     too-many-return-statements,
     too-many-lines,
     redefined-outer-name,
-    unnecessary-lambda
+    unnecessary-lambda,
+    too-many-positional-arguments
