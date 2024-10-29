@@ -86,7 +86,7 @@ To avoid some unpleasant issues during installation we recommend to upgrade PIP 
 
 .. code-block:: console
 
-  $ pip install --upgrade pip wheel setuptools setuptools_scm
+  $ pip install --upgrade pip wheel setuptools==70.3.0 setuptools_scm
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 

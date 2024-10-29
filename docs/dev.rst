@@ -150,7 +150,7 @@ Run the following commands within :term:`$KLEVER_SRC`:
 
   $ python3 -m venv venv
   $ source venv/bin/activate
-  $ pip install --upgrade pip wheel setuptools setuptools_scm
+  $ pip install --upgrade pip wheel setuptools==70.3.0 setuptools_scm
   $ pip install .
 
 This will install latest versions of required packages.

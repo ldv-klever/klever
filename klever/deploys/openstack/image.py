@@ -134,7 +134,7 @@ class OSKleverBaseImage:
 
     def __install_python_packages(self, ssh):
         ssh.execute_cmd(f'{PYTHON_BIN_ORIG} -m venv venv')
-        ssh.execute_cmd(f'{PYTHON_BIN} -m pip install --upgrade pip setuptools setuptools_scm wheel', timeout=1)
+        ssh.execute_cmd(f'{PYTHON_BIN} -m pip install --upgrade pip setuptools==70.3.0 setuptools_scm wheel', timeout=1)
         ssh.execute_cmd(f'{PYTHON_BIN} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
 
     def __overwrite_default_base_image_name(self, klever_base_image_name):

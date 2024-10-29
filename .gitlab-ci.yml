@@ -6,7 +6,7 @@ stages:
 .deps: &deps
   before_script:
   - /opt/usr/local/python3.10-klever/bin/python3 -m venv venv
-  - venv/bin/python3 -m pip install --upgrade pip setuptools setuptools_scm wheel
+  - venv/bin/python3 -m pip install --upgrade pip setuptools==70.3.0 setuptools_scm wheel
   - venv/bin/python3 -m pip install --upgrade -r requirements.txt .
   rules:
   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
