@@ -138,7 +138,7 @@ class Highlight:
             ):
                 self.highlight_token(token_type, token_len)
             # Trailing "\n" may be included into single line comment and preprocessor directives.
-            if token_type in (
+            elif token_type in (
                 Comment,
                 Comment.Preproc,
                 Comment.Single
@@ -150,7 +150,7 @@ class Highlight:
                 else:
                     self.highlight_token(token_type, token_len, split, token_text if split else None)
             # Multiline comments include "\n".
-            if token_type is Comment.Multiline:
+            elif token_type is Comment.Multiline:
                 cur_end_offset = self.cur_start_offset
 
                 for c in token_text:
@@ -165,19 +165,19 @@ class Highlight:
                 # Add last multiline comment line.
                 self.highlight_token(token_type, cur_end_offset - self.cur_start_offset)
             # There is no special highlighting for punctuation.
-            if token_type is Punctuation:
+            elif token_type is Punctuation:
                 # Update current start offset for following tokens.
                 self.cur_start_offset += token_len
             # There is no special highlighting for text but there may be one or more "\n" at the beginning, in the
             # middle or at the end.
-            if token_type is Text or token_type is Text.Whitespace:
+            elif token_type is Text or token_type is Text.Whitespace:
                 for c in token_text:
                     if not self.go_to_next_line(c):
                         # Update current start offset for following tokens.
                         self.cur_start_offset += 1
 
             # We can not do anything with lexer failures.
-            if token_type is Error:
+            elif token_type is Error:
                 # Update current start offset for following tokens.
                 self.cur_start_offset += token_len
             else:
