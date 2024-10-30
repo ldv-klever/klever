@@ -43,7 +43,6 @@ class ErrorTrace:
         self._callback_actions = []
         self.emg_comments = {}
         self.displays = {}
-        self.programfile_content = ''
         self.programfile_line_map = {}
 
     @property
@@ -431,36 +430,21 @@ class ErrorTrace:
     def resolve_action(self, identifier):
         return self._actions[identifier]
 
-    def trace_iterator(self, begin=None, end=None, backward=False):
+    def trace_iterator(self, begin=None):
         # todo: Warning! This does work only if you guarantee:
         # *having no more than one input edge for all nodes
         # *existence of at least one violation node and at least one input node
-        if backward:
-            if not begin:
-                begin = [node for identifier, node in self.violation_nodes][0]['in'][0]
-            if not end:
-                end = self.entry_node['out'][0]
-            getter = self.previous_edge
-        else:
-            if not begin:
-                begin = self.entry_node['out'][0]
-            if not end:
-                end = [node for identifier, node in self.violation_nodes][0]['in'][0]
-            getter = self.next_edge
+        if not begin:
+            begin = self.entry_node['out'][0]
+        end = [node for _, node in self.violation_nodes][0]['in'][0]
 
-        current = None
-        while True:
-            if not current:
-                current = begin
-                yield current
+        current = begin
+        while current:
+            yield current
             if current is end:
                 return
 
-            current = getter(current)
-            if not current:
-                return
-
-            yield current
+            current = self.next_edge(current)
 
     def insert_edge_and_target_node(self, edge, after=True):
         new_edge = {
@@ -567,10 +551,8 @@ class ErrorTrace:
 
                 # Skip edges of functions that are both entered and returned.
                 if return_edge:
-                    while True:
+                    while edge is not return_edge:
                         edge = next(iterator)
-                        if edge is return_edge:
-                            break
 
                     continue
 
@@ -613,15 +595,13 @@ class ErrorTrace:
                         comment = comment.rstrip()
 
                         if kind.startswith("NOTE"):
-                            level = None
                             # Notes of level 1 does not require the level to be explicitly specified.
                             if len(kind) == 4:
                                 level = 1
                             elif len(kind) == 5 and kind[4].isdigit():
                                 level = int(kind[4])
-
-                            # Incorrect format of note.
-                            if not level:
+                            else:
+                                # Incorrect format of note.
                                 continue
 
                             if level not in self._notes:

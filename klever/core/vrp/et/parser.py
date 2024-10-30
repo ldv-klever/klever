@@ -67,8 +67,8 @@ class ErrorTraceParser:
         graph = root.find('graphml:graph', self.WITNESS_NS)
 
         self.__parse_witness_data(graph)
-        sink_nodes_map = self.__parse_witness_nodes(graph)
-        self.__parse_witness_edges(graph, sink_nodes_map)
+        sink_nodes = self.__parse_witness_nodes(graph)
+        self.__parse_witness_edges(graph, sink_nodes)
 
     @staticmethod
     def reset():
@@ -121,11 +121,10 @@ class ErrorTraceParser:
                         self.error_trace.add_file(file_name)
 
                 self.error_trace.programfile_line_map = ErrorTraceParser.PROGRAMFILE_LINE_MAP
-                self.error_trace.programfile_content = ErrorTraceParser.PROGRAMFILE_CONTENT
 
     def __parse_witness_nodes(self, graph):
-        sink_nodes_map = {}
-        unsupported_node_data_keys = {}
+        sink_nodes = []
+        unsupported_node_data_keys = []
         nodes_number = 0
 
         for node in graph.findall('graphml:node', self.WITNESS_NS):
@@ -146,11 +145,11 @@ class ErrorTraceParser:
                     self._logger.debug('Parse violation node {!r}'.format(node.attrib['id']))
                 elif data_key not in unsupported_node_data_keys:
                     self._logger.warning('Node data key {!r} is not supported'.format(data_key))
-                    unsupported_node_data_keys[data_key] = None
+                    unsupported_node_data_keys.append(data_key)
 
             # Do not track sink nodes as all other nodes. All edges leading to sink nodes will be excluded as well.
             if is_sink:
-                sink_nodes_map[node.attrib['id']] = None
+                sink_nodes.append(node.attrib['id'])
             else:
                 nodes_number += 1
                 self.error_trace.add_node(node.attrib['id'])
@@ -161,11 +160,11 @@ class ErrorTraceParser:
         if len(list(self.error_trace.violation_nodes)) == 0:
             raise KeyError('Violation nodes were not found')
 
-        self._logger.debug('Parse {0} nodes and {1} sink nodes'.format(nodes_number, len(sink_nodes_map)))
-        return sink_nodes_map
+        self._logger.debug('Parse {0} nodes and {1} sink nodes'.format(nodes_number, len(sink_nodes)))
+        return sink_nodes
 
-    def __parse_witness_edges(self, graph, sink_nodes_map):
-        unsupported_edge_data_keys = {}
+    def __parse_witness_edges(self, graph, sink_nodes):
+        unsupported_edge_data_keys = []
 
         # Use maps for source files and functions as for nodes. Add artificial map to 0 for default file without
         # explicitly specifying its path.
@@ -184,7 +183,7 @@ class ErrorTraceParser:
 
             source_node_id = edge.attrib['source']
 
-            if edge.attrib['target'] in sink_nodes_map:
+            if edge.attrib['target'] in sink_nodes:
                 sink_edges_num += 1
                 continue
 
@@ -246,10 +245,10 @@ class ErrorTraceParser:
                         self._logger.warning('Invalid format of note "{0}"'.format(data.text))
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
-                    unsupported_edge_data_keys[data_key] = None
+                    unsupported_edge_data_keys.append(data_key)
 
             if startoffset and endoffset and startline:
-                _edge['source'] = self.error_trace.programfile_content[startoffset:(endoffset + 1)]
+                _edge['source'] = ErrorTraceParser.PROGRAMFILE_CONTENT[startoffset:(endoffset + 1)]
                 # New lines in sources are not supported well during processing and following visualization.
                 _edge['source'] = re.sub(r'\n *', ' ', _edge['source'])
                 _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[startline]
@@ -280,8 +279,6 @@ class ErrorTraceParser:
                                 _edge['source'] = '{0} {1} {2}'.format(m.group(1), replace_cond, m.group(2))
                                 # Do not proceed after some replacement is applied - others won't be done.
                                 break
-
-                    control = None
                 else:
                     # End all statements with ";" like in C.
                     if _edge['source'][-1] != ';':
