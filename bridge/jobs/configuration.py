@@ -55,6 +55,7 @@ from reports.models import Decision
 #   upload_other_files - upload other intermediate files (bool),
 #   ignore_subjobs - ignore failed sub-jobs (bool),
 #   total_coverage - collect total code coverage (bool).
+#   cross_ref - collect cross-references (bool).
 #   coverage_details - see vars.COVERAGE_DETAILS for available values,
 # id 'file_conf' is reserved
 
@@ -96,6 +97,7 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': False,
             'ignore_subjobs': False,
             'total_coverage': True,
+            'cross_ref': True,
             'coverage_details': COVERAGE_DETAILS[0][0]
         }
     },
@@ -124,6 +126,7 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': False,
             'ignore_subjobs': True,
             'total_coverage': True,
+            'cross_ref': True,
             'coverage_details': COVERAGE_DETAILS[1][0]
         }
     },
@@ -152,6 +155,7 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': False,
             'ignore_subjobs': True,
             'total_coverage': True,
+            'cross_ref': True,
             'coverage_details': COVERAGE_DETAILS[2][0]
         }
     }
@@ -215,6 +219,7 @@ class ConfigurationSerializer(serializers.Serializer):
     upload_other_files = fields.BooleanField()
     ignore_subjobs = fields.BooleanField()
     total_coverage = fields.BooleanField()
+    cross_ref = fields.BooleanField()
     coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
 
     def create(self, validated_data):
@@ -293,6 +298,7 @@ class GetConfiguration:
             'upload_other_files': filedata['upload other intermediate files'],
             'ignore_subjobs': filedata['ignore failed sub-jobs'],
             'total_coverage': filedata['collect total code coverage'],
+            'cross_ref': filedata['collect cross-references'],
             'coverage_details': filedata['code coverage details'],
         }
         serializer = ConfigurationSerializer(data=configuration)
@@ -337,6 +343,7 @@ class GetConfiguration:
             'upload other intermediate files': self.configuration['upload_other_files'],
             'ignore failed sub-jobs': self.configuration['ignore_subjobs'],
             'collect total code coverage': self.configuration['total_coverage'],
+            'collect cross-references': self.configuration['cross_ref'],
             'code coverage details': self.configuration['coverage_details'],
         }
 

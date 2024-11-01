@@ -95,6 +95,10 @@
                 <i class="{% if conf.total_coverage %}green check{% else %}red x{% endif %} icon"></i>
                 <div class="content">{% trans 'Collect total code coverage' %}</div>
             </div>
+            <div class="item">
+                <i class="{% if conf.cross_ref %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Collect cross-references' %}</div>
+            </div>
         </div>
     </div>
     <div class="eight wide column">

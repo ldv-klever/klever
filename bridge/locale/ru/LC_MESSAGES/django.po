@@ -1708,6 +1708,11 @@ msgstr "Игнорировать подзадания, завершившиес�
 msgid "Collect total code coverage"
 msgstr "Собрать общее покрытие кода"
 
+#: jobs/templates/jobs/startDecision.html:311
+#: jobs/templates/jobs/viewDecision/configuration.html:100
+msgid "Collect cross-references"
+msgstr "Собрать перекрестные ссылки"
+
 #: jobs/templates/jobs/startDecision.html:254
 #: jobs/templates/jobs/viewDecision/configuration.html:102
 msgid "Code coverage details"

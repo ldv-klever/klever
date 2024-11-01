@@ -306,6 +306,11 @@
             <label for="total_coverage">{% trans 'Collect total code coverage' %}</label>
         </div>
         <br><br>
+        <div class="ui toggle checkbox">
+            <input id="cross_ref" class="boolean-value" type="checkbox" {% if data.conf.cross_ref %} checked{% endif %}>
+            <label for="cross_ref">{% trans 'Collect cross-references' %}</label>
+        </div>
+        <br><br>
         <p class="bold-text">{% trans 'Code coverage details' %}</p>
         <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
             {% for x in data.coverage_details %}

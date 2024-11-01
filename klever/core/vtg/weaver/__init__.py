@@ -345,6 +345,8 @@ class WeaverWorker(klever.core.components.Component):
             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
     def __get_cross_refs(self, infile, opts, outfile, cwd):
+        if self.conf.get("collect cross-references", False):
+            return
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
         # prefer their parallelism over the Clade default one.

@@ -679,10 +679,11 @@ class Job(klever.core.components.Component):
             os.makedirs(os.path.dirname(new_file_name), exist_ok=True)
             shutil.copy(self.clade.get_storage_path(file_name), new_file_name)
 
-            cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
-                                   file_name, new_file_name,
-                                   self.common_components_conf['working source trees'], 'source files')
-            cross_refs.get_cross_refs()
+            if self.common_components_conf.get("collect cross-references", False):
+                cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
+                                       file_name, new_file_name,
+                                       self.common_components_conf['working source trees'], 'source files')
+                cross_refs.get_cross_refs()
 
     def __get_original_sources_basic_info(self):
         self.logger.info('Get information on original sources for following visualization of uncovered source files')

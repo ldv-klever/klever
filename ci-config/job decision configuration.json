@@ -1,6 +1,7 @@
 {
     "code coverage details": "0",
     "collect total code coverage": true,
+    "collect cross-references": false,
     "ignore failed sub-jobs": true,
     "ignore other instances": false,
     "keep intermediate files": false,
