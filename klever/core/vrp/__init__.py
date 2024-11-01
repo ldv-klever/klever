@@ -437,6 +437,14 @@ class RP(klever.core.components.Component):
         with open('decision results.json', encoding='utf-8') as fp:
             decision_results = json.load(fp)
 
+        if "output dir" in decision_results:
+            # Local run, the data is on the file system
+            if not os.path.exists('output'):
+                os.symlink(decision_results["output dir"], os.path.join(os.getcwd(), "output"))
+            else:
+                # strange, but use downloaded data
+                pass
+
         # TODO: specify the computer where the verifier was invoked (this information should be get from
         # BenchExec or VerifierCloud web client.
         log_files_dir = glob.glob(os.path.join('output', 'benchmark*logfiles'))[0]

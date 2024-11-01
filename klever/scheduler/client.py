@@ -148,14 +148,23 @@ def solve_task(logger, conf, srv):
         shutil.rmtree('output', ignore_errors=True)
 
     logger.debug("Download task")
-    ret = srv.pull_task(conf["identifier"], "task files.zip")
-    if not ret:
-        logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
-                    "so we have nothing to do there")
-        os._exit(1)
+    if 'task files' in conf:
+        # local launch, just copy it without server call
+        logger.info("Found local copy of the task file")
+        abs_files = conf['task files']
+        for abs_file in abs_files:
+            os.symlink(abs_file, os.path.join(os.getcwd(), os.path.basename(abs_file)))
+        local_run = True
+    else:
+        ret = srv.pull_task(conf["identifier"], "task files.zip")
+        if not ret:
+            logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
+                        "so we have nothing to do there")
+            os._exit(1)
 
-    with zipfile.ZipFile('task files.zip') as zfp:
-        zfp.extractall()
+        with zipfile.ZipFile('task files.zip') as zfp:
+            zfp.extractall()
+        local_run = False
 
     os.makedirs("output".encode("utf-8"), exist_ok=True)
 
@@ -199,7 +208,8 @@ def solve_task(logger, conf, srv):
         speculative = False
         decision_results['uploaded'] = True
 
-    submit_task_results(logger, srv, conf["identifier"], decision_results, os.path.curdir, speculative=speculative)
+    submit_task_results(logger, srv, conf["identifier"], decision_results, os.path.curdir, speculative=speculative,
+                        local_run=local_run)
 
     return exit_code
 

@@ -50,8 +50,17 @@ class BasicGenerationStrategy:
                          format(self.abstract_task_desc['id']))
         resource_limits = self._prepare_resource_limits()
         files = self._prepare_benchmark_description(resource_limits)
-        common.prepare_verification_task_files_archive(files)
         task_description = self._prepare_task_description(resource_limits)
+
+        if self.conf.get('send tasks', False):
+            # Prepare complete file archive to upload to Bridge
+            common.prepare_verification_task_files_archive(files)
+        else:
+            # Local deploy, do not need to send tasks through Bridge
+            task_description['task files'] = [os.path.abspath(file) for file in files]
+            # Tricky code, as Bridge requires sending an archive, so send a small one
+            common.prepare_verification_task_files_archive([files[0]])
+
         self.logger.debug('Create verification task description file "task.json"')
         with open('task.json', 'w', encoding='utf-8') as fp:
             utils.json_dump(task_description, fp, self.conf['keep intermediate files'])

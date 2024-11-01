@@ -309,6 +309,8 @@ class Native(runners.TryLessMemoryRunner):
             subdir = 'tasks'
             client_conf = self._get_task_configuration()
             self._manager.check_resources(configuration, job=False)
+            if 'task files' in configuration:
+                client_conf["task files"] = configuration['task files']
         else:
             subdir = 'jobs'
             client_conf = self._job_conf_prototype.copy()

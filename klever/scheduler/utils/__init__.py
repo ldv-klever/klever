@@ -460,7 +460,7 @@ def process_task_results(logger):
     return decision_results
 
 
-def submit_task_results(logger, server, identifier, decision_results, solution_path, speculative=False):
+def submit_task_results(logger, server, identifier, decision_results, solution_path, speculative=False, local_run=False):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
@@ -471,11 +471,14 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
     :param decision_results: Dictionary with decision results and measured resources.
     :param solution_path: Path to the directory with solution files.
     :param speculative: Do not upload solution to Bridge.
+    :param local_run: if the run is local, no need to transfer decision results via Bridge.
     :return: None
     """
 
     results_file = os.path.join(solution_path, "decision results.json")
     logger.debug("Save decision results to the disk: {}".format(os.path.abspath(results_file)))
+    if local_run:
+        decision_results['output dir'] = os.path.abspath(os.path.join(solution_path, "output"))
     with open(results_file, "w", encoding="utf-8") as fp:
         json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -484,10 +487,15 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
     with open(results_archive, mode='w+b', buffering=0) as fp:
         with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
-            for dirpath, _, filenames in os.walk(os.path.join(solution_path, "output")):
-                for filename in filenames:
-                    zfp.write(os.path.join(dirpath, filename),
-                              os.path.join(os.path.relpath(dirpath, solution_path), filename))
+            if local_run:
+                # Prepare a small archive, as Bridge requires it
+                # the other files will be accessed directly via file system
+                pass
+            else:
+                for dirpath, _, filenames in os.walk(os.path.join(solution_path, "output")):
+                    for filename in filenames:
+                        zfp.write(os.path.join(dirpath, filename),
+                                  os.path.join(os.path.relpath(dirpath, solution_path), filename))
             os.fsync(zfp.fp)
 
     if not speculative:
