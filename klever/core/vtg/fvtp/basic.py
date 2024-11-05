@@ -61,9 +61,7 @@ class BasicGenerationStrategy:
             # Tricky code, as Bridge requires sending an archive, so send a small one
             common.prepare_verification_task_files_archive([files[0]])
 
-        self.logger.debug('Create verification task description file "task.json"')
-        with open('task.json', 'w', encoding='utf-8') as fp:
-            utils.json_dump(task_description, fp, self.conf['keep intermediate files'])
+        return task_description
 
     def _prepare_benchmark_description(self, resource_limits):
         """

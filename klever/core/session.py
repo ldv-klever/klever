@@ -90,10 +90,8 @@ class Session:
                                 {'job format': job_format},
                                 archive)
 
-    def schedule_task(self, task_file, archive):
-        with open(task_file, 'r', encoding='utf-8') as fp:
-            data = fp.read()
-
+    def schedule_task(self, task_data, archive):
+        data = json.dumps(task_data, ensure_ascii=True)
         resp = self.__upload_archives('service/tasks/',
                                       {
                                           'job': str(self.job_id),

@@ -290,7 +290,8 @@ class WeaverWorker(klever.core.components.Component):
                         raise FileExistsError('Cache misses woven in C file (perhaps your models are broken)')
                     self.vals['extra C files'].append(
                         {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
-                    if self.conf['code coverage details'] != 'Original C source files':
+                    if self.conf['code coverage details'] != 'Original C source files' and \
+                            self.conf.get("collect cross references", False):
                         self.logger.info('Get cross references from cache')
                         additional_srcs = os.path.join(cache_dir, 'additional sources')
                         if not os.path.exists(additional_srcs):
@@ -345,7 +346,7 @@ class WeaverWorker(klever.core.components.Component):
             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
     def __get_cross_refs(self, infile, opts, outfile, cwd):
-        if self.conf.get("collect cross-references", False):
+        if self.conf.get("collect cross references", False):
             return
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
