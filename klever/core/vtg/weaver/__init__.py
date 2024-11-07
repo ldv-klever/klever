@@ -143,7 +143,8 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                 continue
 
                             shutil.copy(file, new_file)
-                            shutil.copy(file + '.idx.json', new_file + '.idx.json')
+                            if self.conf.get("collect cross-references", False):
+                                shutil.copy(file + '.idx.json', new_file + '.idx.json')
 
                             os.remove(new_file + '.tmp')
 
@@ -290,8 +291,7 @@ class WeaverWorker(klever.core.components.Component):
                         raise FileExistsError('Cache misses woven in C file (perhaps your models are broken)')
                     self.vals['extra C files'].append(
                         {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
-                    if self.conf['code coverage details'] != 'Original C source files' and \
-                            self.conf.get("collect cross references", False):
+                    if self.conf['code coverage details'] != 'Original C source files':
                         self.logger.info('Get cross references from cache')
                         additional_srcs = os.path.join(cache_dir, 'additional sources')
                         if not os.path.exists(additional_srcs):
@@ -346,8 +346,6 @@ class WeaverWorker(klever.core.components.Component):
             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
     def __get_cross_refs(self, infile, opts, outfile, cwd):
-        if self.conf.get("collect cross references", False):
-            return
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
         # prefer their parallelism over the Clade default one.
@@ -379,7 +377,6 @@ class WeaverWorker(klever.core.components.Component):
             raise RuntimeError('Build base is not OK')
 
         # Like in klever.core.job.Job#__upload_original_sources.
-        os.makedirs(outfile + ' additional sources')
         for root, _, files in os.walk(clade_extra.storage_dir):
             for file in files:
                 file = os.path.join(root, file)
@@ -407,9 +404,10 @@ class WeaverWorker(klever.core.components.Component):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
 
-                cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
-                                       new_file, self.search_dirs)
-                cross_refs.get_cross_refs()
+                if self.conf.get("collect cross-references", False):
+                    cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
+                                           new_file, self.search_dirs)
+                    cross_refs.get_cross_refs()
 
         self.__merge_additional_srcs(outfile + ' additional sources')
 

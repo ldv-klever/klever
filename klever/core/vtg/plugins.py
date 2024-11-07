@@ -39,7 +39,7 @@ class Plugin(klever.core.components.Component):
 
         out_abstract_task_desc_file = '{0} abstract task.json'.format(self.name)
         out_abstract_task_desc_file = os.path.relpath(
-            os.path.join(os.path.pardir, out_abstract_task_desc_file))
+            os.path.join(self.work_dir, out_abstract_task_desc_file))
 
         self.dump_if_necessary(out_abstract_task_desc_file, self.abstract_task_desc,
                                "modified abstract verification task description")
