@@ -52,7 +52,7 @@ class BasicGenerationStrategy:
         files = self._prepare_benchmark_description(resource_limits)
         task_description = self._prepare_task_description(resource_limits)
 
-        if self.conf.get('send tasks', False):
+        if task_description['upload verifier input files']:
             # Prepare complete file archive to upload to Bridge
             common.prepare_verification_task_files_archive(files)
         else:
