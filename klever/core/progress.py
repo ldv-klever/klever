@@ -35,7 +35,7 @@ class PW(klever.core.components.Component):
         self.subjobs = multiprocessing.Manager().dict()
         self.vals['subjobs progress'] = self.subjobs
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        if total_subjobs:
+        if total_subjobs >= 0:
             self.subjobs_number = total_subjobs
             self.job_mode = False
         else:
