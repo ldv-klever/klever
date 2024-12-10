@@ -664,9 +664,11 @@
               "$ALLOC(%tty_struct%);",
               "%usb_serial_port% = ldv_xmalloc(sizeof(struct usb_serial_port));",
               "%usb_serial_port%->write_urbs[0] = emg_make_urb(%usb_serial_port%);",
+              "%usb_serial_port%->write_urb = %usb_serial_port%->write_urbs[0];",
               "%usb_serial_port%->interrupt_in_urb = emg_make_urb(%usb_serial_port%);",
               "%usb_serial_port%->interrupt_out_urb = emg_make_urb(%usb_serial_port%);",
-              "%usb_serial_port%->read_urbs[0] = emg_make_urb(%usb_serial_port%);"
+              "%usb_serial_port%->read_urbs[0] = emg_make_urb(%usb_serial_port%);",
+              "%usb_serial_port%->read_urb = %usb_serial_port%->read_urbs[0];"
             ]
           },
           "insert_device": {
