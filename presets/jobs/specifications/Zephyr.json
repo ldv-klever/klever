@@ -71,7 +71,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "smg-master:c6f6a66"
+              "version": "smg-master:d3436b02e6"
             }
           }
         }

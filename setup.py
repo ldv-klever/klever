@@ -17,7 +17,7 @@ import os
 import setuptools
 
 
-VERSION = '3.7'
+VERSION = '4.0'
 
 
 def get_fallback_version():
@@ -77,7 +77,7 @@ setuptools.setup(
     },
     install_requires=[
         "Django==4.0.3",
-        "BenchExec==3.11",
+        "BenchExec==3.23",
         "clade>=3.6,<3.7",
         "psycopg2-binary",
         "graphviz",

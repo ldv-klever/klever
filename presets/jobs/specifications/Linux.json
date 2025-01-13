@@ -93,7 +93,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "smg-master:c6f6a66"
+              "version": "smg-master:d3436b02e6"
             }
           }
         }
@@ -141,7 +141,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "smg-master:c6f6a66"
+              "version": "smg-master:d3436b02e6"
             }
           }
         }
@@ -175,7 +175,7 @@
             "verifier profile": "memory checking with mea",
             "verifier": {
               "name": "CPAchecker",
-              "version": "smg-master:c6f6a66"
+              "version": "smg-master:d3436b02e6"
             }
           }
         }
@@ -211,7 +211,7 @@
             "verifier profile": "race checking base",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-update:88c361"
+              "version": "CPALockator-update:05ba0c5"
             },
             "result processing": {
               "expect several witnesses": true
@@ -479,7 +479,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "smg-master:c6f6a66"
+                            "version": "smg-master:d3436b02e6"
                           }
                         }
                       }
@@ -825,7 +825,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "smg-master:c6f6a66"
+                    "version": "smg-master:d3436b02e6"
                   }
                 }
               }
@@ -853,7 +853,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "smg-master:c6f6a66"
+                    "version": "smg-master:d3436b02e6"
                   }
                 }
               }

@@ -2,6 +2,11 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "int *ldv_func::*c"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety"
     },
@@ -9,11 +14,6 @@
       "is_compare": true,
       "name": "Program fragment",
       "value": "ext-modules/linux/concurrency-safety/unsorted/lockTest-unsafe.ko"
-    },
-    {
-      "is_compare": true,
-      "name": "Declaration",
-      "value": "int *ldv_func::*c"
     }
   ],
   "description": "",
@@ -30,6 +30,12 @@
                       "LDV model 'func'": [
                         {
                           "Instrumented function 'mutex_lock'": []
+                        },
+                        {
+                          "Instrumented function 'mutex_lock'": []
+                        },
+                        {
+                          "Instrumented function 'mutex_unlock'": []
                         }
                       ]
                     }
@@ -49,12 +55,6 @@
               "LDV model 'func'": [
                 {
                   "Instrumented function 'mutex_lock'": []
-                },
-                {
-                  "Instrumented function 'mutex_lock'": []
-                },
-                {
-                  "Instrumented function 'mutex_unlock'": []
                 }
               ]
             }

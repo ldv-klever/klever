@@ -372,9 +372,7 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
     set_handlers()
     cmd = args[0]
     if logger:
-        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
-                                                  '' if len(args) == 1 else ' ',
-                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+        logger.info('Execute:\n{0}'.format(' '.join(args)))
 
         p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)  # pylint:disable=subprocess-popen-preexec-fn
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)

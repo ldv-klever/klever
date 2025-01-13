@@ -1,3 +1,26 @@
+# Klever 4.0 (2025-01-13)
+
+This is a release of the framework that focuses on performance issues and integration with continuous verification.
+
+The following fixes and improvements in Klever 4.0 deserve an attention:
+* Large refactoring in Klever Core, including:
+   * Replace data transfer from files to memory data structures
+   * Disable useless reports
+   * Remove confusing callbacks
+   * Remove extra processes
+   * Remove extra multiprocessing queues and components
+   * Remove tasks upload to Bridge in case of local deploy
+   * Add an option to disable cross references
+   * Optimize main job page in web interface
+   * Remove legacy code
+* New versions of verifiers, based on CPAchecker 3.1
+* Different improvements in resources, particularly, memory limits for main process, thread pool, node resources, speculative scheduling, EMG.
+* Minor fixes in EMG models
+* Scripts for build base creation.
+* Development is moved into gitlab repository
+
+We would like to thank very much everybody who made this great job possible!
+
 # Klever 3.7 (2022-08-26)
 
 Following fixes and improvements in Klever 3.7 deserve an attention:

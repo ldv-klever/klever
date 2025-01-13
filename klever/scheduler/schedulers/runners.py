@@ -453,6 +453,7 @@ class TryLessMemoryRunner(Runner):
         # Get solution in advance before it is cleaned
         if item["future"].done():
             status = super().process_task_result(identifier, item)
+            assert status is True
             if 'solution' in item:
                 termination_reason = item['solution'].get("status")
                 if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
@@ -472,5 +473,5 @@ class TryLessMemoryRunner(Runner):
             else:
                 self.logger.warning("Cannot get a solution for task {}".format(identifier))
 
-            return status
+            return True
         return False

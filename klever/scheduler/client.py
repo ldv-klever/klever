@@ -296,6 +296,12 @@ def add_extra_paths(logger, conf):
         logger.debug("Add bin locations to {!r}: {!r}".format("PATH", ':'.join(conf["client"]["addon binaries"])))
         os.environ["PATH"] = "{}:{}".format(':'.join(conf["client"]["addon binaries"]), os.environ["PATH"])
         logger.debug("Current {!r} content is {!r}".format("PATH", os.environ["PATH"]))
+        # New jdk does not work without JAVA environment variable
+        # Find and add it
+        for path in conf["client"]["addon binaries"]:
+            if "jdk" in path:
+                os.environ["JAVA"] = os.path.join(path, "java")
+                break
 
 
 def prepare_job_arguments(logger, conf):

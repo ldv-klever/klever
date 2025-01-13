@@ -31,22 +31,22 @@
       "executable path": "scripts"
     },
     "JRE": {
-      "version": "11.0.14.1+1",
-      "path": "https://forge.ispras.ru/attachments/download/9820/OpenJDK11U-jre_x64_linux_hotspot_11.0.14.1_1.tar.gz",
-      "executable path": "jdk-11.0.14.1+1-jre/bin/"
+      "version": "17.0.11",
+      "path": "https://forge.ispras.ru/attachments/download/12457/jdk-17_linux-x64_bin.tar.gz",
+      "executable path": "jdk-17.0.11/bin"
     },
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "smg-master:c6f6a66",
-        "path": "https://forge.ispras.ru/attachments/download/11601/CPAchecker-c6f6a66.tar.xz",
+        "version": "smg-master:d3436b02e6",
+        "path": "https://forge.ispras.ru/attachments/download/12975/CPAchecker-d3436b02e6.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-update:88c361",
-        "path": "https://forge.ispras.ru/attachments/download/11834/CPALockator-88c361.tar.xz",
-        "executable path": "scripts"
+        "version": "CPALockator-update:05ba0c5",
+        "path": "https://forge.ispras.ru/attachments/download/12905/CPALockator-05ba0c5.tar.xz",
+        "executable path": "bin"
       }
     }
   },
