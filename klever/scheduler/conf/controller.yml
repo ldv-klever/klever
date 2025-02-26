@@ -1,0 +1,82 @@
+Klever Bridge:
+  name: localhost:8998
+  password: password
+  user: user
+client-controller:
+  consul: /abs/path/to/consul
+  consul additional configuration:
+    disable_anonymous_signature: true
+    disable_update_check: true
+    enable_script_checks: true
+  consul additional opts:
+  - -advertise=127.0.0.1
+  - -bootstrap-expect=1
+  - -log-level=info
+  - -server
+  - -retry-interval=30s
+  script checks:
+  - active: true
+    interval: 5s
+    name: klever-check
+  service checks:
+  - id: klever
+    interval: 10s
+    name: Klever Bridge on port 8998
+    tcp: localhost:8998
+    timeout: 1s
+  setup GUI: true
+  type: local
+common:
+  debug: false
+  keep working directory: false
+  logging:
+    disable_existing_loggers: false
+    formatters:
+      brief:
+        format: '%(name)s %(levelname)5s> %(message)s'
+      detailed:
+        format: '%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s>
+          %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: brief
+        level: INFO
+        stream: ext://sys.stdout
+      error_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: errors.log
+        formatter: detailed
+        level: ERROR
+        maxBytes: 10485760
+      info_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: info.log
+        formatter: detailed
+        level: INFO
+        maxBytes: 10485760
+    loggers:
+      default:
+        handlers:
+        - console
+        level: ERROR
+        propagate: 'no'
+    root:
+      handlers:
+      - console
+      - info_file_handler
+      - error_file_handler
+      level: INFO
+    version: 1
+  working directory: scheduler-controller-dir
+node configuration:
+  available CPU number: 1.0
+  available RAM memory: 1.0
+  available disk memory: 1.0
+  available for jobs: true
+  available for tasks: true
+  bind address: 0.0.0.0

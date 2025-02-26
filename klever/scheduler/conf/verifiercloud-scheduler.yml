@@ -1,0 +1,67 @@
+Klever Bridge:
+  name: localhost:8998
+  password: password
+  user: user
+Klever jobs and tasks queue:
+  host: localhost
+  name: Klever jobs and tasks
+  password: password
+  username: user
+common:
+  keep working directory: false
+  logging:
+    disable_existing_loggers: false
+    formatters:
+      brief:
+        format: '%(name)s %(levelname)5s> %(message)s'
+      detailed:
+        format: '%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s>
+          %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: brief
+        level: INFO
+        stream: ext://sys.stdout
+      error_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: errors.log
+        formatter: detailed
+        level: ERROR
+        maxBytes: 10485760
+      info_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: info.log
+        formatter: detailed
+        level: DEBUG
+        maxBytes: 10485760
+    loggers:
+      default:
+        handlers:
+        - console
+        level: ERROR
+        propagate: 'no'
+    root:
+      handlers:
+      - console
+      - info_file_handler
+      - error_file_handler
+      level: DEBUG
+    version: 1
+  working directory: verifiercloud-scheduler-work-dir
+scheduler:
+  controller address: http://localhost:8500
+  ignore BenchExec warnings:
+  - CPU throttled itself during benchmarking due to overheating
+  - Cputime measured by wait was
+  keep working directory: false
+  process pool: false
+  processes: 1.0
+  production: true
+  type: scheduler
+  web client location: /abs/path/to/scripts/benchmark
+  web-interface address: https://vcloud.sosy-lab.org/cpachecker/webclient

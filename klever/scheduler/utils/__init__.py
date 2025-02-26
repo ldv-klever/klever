@@ -30,6 +30,7 @@ import glob
 import multiprocessing
 import sys
 from xml.etree import ElementTree
+import yaml
 
 from klever.scheduler.utils import consul
 from klever.core.utils import memory_units_converter, StreamQueue
@@ -56,7 +57,7 @@ def common_initialization(tool, conf=None):
 
         # Read configuration from file.
         with open(args.config, encoding="utf-8") as fp:
-            conf = json.load(fp)
+            conf = yaml.safe_load(fp)
 
     if "Klever Bridge" not in conf:
         raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")

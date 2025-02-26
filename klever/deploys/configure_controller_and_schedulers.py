@@ -19,6 +19,7 @@
 import argparse
 import json
 import os
+import yaml
 
 from klever.deploys.utils import get_logger, need_verifiercloud_scheduler, start_services, stop_services
 
@@ -55,8 +56,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     deploy_dir_abs = os.path.realpath(deploy_dir)
 
     logger.info('Configure Klever Controller')
-    with open(os.path.join(conf_dir, 'controller.json')) as fp:
-        controller_conf = json.load(fp)
+    with open(os.path.join(conf_dir, 'controller.yml')) as fp:
+        controller_conf = yaml.safe_load(fp)
 
     controller_conf['common']['working directory'] = os.path.join(deploy_dir_abs, 'klever-work/controller')
 
@@ -67,12 +68,12 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
 
     controller_conf['client-controller']['consul'] = get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'Consul')
 
-    with open(os.path.join(deploy_dir, 'klever-conf/controller.json'), 'w') as fp:
-        json.dump(controller_conf, fp, sort_keys=True, indent=4)
+    with open(os.path.join(deploy_dir, 'klever-conf/controller.yml'), 'w') as fp:
+        yaml.dump(controller_conf, fp, sort_keys=True, indent=4)
 
     logger.info('Configure Klever Native Scheduler')
-    with open(os.path.join(conf_dir, 'native-scheduler.json')) as fp:
-        native_scheduler_conf = json.load(fp)
+    with open(os.path.join(conf_dir, 'native-scheduler.yml')) as fp:
+        native_scheduler_conf = yaml.safe_load(fp)
 
     native_scheduler_conf['common']['working directory'] = os.path.join(deploy_dir_abs,
                                                                         'klever-work/native-scheduler')
@@ -92,9 +93,9 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     native_scheduler_conf['scheduler'].update({
         'disable CPU cores account': True,
         'job client configuration': os.path.realpath(os.path.join(deploy_dir,
-                                                                  'klever-conf/native-scheduler-job-client.json')),
+                                                                  'klever-conf/native-scheduler-job-client.yml')),
         'task client configuration': os.path.realpath(os.path.join(deploy_dir,
-                                                                   'klever-conf/native-scheduler-task-client.json'))
+                                                                   'klever-conf/native-scheduler-task-client.yml'))
     })
 
     native_scheduler_conf['node configuration'] = controller_conf['node configuration']
@@ -105,23 +106,23 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     if 'KLEVER_NATIVESCHEDULER_CONCURRENT_JOBS' in os.environ:
         native_scheduler_conf['scheduler']['concurrent jobs'] = os.environ['KLEVER_NATIVESCHEDULER_CONCURRENT_JOBS']
 
-    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler.json'), 'w') as fp:
-        json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
+    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler.yml'), 'w') as fp:
+        yaml.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
 
     logger.info('Configure Klever Native Scheduler Job Worker')
 
-    with open(os.path.join(conf_dir, 'job-client.json')) as fp:
-        job_client_conf = json.load(fp)
+    with open(os.path.join(conf_dir, 'job-client.yml')) as fp:
+        job_client_conf = yaml.safe_load(fp)
 
     configure_task_and_job_configuration_paths(deploy_dir, prev_deploy_info, job_client_conf)
 
-    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-job-client.json'), 'w') as fp:
-        json.dump(job_client_conf, fp, sort_keys=True, indent=4)
+    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-job-client.yml'), 'w') as fp:
+        yaml.dump(job_client_conf, fp, sort_keys=True, indent=4)
 
     if need_verifiercloud_scheduler(prev_deploy_info):
         logger.info('Configure Klever VerifierCloud Scheduler')
-        with open(os.path.join(conf_dir, 'verifiercloud-scheduler.json')) as fp:
-            verifiercloud_scheduler_conf = json.load(fp)
+        with open(os.path.join(conf_dir, 'verifiercloud-scheduler.yml')) as fp:
+            verifiercloud_scheduler_conf = yaml.safe_load(fp)
 
         verifiercloud_scheduler_conf['common']['working directory'] = \
             os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
@@ -139,13 +140,13 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
         verifiercloud_scheduler_conf['scheduler']['web client location'] =\
             get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'VerifierCloud Client')
 
-        with open(os.path.join(deploy_dir, 'klever-conf/verifiercloud-scheduler.json'), 'w') as fp:
-            json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
+        with open(os.path.join(deploy_dir, 'klever-conf/verifiercloud-scheduler.yml'), 'w') as fp:
+            yaml.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
     logger.info('Configure Klever Native Scheduler Task Worker')
 
-    with open(os.path.join(conf_dir, 'task-client.json')) as fp:
-        task_client_conf = json.load(fp)
+    with open(os.path.join(conf_dir, 'task-client.yml')) as fp:
+        task_client_conf = yaml.safe_load(fp)
 
     configure_task_and_job_configuration_paths(deploy_dir, prev_deploy_info, task_client_conf)
     verification_backends = task_client_conf['client']['verification tools'] = {}
@@ -155,8 +156,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
         verification_backends[desc['name']][desc['version']] = \
             get_klever_addon_abs_path(deploy_dir, prev_deploy_info, name, verification_backend=True)
 
-    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-task-client.json'), 'w') as fp:
-        json.dump(task_client_conf, fp, sort_keys=True, indent=4)
+    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-task-client.yml'), 'w') as fp:
+        yaml.dump(task_client_conf, fp, sort_keys=True, indent=4)
 
     start_services(logger, services)
 

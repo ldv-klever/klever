@@ -1,0 +1,64 @@
+client:
+  addon binaries:
+  - /abs/path/to/benchexec/bin
+  - /abs/path/to/clade/bin
+  - /abs/path/to/cif/bin
+  - /abs/path/to/cil-1.5.1/obj/x86_LINUX
+  addon python packages:
+  - /abs/path/to/clade
+  runexec container mode: false
+  runexec container mode options:
+  - --network-access
+  - --keep-system-config
+  - --full-access-dir
+  - /dev
+  - --full-access-dir
+  - /sys
+  - --full-access-dir
+  - ./
+  runexec measure disk: true
+common:
+  logging:
+    disable_existing_loggers: false
+    formatters:
+      brief:
+        format: '%(name)s %(levelname)5s> %(message)s'
+      detailed:
+        format: '%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s>
+          %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: brief
+        level: INFO
+        stream: ext://sys.stdout
+      error_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: errors.log
+        formatter: detailed
+        level: ERROR
+        maxBytes: 10485760
+      info_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: info.log
+        formatter: detailed
+        level: INFO
+        maxBytes: 10485760
+    loggers:
+      default:
+        handlers:
+        - console
+        level: ERROR
+        propagate: 'no'
+    root:
+      handlers:
+      - console
+      - info_file_handler
+      - error_file_handler
+      level: INFO
+    version: 1
+  working directory: null

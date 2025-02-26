@@ -1,0 +1,75 @@
+Klever Bridge:
+  name: localhost:8998
+  password: password
+  user: user
+Klever jobs and tasks queue:
+  host: localhost
+  name: Klever jobs and tasks
+  password: password
+  username: user
+common:
+  keep working directory: false
+  logging:
+    disable_existing_loggers: false
+    formatters:
+      brief:
+        format: '%(name)s %(levelname)5s> %(message)s'
+      detailed:
+        format: '%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s>
+          %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: brief
+        level: INFO
+        stream: ext://sys.stdout
+      error_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: errors.log
+        formatter: detailed
+        level: ERROR
+        maxBytes: 10485760
+      info_file_handler:
+        backupCount: 20
+        class: logging.handlers.RotatingFileHandler
+        encoding: utf-8
+        filename: info.log
+        formatter: detailed
+        level: DEBUG
+        maxBytes: 10485760
+    loggers:
+      default:
+        handlers:
+        - console
+        level: ERROR
+        propagate: 'no'
+    root:
+      handlers:
+      - console
+      - info_file_handler
+      - error_file_handler
+      level: INFO
+    version: 1
+  working directory: native-scheduler-work-dir
+scheduler:
+  concurrent jobs: 1
+  controller address: http://localhost:8500
+  disable CPU cores account: false
+  ignore BenchExec warnings:
+  - CPU throttled itself during benchmarking due to overheating
+  - Cputime measured by wait was
+  - System has swapped during benchmarking. Benchmark results are unreliable!
+  - Unable to find pqos_wrapper
+  - did not terminate within grace period after cancellation
+  job client configuration: /abs/path/to/job-client.yml
+  keep working directory: false
+  limit max tasks based on plugins load: true
+  manager: local
+  processes: 1.0
+  production: true
+  task client configuration: /abs/path/to/task-client.yml
+  try less memory: 0.5
+  type: native
+  wait controller initialization: true

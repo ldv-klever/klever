@@ -6,7 +6,7 @@ Requires=rabbitmq-server.service
 Type=idle
 User=klever
 EnvironmentFile=/etc/default/klever
-ExecStart=/bin/sh -c "${KLEVER_PYTHON_BIN_DIR}/klever-verifiercloud-scheduler ${KLEVER_DEPLOYMENT_DIRECTORY}/klever-conf/verifiercloud-scheduler.json"
+ExecStart=/bin/sh -c "${KLEVER_PYTHON_BIN_DIR}/klever-verifiercloud-scheduler ${KLEVER_DEPLOYMENT_DIRECTORY}/klever-conf/verifiercloud-scheduler.yml"
 Restart=on-failure
 RestartSec=5
 
