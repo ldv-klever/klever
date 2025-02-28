@@ -1,5 +1,18 @@
 [
     {
+        "build base": "linux/testing/requirement specifications/concurrency-safety",
+        "name": "Linux",
+        "git repository version": "v5.10",
+        "external modules": "tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/concurrency-safety/lock-reduce",
+            "ext-modules/linux/concurrency-safety/ldv-races",
+            "ext-modules/linux/concurrency-safety/simple",
+            "ext-modules/linux/concurrency-safety/unsorted",
+            "ext-modules/linux/concurrency-safety/rcu"
+        ]
+    },
+    {
         "build base": "linux/testing/requirement specifications/1de383",
         "name": "Linux",
         "external modules": "tests",
@@ -12,11 +25,6 @@
             "ext-modules/linux/block/blk-core/queue",
             "ext-modules/linux/block/blk-core/request",
             "ext-modules/linux/block/genhd",
-            "ext-modules/linux/concurrency-safety/lock-reduce",
-            "ext-modules/linux/concurrency-safety/ldv-races",
-            "ext-modules/linux/concurrency-safety/simple",
-            "ext-modules/linux/concurrency-safety/unsorted",
-            "ext-modules/linux/concurrency-safety/rcu",
             "ext-modules/linux/drivers/base/class",
             "ext-modules/linux/drivers/usb/core/usb/coherent",
             "ext-modules/linux/drivers/usb/core/usb/dev",

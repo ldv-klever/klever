@@ -81,12 +81,12 @@ static void *ldv_main(void *arg)
 
 static int __init init(void)
 {
-	pthread_t thread;
+	pthread_t thread1, thread2;
 	pthread_attr_t const *attr = ldv_undef_ptr();
-	void *arg = ldv_undef_ptr();
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
-	pthread_create(&thread, attr, &ldv_main, arg);
-	ldv_main(0);
+	pthread_create(&thread1, attr, &ldv_main, arg1);
+	pthread_create(&thread2, attr, &ldv_main, arg2);
 
 	return 0;
 }

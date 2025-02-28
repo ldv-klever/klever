@@ -1,0 +1,62 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-wrong-writer-lock-false-no-datarace.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety rcu"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "void *cif_free::*ldv_func_arg"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "writer": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "writer": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "3"
+}

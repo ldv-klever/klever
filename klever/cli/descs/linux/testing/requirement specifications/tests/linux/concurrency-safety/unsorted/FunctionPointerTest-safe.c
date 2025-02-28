@@ -44,6 +44,17 @@ static int ldv_hook(void)
 	return b;
 }
 
+static int ldv_hook1(int arg)
+{
+	int b = arg + 1;
+
+	mutex_lock(&ldv_lock);
+	_ldv_global_var = b++;
+	mutex_unlock(&ldv_lock);
+
+	return b;
+}
+
 static int ldv_hook2(int arg)
 {
 	/* This function is not called! Please, do not delete it: CPAchecker
@@ -83,7 +94,7 @@ static int __init ldv_init(void)
 	int arg2 = ldv_undef_int();
 	_ldv_var->field1 = &ldv_hook;
 	_ldv_var->field2 = &ldv_hook;
-	_ldv_var->field3 = &ldv_hook;	
+	_ldv_var->field3 = &ldv_hook1;
 
 	pthread_create(&thread, attr, &ldv_locker, arg1);
 	ldv_func(arg2);

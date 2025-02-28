@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Declaration",
-      "value": "struct ldv_struct (?.a)"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/lockTest-unsafe.ko"
     },
     {
       "is_compare": true,
@@ -12,8 +12,8 @@
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/lockTest-unsafe.ko"
+      "name": "Declaration",
+      "value": "struct ldv_struct (?.a)"
     }
   ],
   "description": "",
@@ -21,28 +21,20 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'main'": [
             {
-              "init": [
+              "LDV model 'func'": [
                 {
-                  "LDV model 'main'": [
-                    {
-                      "LDV model 'func'": [
-                        {
-                          "Instrumented function 'mutex_lock'": []
-                        },
-                        {
-                          "Instrumented function 'mutex_lock'": []
-                        },
-                        {
-                          "Instrumented function 'mutex_unlock'": []
-                        },
-                        {
-                          "Instrumented function 'mutex_unlock'": []
-                        }
-                      ]
-                    }
-                  ]
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
                 }
               ]
             }

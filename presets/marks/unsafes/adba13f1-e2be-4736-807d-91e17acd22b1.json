@@ -16,32 +16,24 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'main'": [
             {
-              "LDV model 'init'": [
+              "my_main": [
                 {
-                  "LDV model 'main'": [
+                  "difficult_function": [
                     {
-                      "my_main": [
+                      "get": [
                         {
-                          "difficult_function": [
+                          "local_init": [
                             {
-                              "get": [
-                                {
-                                  "local_init": [
-                                    {
-                                      "Instrumented function 'mutex_lock'": []
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "Instrumented function 'mutex_unlock'": []
+                              "Instrumented function 'mutex_lock'": []
                             }
                           ]
                         }
                       ]
+                    },
+                    {
+                      "Instrumented function 'mutex_unlock'": []
                     }
                   ]
                 }

@@ -2,13 +2,18 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "concurrency safety"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-wrong-writer-lock-false-no-datarace.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest9-unsafe.ko"
+      "name": "Requirements specification",
+      "value": "concurrency safety rcu"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "char *gp"
     }
   ],
   "description": "",
@@ -16,13 +21,9 @@
     [
       [
         {
-          "EMG wrapper": [
+          "writer": [
             {
-              "LDV model 'init'": [
-                {
-                  "LDV model 'main'": []
-                }
-              ]
+              "Instrumented function 'mutex_lock'": []
             }
           ]
         }
@@ -31,13 +32,13 @@
     [
       [
         {
-          "LDV model 'main'": []
+          "writer": []
         }
       ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
   "threshold": 100,

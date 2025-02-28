@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "concurrency safety"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/PathIteratorTest-unsafe.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/PathIteratorTest-unsafe.ko"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     }
   ],
   "description": "",
@@ -16,27 +16,19 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'main'": [
             {
-              "init": [
+              "LDV model 'func5'": [
                 {
-                  "LDV model 'main'": [
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                },
+                {
+                  "LDV model 'func2'": [
                     {
-                      "LDV model 'func5'": [
-                        {
-                          "Instrumented function 'mutex_lock'": []
-                        },
-                        {
-                          "Instrumented function 'mutex_unlock'": []
-                        },
-                        {
-                          "LDV model 'func2'": [
-                            {
-                              "LDV model 'func1'": []
-                            }
-                          ]
-                        }
-                      ]
+                      "LDV model 'func1'": []
                     }
                   ]
                 }

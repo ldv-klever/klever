@@ -117,22 +117,27 @@
       "requirement specifications": ["block:genhd"]
     },
     {
+      "build base": "linux/testing/requirement specifications/concurrency-safety",
       "targets": ["ext-modules/linux/concurrency-safety/ldv-races"],
       "requirement specifications": ["concurrency safety"]
     },
     {
+      "build base": "linux/testing/requirement specifications/concurrency-safety",
       "targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
       "requirement specifications": ["concurrency safety"]
     },
     {
+      "build base": "linux/testing/requirement specifications/concurrency-safety",
       "targets": ["ext-modules/linux/concurrency-safety/simple"],
       "requirement specifications": ["concurrency safety"]
     },
     {
+      "build base": "linux/testing/requirement specifications/concurrency-safety",
       "targets": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirement specifications": ["concurrency safety"]
     },
     {
+      "build base": "linux/testing/requirement specifications/concurrency-safety",
       "targets": ["ext-modules/linux/concurrency-safety/rcu"],
       "requirement specifications": ["concurrency safety rcu"]
     },

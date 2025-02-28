@@ -2,18 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Declaration",
-      "value": "void *cif_free::*ldv_func_arg"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/LoopTest-unsafe.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "concurrency safety rcu"
-    },
-    {
-      "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-wrong-writer-lock-placement-false-no-datarace.ko"
+      "value": "concurrency safety"
     }
   ],
   "description": "",
@@ -21,7 +16,7 @@
     [
       [
         {
-          "writer": [
+          "LDV model 'main'": [
             {
               "Instrumented function 'mutex_lock'": []
             },
@@ -29,7 +24,7 @@
               "Instrumented function 'mutex_unlock'": []
             },
             {
-              "Instrumented function 'free'": []
+              "LDV model 'func2'": []
             }
           ]
         }
@@ -38,7 +33,7 @@
     [
       [
         {
-          "writer": [
+          "LDV model 'main'": [
             {
               "Instrumented function 'mutex_lock'": []
             },
@@ -46,7 +41,7 @@
               "Instrumented function 'mutex_unlock'": []
             },
             {
-              "Instrumented function 'free'": []
+              "LDV model 'func2'": []
             }
           ]
         }
@@ -54,9 +49,9 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "3"
+  "verdict": "2"
 }

@@ -2,18 +2,18 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Declaration",
-      "value": "char *gp"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest4-unsafe.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "concurrency safety rcu"
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-wrong-writer-lock-placement-false-no-datarace.ko"
+      "name": "Declaration",
+      "value": "int *(?.field)"
     }
   ],
   "description": "",
@@ -21,9 +21,9 @@
     [
       [
         {
-          "writer": [
+          "LDV model 'main'": [
             {
-              "Instrumented function 'mutex_lock'": []
+              "LDV model 'func2'": []
             }
           ]
         }
@@ -32,7 +32,11 @@
     [
       [
         {
-          "writer": []
+          "LDV model 'main'": [
+            {
+              "LDV model 'func2'": []
+            }
+          ]
         }
       ]
     ]

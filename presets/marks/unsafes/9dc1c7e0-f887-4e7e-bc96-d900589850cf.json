@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "concurrency safety"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest10-unsafe.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest8-unsafe.ko"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     }
   ],
   "description": "",
@@ -16,17 +16,9 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'main'": [
             {
-              "LDV model 'init'": [
-                {
-                  "LDV model 'main'": [
-                    {
-                      "LDV model 'func'": []
-                    }
-                  ]
-                }
-              ]
+              "LDV model 'func'": []
             }
           ]
         }
