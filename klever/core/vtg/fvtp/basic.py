@@ -71,6 +71,7 @@ class BasicGenerationStrategy:
         :return: ElementTree.Element.
         """
         self.logger.debug("Prepare benchmark.xml file")
+        opts, safe_prps = common.get_verifier_opts_and_safe_prps(self.logger, resource_limits, self.conf)
         benchmark = ElementTree.Element("benchmark", {
             "tool": self.conf['verifier']['name'].lower()
         })
@@ -79,8 +80,6 @@ class BasicGenerationStrategy:
             if resource_limits.get("soft CPU time"):
                 benchmark.set('timelimit',
                               str(int(int(resource_limits["CPU time"]) * float(resource_limits["soft CPU time"]))))
-
-        opts, safe_prps = common.get_verifier_opts_and_safe_prps(self.logger, resource_limits, self.conf)
 
         # Then add options
         rundefinition = ElementTree.SubElement(benchmark, "rundefinition")

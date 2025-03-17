@@ -90,11 +90,7 @@
           "name": "FVTP",
           "options": {
             "merge source files": true,
-            "verifier profile": "reachability",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "smg-master:d3436b02e6"
-            }
+            "verifier profile": "CPAchecker BAM reachability"
           }
         }
       ]
@@ -138,11 +134,7 @@
         {
           "name": "FVTP",
           "options": {
-            "verifier profile": "memory checking",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "smg-master:d3436b02e6"
-            }
+            "verifier profile": "CPAchecker SMG memory checking"
           }
         }
       ]
@@ -172,11 +164,7 @@
         {
           "name": "FVTP",
           "options": {
-            "verifier profile": "memory checking with mea",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "smg-master:d3436b02e6"
-            }
+            "verifier profile": "CPAchecker SMG memory checking with mea"
           }
         }
       ]
@@ -208,11 +196,7 @@
         {
           "name": "FVTP",
           "options": {
-            "verifier profile": "race checking base",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "CPALockator-update:05ba0c5"
-            },
+            "verifier profile": "CPALockator base",
             "result processing": {
               "expect several witnesses": true
             }
@@ -314,7 +298,7 @@
               {
                 "name": "FVTP",
                 "options": {
-                  "verifier profile": "reachability with function pointers"
+                  "verifier profile": "CPAchecker BAM reachability FP"
                 }
               }
             ]
@@ -395,7 +379,7 @@
         "plugins": [{
           "name": "FVTP",
           "options": {
-            "verifier profile": "race checking tm"
+            "verifier profile": "CPALockator thread-modular"
           }
         }]
       },
@@ -412,7 +396,7 @@
         {
           "name": "FVTP",
           "options": {
-            "verifier profile": "race checking rcu"
+            "verifier profile": "CPALockator rcu"
           }
         }]
       },
@@ -476,11 +460,7 @@
                       {
                         "name": "FVTP",
                         "options": {
-                          "verifier profile": "reachability with heap arrays",
-                          "verifier": {
-                            "name": "CPAchecker",
-                            "version": "smg-master:d3436b02e6"
-                          }
+                          "verifier profile": "CPAchecker BAM reachability heap arrays"
                         }
                       }
                     ]
@@ -822,11 +802,7 @@
               {
                 "name": "FVTP",
                 "options": {
-                  "verifier profile": "reachability with function pointers",
-                  "verifier": {
-                    "name": "CPAchecker",
-                    "version": "smg-master:d3436b02e6"
-                  }
+                  "verifier profile": "CPAchecker BAM reachability FP"
                 }
               }
             ]
@@ -850,11 +826,7 @@
               {
                 "name": "FVTP",
                 "options": {
-                  "verifier profile": "reachability with heap arrays",
-                  "verifier": {
-                    "name": "CPAchecker",
-                    "version": "smg-master:d3436b02e6"
-                  }
+                  "verifier profile": "CPAchecker BAM reachability heap arrays"
                 }
               }
             ]
@@ -891,7 +863,7 @@
               },
               {
                 "name": "FVTP",
-                "options": {"verifier profile": "memory checking without uncertainty"}
+                "options": {"verifier profile": "CPAchecker SMG without support of uncertain environment behavior"}
               }
             ]
           },
@@ -912,7 +884,7 @@
               },
               {
                 "name": "FVTP",
-                "options": {"verifier profile": "memory checking without abstraction for lists"}
+                "options": {"verifier profile": "CPAchecker SMG without deducing abstraction for lists"}
               }
             ]
           }

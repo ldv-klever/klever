@@ -68,11 +68,7 @@
           "name": "FVTP",
           "options": {
             "merge source files": true,
-            "verifier profile": "reachability",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "smg-master:d3436b02e6"
-            }
+            "verifier profile": "CPAchecker BAM reachability"
           }
         }
       ]

@@ -150,6 +150,13 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
         if "safety properties" in desc2:
             desc1["safety properties"].extend(desc2["safety properties"])
 
+        if "version" in desc2:
+            # rewrite in any case
+            desc1["version"] = desc2["version"]
+
+        if "name" in desc2:
+            desc1["name"] = desc2["name"]
+
         return desc1
 
     logger.debug("Import verifier profiles base")
@@ -166,23 +173,17 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
         raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db)) from e
 
     logger.debug("Determine profile for the given verifier and its version")
-    try:
-        verifier_name = conf['verifier']['name']
-        verifier_version = conf['verifier']['version']
-        user_opts = conf['verifier']
-        profile = conf['verifier profile']
-        profile_opts = profiles['profiles'][profile][verifier_name][verifier_version]
-    except KeyError as err:
-        raise KeyError("To run verification you need to: 1) Provide name, version and profile name of verifier at FVTP"
-                       " plugin configuration. 2) Create such verifier profile at verifier profiles base file. The"
-                       " following key is actually not found: {!r}".format(err)) from err
+    profile = conf['verifier profile']
+    if profile not in profiles:
+        raise KeyError("Verifier profile {} is not found".format(profile))
+    profile_opts = profiles[profile]
 
     logger.debug("Determine inheritance of profiles and templates")
-    sets = [user_opts, profile_opts]
+    sets = [profile_opts]
     while 'inherit' in sets[-1]:
-        if sets[-1]['inherit'] not in profiles['templates']:
+        if sets[-1]['inherit'] not in profiles:
             raise KeyError("Verifier profile template does not exist: {}".format(sets[-1]['inherit']))
-        sets.append(profiles['templates'][sets[-1]['inherit']])
+        sets.append(profiles[sets[-1]['inherit']])
 
     logger.debug("Prepare final opts description")
     last = None
@@ -202,6 +203,11 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     # Then get verification profile directly from user if it is set
     if conf.get('verifier profile description'):
         last = merge(last, conf['verifier profile description'])
+
+    # Update configuration
+    conf['verifier'] = {}
+    conf['verifier']['name'] = last['name']
+    conf['verifier']['version'] = last['version']
 
     # Process given options according to ldv patterns
     matcher = re.compile(r"\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")

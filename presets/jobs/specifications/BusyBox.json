@@ -61,11 +61,7 @@
           "name": "FVTP",
           "options": {
             "merge source files": true,
-            "verifier profile": "CPAchecker BAM BusyBox",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "smg-master:d3436b02e6"
-            }
+            "verifier profile": "CPAchecker BAM BusyBox"
           }
         }
       ]
@@ -90,11 +86,7 @@
           {
             "name":"FVTP",
             "options": {
-              "verifier profile": "memory checking",
-              "verifier": {
-                "name": "CPAchecker",
-                "version": "smg-master:d3436b02e6"
-              }
+              "verifier profile": "CPAchecker SMG memory checking"
             }
           }
         ]
