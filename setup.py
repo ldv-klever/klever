@@ -17,7 +17,7 @@ import os
 import setuptools
 
 
-VERSION = '4.0'
+VERSION = '4.0.1'
 
 
 def get_fallback_version():
