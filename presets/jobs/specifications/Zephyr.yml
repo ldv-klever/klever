@@ -1,0 +1,65 @@
+specification sets:
+- 1.9.2
+templates:
+  drivers:
+    plugins:
+    - name: EMG
+      options:
+        generators options:
+        - zephyrModel:
+            infinite call: false
+            initialization functions:
+            - init_cache
+            - init_mem_slab_module
+            - init_mbox_module
+            - uart_console_init
+            - init_pipes_module
+            - init_static_pools
+            - _ioapic_init
+            - _loapic_init
+            - _arc_init
+            - usb_composite_init
+            - malloc_prepare
+            - k_sys_work_q_init
+            - pinmux_initialize
+            - _bt_uart_init
+            - mass_storage_init
+            - main
+        - genericManual:
+            enforce replacement: true
+        translation options:
+          entry point: ldv_main
+          allocate external: true
+          environment model file: environment_model.c
+          additional headers:
+          - ldv/verifier/common.h
+          - ldv/verifier/nondet.h
+          - ldv/verifier/memory.h
+    - name: RSG
+      options:
+        common sets model: counter
+        model compiler input file: drivers/interrupt_controller/system_apic.c
+        common models:
+        - verifier/gcc.c
+        - verifier/nondet.c
+    - name: Weaver
+      options:
+        common headers:
+        - ldv/common/inline_asm.h
+        - ldv/verifier/memory.h
+    - name: FVTP
+      options:
+        merge source files: true
+        verifier profile: CPAchecker BAM reachability
+requirement specifications:
+  description: Zephyr requirement specifications
+  template: drivers
+  children:
+  - identifier: empty
+    description: '...'
+  - identifier: locks
+    plugins:
+    - name: RSG
+      options:
+        models:
+        - zephyr/locks.c

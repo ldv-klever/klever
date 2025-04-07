@@ -30,7 +30,7 @@ Klever provides a format to define configurations of specific safety properties 
 to adjust them for user needs.
 Such configuration files are called *verification profiles* and this section gives a tutorial on them.
 
-Verification profiles are described in the :file:`presets/jobs/verifier profiles.json` file in the :term:`$KLEVER_SRC`
+Verification profiles are described in the :file:`presets/jobs/verifier profiles.yml` file in the :term:`$KLEVER_SRC`
 directory.
 Below we consider its structure.
 Each profile can have:
@@ -49,13 +49,13 @@ It results in choosing the suitable additional options for verification tools pr
 
 There is an example below with three described options:
 
-.. code-block:: json
+.. code-block:: yaml
 
-  "add options": [
-    {"-setprop": "cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function"},
-    {"-ldv-bam": ""}
-    {"-heap": "%ldv:memory size:0.8:MB%m"}
-  ]
+  "add options":
+    - "-setprop": "cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function"
+    - "-ldv-bam": ""
+    - "-heap": "%ldv:memory size:0.8:MB%m"
+
 
 Each entry is an object that has a single entry providing an option name and its value.
 Some options have empty strings as values.
@@ -67,13 +67,12 @@ You can find a complete list of CPAchecker's options
 Requirement specifications should be provided with certain verification profiles and verification tools versions.
 They are described in the *profiles* attribute:
 
-.. code-block:: json
+.. code-block:: yaml
 
-  "CPAchecker common": {
-    "name": "CPAchecker",
-    "version": "smg-master:d3436b02e6",
+  "CPAchecker common":
+    "name": "CPAchecker"
+    "version": "smg-master:d3436b02e6"
     ...
-  }
 
 The version attribute supports inheritance, and other template can redefine its own version.
 

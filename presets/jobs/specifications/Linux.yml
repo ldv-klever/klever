@@ -1,0 +1,676 @@
+specification sets:
+- '2.6.33'
+- '3.2'
+- '3.14'
+- '3.14-dentry-v2'
+- '4.6.7'
+- '4.15'
+- '4.17'
+- '5.5'
+- '5.17'
+templates:
+  loadable kernel modules and kernel subsystems:
+    plugins:
+    - name: EMG
+      options:
+        generators options:
+        - linuxModule: {}
+        - linuxInsmod: {}
+        - genericManual: {}
+        translation options:
+          allocate external: false
+    - name: RSG
+      options:
+        common sets model: counter
+        model compiler input file: scripts/mod/empty.c
+        common models:
+        - common/inline_asm.c
+        - linux/arch/asm/bitops.c
+        - linux/arch/asm/current.c
+        - linux/arch/asm/atomic.c
+        - linux/common.c
+        - linux/drivers/base/core.c
+        - model: linux/drivers/base/dd.c
+          options:
+            weave in aspects:
+            - linux/lib/string.aspect
+        - linux/drivers/base/devres.c
+        - model: linux/drivers/base/firmware_loader.c
+          options:
+            weave in aspects:
+            - linux/lib/string.aspect
+        - linux/drivers/i2c/i2c-core.c
+        - model: linux/drivers/i2c/i2c-core-smbus.c
+          options:
+            weave in aspects:
+            - linux/lib/string.aspect
+        - linux/drivers/input/ff-memless.c
+        - linux/drivers/media/v4l2-core/v4l2-device.c
+        - linux/drivers/media/v4l2-core/v4l2-i2c.c
+        - model: linux/drivers/video/fbdev/core/fbsysfs.c
+          options:
+            weave in aspects:
+            - linux/lib/string.aspect
+        - model: linux/drivers/spi.c
+          options:
+            weave in aspects:
+            - linux/lib/string.aspect
+        - linux/err.c
+        - linux/kernel/panic.c
+        - linux/lib/bitmap.c
+        - linux/lib/dynamic_debug.c
+        - linux/lib/find_bit.common.c
+        - linux/lib/list.c
+        - linux/lib/string.c
+        - linux/mm/slab.c
+        - linux/mm/util.c
+        - linux/mm/vmalloc.c
+        - linux/verifier/memory.c
+        - verifier/gcc.c
+        - verifier/nondet.c
+    - name: Weaver
+      options:
+        common headers:
+        - ldv/common/inline_asm.h
+        - ldv/verifier/memory.h
+    - name: FVTP
+      options:
+        merge source files: true
+        verifier profile: CPAchecker BAM reachability
+  argument signatures for loadable kernel modules and kernel subsystems:
+    template: loadable kernel modules and kernel subsystems
+    plugins:
+    - name: EMG
+    - name: ASE
+      options:
+        algorithm: COMPLEX_ID
+    - name: TR
+    - name: RSG
+    - name: Weaver
+    - name: FVTP
+  memory safety for loadable kernel modules and kernel subsystems:
+    template: loadable kernel modules and kernel subsystems
+    plugins:
+    - name: EMG
+      options:
+        translation options:
+          allocate external: true
+    - name: RSG
+      options:
+        memory safety: true
+        models:
+        - common/list.c
+        - linux/alloc/common.c
+        - linux/drivers/usb/core/usb/message.c
+        - linux/memory safety/memory.c
+    - name: Weaver
+    - name: FVTP
+      options:
+        verifier profile: CPAchecker SMG memory checking
+  memory safety for loadable kernel modules and kernel subsystems with mea:
+    template: loadable kernel modules and kernel subsystems
+    plugins:
+    - name: EMG
+      options:
+        translation options:
+          allocate external: true
+    - name: RSG
+      options:
+        memory safety: true
+        models:
+        - common/list.c
+        - linux/alloc/common.c
+        - linux/drivers/usb/core/usb/message.c
+        - linux/memory safety/memory.c
+    - name: Weaver
+    - name: FVTP
+      options:
+        verifier profile: CPAchecker SMG memory checking with mea
+  concurrency safety for loadable kernel modules and kernel subsystems:
+    template: loadable kernel modules and kernel subsystems
+    plugins:
+    - name: EMG
+      options:
+        check final state: false
+        translation options:
+          self parallel processes: false
+          simple control functions calls: false
+          do not skip signals: true
+          not self parallel processes:
+          - linux/insmod
+          not self parallel processes from categories:
+          - usb
+          not self parallel processes from scenarios:
+          - usb_serial_scenario
+          direct control functions calls: false
+          allocate external: false
+    - name: RSG
+      options:
+        models:
+        - linux/concurrency safety/synchronization primitives.c
+    - name: Weaver
+    - name: FVTP
+      options:
+        verifier profile: CPALockator base
+        result processing:
+          expect several witnesses: true
+requirement specifications:
+  description: Linux requirement specifications
+  template: loadable kernel modules and kernel subsystems
+  children:
+  - identifier: alloc
+    children:
+    - identifier: irq
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/alloc/common.c
+          - linux/alloc/irq.c
+    - identifier: spinlock
+      description: '...'
+      template: argument signatures for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: ASE
+        options:
+          request aspects:
+          - linux/kernel/locking/spinlock.request.aspect
+      - name: TR
+        options:
+          templates:
+          - linux/kernel/locking/spinlock.c.tmpl
+          - linux/kernel/locking/spinlock.aspect.tmpl
+      - name: RSG
+        options:
+          models:
+          - model: $linux/kernel/locking/spinlock.c
+            options:
+              sets model: flag
+          - linux/alloc/common.c
+          - linux/alloc/spinlock.c
+    - identifier: usb lock
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/alloc/common.c
+          - linux/alloc/usb lock.c
+  - identifier: sleep
+    children:
+    - identifier: common
+      description: '...'
+      template: argument signatures for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: ASE
+        options:
+          request aspects:
+          - linux/kernel/locking/spinlock.request.aspect
+      - name: TR
+        options:
+          templates:
+          - linux/kernel/locking/spinlock.c.tmpl
+          - linux/kernel/locking/spinlock.aspect.tmpl
+      - name: RSG
+        options:
+          models:
+          - model: $linux/kernel/locking/spinlock.c
+            options:
+              sets model: flag
+          - linux/kernel/locking/rwlock.c
+          - linux/sleep/common.c
+      - name: FVTP
+        options:
+          verifier profile: CPAchecker BAM reachability FP
+  - identifier: arch
+    children:
+    - identifier: asm
+      children:
+      - identifier: dma-mapping
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/arch/asm/dma-mapping.c
+    - identifier: mm
+      children:
+      - identifier: ioremap
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/arch/mm/ioremap.c
+  - identifier: block
+    children:
+    - identifier: blk-core
+      children:
+      - identifier: queue
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/block/blk-core/queue.c
+      - identifier: request
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/block/blk-core/request.c
+    - identifier: genhd
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/block/genhd.c
+  - identifier: concurrency safety
+    description: Linux concurrency safety
+    template: concurrency safety for loadable kernel modules and kernel subsystems
+  - identifier: concurrency safety tm
+    description: Linux concurrency safety with TM analysis
+    template: concurrency safety for loadable kernel modules and kernel subsystems
+    plugins:
+    - name: FVTP
+      options:
+        verifier profile: CPALockator thread-modular
+  - identifier: concurrency safety rcu
+    description: Linux concurrency safety for rcu synchronization
+    template: concurrency safety for loadable kernel modules and kernel subsystems
+    plugins:
+    - name: RSG
+      options:
+        models:
+        - linux/concurrency safety/synchronization primitives.c
+        - linux/concurrency safety/rcuraces.c
+    - name: FVTP
+      options:
+        verifier profile: CPALockator rcu
+  - identifier: drivers
+    children:
+    - identifier: base
+      children:
+      - identifier: class
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/drivers/base/class.c
+    - identifier: usb
+      children:
+      - identifier: core
+        children:
+        - identifier: usb
+          children:
+          - identifier: coherent
+            description: '...'
+            plugins:
+            - name: RSG
+              options:
+                models:
+                - linux/drivers/usb/core/usb/coherent.c
+          - identifier: dev
+            description: '...'
+            plugins:
+            - name: RSG
+              options:
+                models:
+                - linux/drivers/usb/core/usb/dev.c
+        - identifier: driver
+          description: Error handling for usb register in probe()
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/drivers/usb/core/driver.c
+        - identifier: urb
+          description: '...'
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/drivers/usb/core/urb.c
+          - name: FVTP
+            options:
+              verifier profile: CPAchecker BAM reachability heap arrays
+      - identifier: gadget
+        children:
+        - identifier: udc-core
+          description: '...'
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/drivers/usb/gadget/udc-core.c
+    - identifier: clk1
+      description: '...'
+      template: argument signatures for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: ASE
+        options:
+          request aspects:
+          - linux/drivers/clk1.request.aspect
+      - name: TR
+        options:
+          templates:
+          - linux/drivers/clk1.c.tmpl
+          - linux/drivers/clk1.aspect.tmpl
+      - name: RSG
+        options:
+          models:
+          - $linux/drivers/clk1.c
+    - identifier: clk2
+      description: '...'
+      template: argument signatures for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: ASE
+        options:
+          request aspects:
+          - linux/drivers/clk2.request.aspect
+      - name: TR
+        options:
+          templates:
+          - linux/drivers/clk2.c.tmpl
+          - linux/drivers/clk2.aspect.tmpl
+      - name: RSG
+        options:
+          models:
+          - $linux/drivers/clk2.c
+  - identifier: empty
+    description: '...'
+  - identifier: overflow
+    description: checks potential overflows
+    plugins:
+    - name: RSG
+      options:
+        common models:
+        - linux/overflow.c
+  - identifier: fs
+    children:
+    - identifier: sysfs
+      children:
+      - identifier: group
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/fs/sysfs/group.c
+  - identifier: kernel
+    children:
+    - identifier: locking
+      children:
+      - identifier: mutex
+        description: '...'
+        template: argument signatures for loadable kernel modules and kernel subsystems
+        plugins:
+        - name: ASE
+          options:
+            request aspects:
+            - linux/kernel/locking/mutex.request.aspect
+        - name: TR
+          options:
+            templates:
+            - linux/kernel/locking/mutex.c.tmpl
+            - linux/kernel/locking/mutex.aspect.tmpl
+        - name: RSG
+          options:
+            models:
+            - model: $linux/kernel/locking/mutex.c
+              options:
+                sets model: flag
+      - identifier: rwlock
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/kernel/locking/rwlock.c
+      - identifier: spinlock
+        description: '...'
+        template: argument signatures for loadable kernel modules and kernel subsystems
+        plugins:
+        - name: ASE
+          options:
+            request aspects:
+            - linux/kernel/locking/spinlock.request.aspect
+        - name: TR
+          options:
+            templates:
+            - linux/kernel/locking/spinlock.c.tmpl
+            - linux/kernel/locking/spinlock.aspect.tmpl
+        - name: RSG
+          options:
+            models:
+            - model: $linux/kernel/locking/spinlock.c
+              options:
+                sets model: flag
+    - identifier: module
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/kernel/module.c
+    - identifier: rcu
+      children:
+      - identifier: update
+        children:
+        - identifier: lock bh
+          description: '...'
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/kernel/rcu/update/lock bh.c
+        - identifier: lock sched
+          description: '...'
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/kernel/rcu/update/lock sched.c
+        - identifier: lock
+          description: '...'
+          plugins:
+          - name: RSG
+            options:
+              models:
+              - linux/kernel/rcu/update/lock.c
+      - identifier: srcu
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/kernel/rcu/srcu.c
+    - identifier: sched
+      children:
+      - identifier: completion
+        description: '...'
+        template: argument signatures for loadable kernel modules and kernel subsystems
+        plugins:
+        - name: ASE
+          options:
+            request aspects:
+            - linux/kernel/sched/completion.request.aspect
+        - name: TR
+          options:
+            templates:
+            - linux/kernel/sched/completion.c.tmpl
+            - linux/kernel/sched/completion.aspect.tmpl
+        - name: RSG
+          options:
+            models:
+            - $linux/kernel/sched/completion.c
+  - identifier: lib
+    children:
+    - identifier: find_bit
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/lib/find_bit.c
+    - identifier: idr
+      description: '...'
+      template: argument signatures for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: ASE
+        options:
+          request aspects:
+          - linux/lib/idr.request.aspect
+      - name: TR
+        options:
+          templates:
+          - linux/lib/idr.c.tmpl
+          - linux/lib/idr.aspect.tmpl
+      - name: RSG
+        options:
+          models:
+          - $linux/lib/idr.c
+  - identifier: memory safety
+    description: Linux memory safety
+    template: memory safety for loadable kernel modules and kernel subsystems
+  - identifier: memory safety with mea
+    description: Linux memory safety
+    template: memory safety for loadable kernel modules and kernel subsystems with
+      mea
+  - identifier: net
+    children:
+    - identifier: core
+      children:
+      - identifier: dev
+        description: Error handling for netdev in probe()
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/net/core/dev.c
+      - identifier: rtnetlink
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/net/core/rtnetlink.c
+      - identifier: sock
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/net/core/sock.c
+  - identifier: test
+    children:
+    - identifier: EMG
+      description: Requirements specification for testing environment model specifications
+        and EMG
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/emg/test_model.c
+    - identifier: EMG with function pointer analysis
+      description: Requirements specification intended for testing environment model
+        specifications and EMG with function pointer analysis
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/emg/test_model.c
+      - name: FVTP
+        options:
+          verifier profile: CPAchecker BAM reachability FP
+    - identifier: common
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - common/test.c
+    - identifier: common with heap arrays
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - common/test.c
+      - name: FVTP
+        options:
+          verifier profile: CPAchecker BAM reachability heap arrays
+    - identifier: memory safety
+      description: '...'
+      template: memory safety for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - common/list.c
+          - common/test.c
+          - linux/alloc/common.c
+          - linux/drivers/usb/core/usb/message.c
+          - linux/memory safety/memory.c
+    - identifier: memory checking without uncertainty
+      description: '...'
+      template: memory safety for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - common/list.c
+          - common/test.c
+          - linux/alloc/common.c
+          - linux/drivers/usb/core/usb/message.c
+          - linux/memory safety/memory.c
+      - name: FVTP
+        options:
+          verifier profile: CPAchecker SMG without support of uncertain environment
+            behavior
+    - identifier: memory checking without abstraction for lists
+      description: '...'
+      template: memory safety for loadable kernel modules and kernel subsystems
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - common/list.c
+          - common/test.c
+          - linux/alloc/common.c
+          - linux/drivers/usb/core/usb/message.c
+          - linux/memory safety/memory.c
+      - name: FVTP
+        options:
+          verifier profile: CPAchecker SMG without deducing abstraction for lists
+  - identifier: staging
+    children:
+    - identifier: alloc
+      description: '...'
+      plugins:
+      - name: RSG
+        options:
+          models:
+          - linux/alloc/memory.c
+    - identifier: fs
+      children:
+      - identifier: char_dev
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/fs/char_dev.c
+    - identifier: mmc
+      children:
+      - identifier: sdio_func
+        description: '...'
+        plugins:
+        - name: RSG
+          options:
+            models:
+            - linux/mmc/sdio_func.c

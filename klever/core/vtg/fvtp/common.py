@@ -18,8 +18,9 @@
 import os
 import re
 import zipfile
-import json
 import sortedcontainers
+import yaml
+
 import klever.core.utils
 
 
@@ -168,7 +169,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     try:
         verifier_profile_db = klever.core.utils.find_file_or_dir(logger, conf["main working directory"], verifier_profile_db)
         with open(verifier_profile_db, 'r', encoding='utf-8') as fp:
-            profiles = json.loads(fp.read())
+            profiles = yaml.safe_load(fp)
     except FileNotFoundError as e:
         raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db)) from e
 

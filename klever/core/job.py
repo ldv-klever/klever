@@ -26,6 +26,7 @@ import time
 import traceback
 import zipfile
 
+import yaml
 from clade import Clade
 
 import klever.core.utils
@@ -40,7 +41,7 @@ JOB_ARCHIVE = 'job.zip'
 NECESSARY_FILES = [
     'job.json',
     'tasks.json',
-    'verifier profiles.json'
+    'verifier profiles.yml'
 ]
 DEFAULT_ARCH = 'x86-64'
 DEFAULT_ARCH_OPTS = {
@@ -98,11 +99,18 @@ def start_jobs(core_obj, vals):
     for configuration_file in NECESSARY_FILES:
         path = klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, configuration_file)
         with open(path, 'r', encoding='utf-8') as fp:
-            try:
-                json.load(fp)
-            except json.decoder.JSONDecodeError as err:
-                raise ValueError("Cannot parse JSON configuration file {!r}: {}".format(configuration_file, err)) \
-                    from None
+            if path.endswith('json'):
+                try:
+                    json.load(fp)
+                except json.decoder.JSONDecodeError as err:
+                    raise ValueError("Cannot parse JSON configuration file {!r}: {}".format(configuration_file, err)) \
+                        from None
+            elif path.endswith('yml') or path.endswith('yaml'):
+                try:
+                    yaml.safe_load(fp)
+                except yaml.YAMLError as err:
+                    raise ValueError("Cannot parse YAML configuration file {!r}: {}".format(configuration_file, err)) \
+                        from None
 
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")
@@ -120,9 +128,9 @@ def start_jobs(core_obj, vals):
     common_components_conf['specifications base'] = os.path.abspath(
         klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir,
                                            os.path.join('specifications',
-                                                        '{0}.json'.format(common_components_conf['project']))))
+                                                        '{0}.yml'.format(common_components_conf['project']))))
     common_components_conf['verifier profiles base'] = os.path.abspath(
-        klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
+        klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.yml'))
     common_components_conf['program fragments base'] = os.path.abspath(
         klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'fragmentation sets'))
 
@@ -494,7 +502,7 @@ class Job(klever.core.components.Component):
 
         # Check that specifications set is supported.
         with open(self.common_components_conf['specifications base'], encoding='utf-8') as fp:
-            req_spec_base = json.load(fp)
+            req_spec_base = yaml.safe_load(fp)
         spec_set = self.common_components_conf['specifications set']
         if spec_set not in req_spec_base['specification sets']:
             raise ValueError("Klever does not support specifications set {!r} yet, available options are: {}"

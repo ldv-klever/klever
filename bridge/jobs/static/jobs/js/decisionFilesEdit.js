@@ -250,6 +250,9 @@ FilesTree.prototype.set_editor_value = function(filename, content) {
         case 'py':
             h_mode = 'text/x-python';
             break;
+        case 'yml':
+            h_mode = "text/x-yaml";
+            break;
     }
 
     // Set editor content with mode, clear history and make it editable

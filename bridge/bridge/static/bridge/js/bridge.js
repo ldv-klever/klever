@@ -436,7 +436,7 @@ window.getFileExtension = function(name) {
 };
 
 window.isFileReadable = function(name) {
-    let readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
+    let readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python', 'yml'],
         extension = getFileExtension(name);
     return ($.inArray(extension, readable_extensions) !== -1 || name === 'README');
 };

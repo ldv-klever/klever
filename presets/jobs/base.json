@@ -116,6 +116,6 @@
   "common directories and files": [
     "fragmentation sets",
     "specifications",
-    "verifier profiles.json"
+    "verifier profiles.yml"
   ]
 }

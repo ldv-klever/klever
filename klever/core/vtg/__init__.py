@@ -24,6 +24,8 @@ import importlib
 import collections
 import resource
 
+import yaml
+
 import klever.core.components
 import klever.core.utils
 import klever.core.session
@@ -111,7 +113,7 @@ class VTG(klever.core.components.Component):
 
         # Read specifications base.
         with open(self.conf['specifications base'], encoding='utf-8') as fp:
-            raw_req_spec_descs = json.load(fp)
+            raw_req_spec_descs = yaml.safe_load(fp)
 
         if 'templates' not in raw_req_spec_descs:
             raise KeyError('Specifications base has not mandatory attribute "templates"')

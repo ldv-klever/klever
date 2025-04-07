@@ -1,0 +1,72 @@
+specification sets:
+- 1.28.3
+templates:
+  applets:
+    plugins:
+    - name: EMG
+      options:
+        generators options:
+        - genericFunctions:
+            infinite calls sequence: false
+            initialize strings as null terminated: false
+            functions to call:
+            - \w*main
+        translation options:
+          entry point: ldv_main
+          environment model file: environment_model.c
+          additional headers:
+          - stddef.h
+          - ldv/verifier/common.h
+          - ldv/verifier/nondet.h
+          - ldv/verifier/memory.h
+          - ldv/userspace/common.h
+    - name: RSG
+      options:
+        common sets model: counter
+        model compiler input file: applets/applets.c
+        common models:
+        - verifier/gcc.c
+        - verifier/nondet.c
+        - userspace/verifier/memory.c
+        - userspace/common.c
+        - userspace/string.c
+        - userspace/stdlib.c
+        - userspace/stdio.c
+        - busybox/globals.c
+        - busybox/fork.c
+        - busybox/libbb/appletlib.c
+        - busybox/libbb/verror_msg.c
+        - busybox/libbb/perror_msg.c
+        - busybox/libbb/xfuncs_printf.c
+    - name: Weaver
+      options:
+        common headers:
+        - ldv/common/inline_asm.h
+        - ldv/verifier/memory.h
+    - name: FVTP
+      options:
+        merge source files: true
+        verifier profile: CPAchecker BAM BusyBox
+requirement specifications:
+  description: BusyBox requirement specifications
+  template: applets
+  children:
+  - identifier: empty
+    description: '...'
+  - identifier: memory safety
+    description: BusyBox memory safety
+    plugins:
+    - name: RSG
+      options:
+        models:
+        - userspace/memory safety/memory.c
+    - name: FVTP
+      options:
+        verifier profile: CPAchecker SMG memory checking
+  - identifier: open
+    description: '...'
+    plugins:
+    - name: RSG
+      options:
+        models:
+        - busybox/file.c

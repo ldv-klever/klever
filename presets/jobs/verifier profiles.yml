@@ -1,0 +1,149 @@
+CPAchecker common:
+  name: CPAchecker
+  version: smg-master:d3436b02e6
+  description: Common options for the CPAchecker tool
+  add options:
+  - --option: cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function
+  - --option: cpa.predicate.allowedUnsupportedFunctions=memset,memcpy,__builtin_add_overflow,__builtin_mul_overflow,__builtin_va_arg
+  - --option: cpa.value.allowedUnsupportedFunctions=memset,memcpy,__builtin_add_overflow,__builtin_mul_overflow,__builtin_va_arg
+  - --option: counterexample.export.extendedWitnessFile=witness.%d.graphml
+  - --option: counterexample.export.exportExtendedWitness=true
+  - --option: counterexample.export.compressWitness=false
+  - --option: cpa.arg.witness.removeInsufficientEdges=false
+  - --option: counterexample.export.exportCounterexampleCoverage=true
+  - --option: counterexample.export.prefixAdditionalCoverageFile=Counterexample.%d.additionalCoverage.info
+  - --option: additionalCoverage.file=additionalCoverage.info
+  - --no-output-files: ''
+  - --option: shutdown.timeout=100
+  - --heap: '%ldv:memory size:0.8:MB%m'
+  architecture dependant options:
+    x86-64:
+      add options:
+      - --64: ''
+    ARM:
+      add options:
+      - --option: analysis.machineModel=ARM
+    ARM64:
+      add options:
+      - --option: analysis.machineModel=ARM64
+Ultimate common:
+  name: Ultimate Automizer
+  version: v0.1.20
+  description: Common options for the UltimateAutimizer tool
+  add options:
+  - --witness-name: witness.1.graphml
+  - --witness-dir: ./output/
+  - --architecture: 64bit
+CPALockator races:
+  version: CPALockator-update:05ba0c5
+  description: Common part of CPAchecker configuration for checking races
+  inherit: CPAchecker common
+  safety properties:
+  - CHECK( init({entry_point}()), LTL(G ! data-race-ldv) )
+  add options:
+  - --option: counterexample.export.graphml=witness.%d.graphml
+CPAchecker reachability:
+  description: CPAchecker for reachability checking
+  inherit: CPAchecker common
+  safety properties:
+  - CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )
+  add options:
+  - --ldv: ''
+CPAchecker BAM reachability:
+  description: CPAchecker with BAM for reachability checking
+  inherit: CPAchecker common
+  safety properties:
+  - CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )
+  add options:
+  - --option: counterexample.export.allowImpreciseCounterexamples=false
+  - --ldv-bam: ''
+CPAchecker BAM reachability FP:
+  description: CPAchecker with BAM and FPA for reachability checking
+  inherit: CPAchecker BAM reachability
+  add options:
+  - --option: CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.BAMPredicateCPA
+  - --option: cpa.value.ignoreFunctionValue=false
+  - --option: analysis.matchAssignedFunctionPointers=true
+  - --option: analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments=true
+CPAchecker BAM reachability bit-precise:
+  description: CPAchecker with bit-precise BAM for reachability checking
+  inherit: CPAchecker BAM reachability
+  add options:
+  - --option: cpa.predicate.encodeBitvectorAs=BITVECTOR
+  - --option: solver.solver=MathSAT5
+CPAchecker BAM reachability heap arrays:
+  description: CPAchecker with BAM and heap arrays for reachability checking
+  inherit: CPAchecker BAM reachability
+  add options:
+  - --option: cpa.predicate.useArraysForHeap=true
+  - --option: cpa.predicate.defaultArrayLength=20
+  - --option: cpa.predicate.maxArrayLength=-1
+CPAchecker BAM BusyBox:
+  description: CPAchecker with BAM for reachability checking and FPA
+  inherit: CPAchecker BAM reachability FP
+  add options:
+  - --option: cpa.predicate.defaultArrayLength=5
+  - --option: cpa.predicate.maxArrayLength=5
+CPAchecker SMG memory checking:
+  description: CPAchecker with SMG for memory errors checking
+  inherit: CPAchecker common
+  safety properties:
+  - CHECK( init({entry_point}()), LTL(G valid-free) )
+  - CHECK( init({entry_point}()), LTL(G valid-deref) )
+  - CHECK( init({entry_point}()), LTL(G valid-memtrack) )
+  add options:
+  - --smg-ldv: ''
+  - --option: CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA
+  - --option: parser.readLineDirectives=false
+  - --option: cpa.smg.memcpyFunctions=__VERIFIER_memcpy
+  - --option: cpa.smg.memsetFunctions=__VERIFIER_memset
+CPAchecker SMG memory checking with mea:
+  description: CPAchecker with SMG for memory errors checking
+  inherit: CPAchecker SMG memory checking
+  add options:
+  - --option: cpa.arg.witness.handleTMPVariableAsEpsilonForWitness=false
+  - --option: counterexample.export.graphml=
+  - --option: counterexample.export.extendedWitnessFile=witness.%d.graphml
+  - --option: counterexample.export.exportExtendedWitness=true
+  - --option: analysis.stopAfterError=false
+  - --option: counterexample.export.exportImmediately=true
+  - --option: counterexample.export.filters=PathEqualityCounterexampleFilter
+  - --option: analysis.algorithm.CEGAR=true
+  - --option: cegar.refiner=cpa.arg.AbstractARGBasedRefiner
+CPAchecker SMG without support of uncertain environment behavior:
+  description: CPAchecker with SMG for memory errors checking that almost does not
+    support any uncertainty in behavior of environment
+  inherit: CPAchecker SMG memory checking
+  add options:
+  - --option: cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false
+  - --option: cpa.smg.handleUnknownDereferenceAsSafe=false
+  - --option: cpa.smg.handleUnknownFunctions=STRICT
+  - --option: cpa.smg.produceErrorTraceInsteadOfException=true
+  - --option: cpa.smg.safeUnknownFunctionsPatterns=ldv_.*,printk,schedule
+CPAchecker SMG without deducing abstraction for lists:
+  description: CPAchecker with SMG for memory errors checking that does not spend
+    time for deducing abstraction for lists (this should unlikely be used for target
+    programs with lists)
+  inherit: CPAchecker SMG memory checking
+  add options:
+  - --option: cpa.smg.enableHeapAbstraction=false
+CPALockator base:
+  description: CPAchecker for checking races
+  inherit: CPALockator races
+  add options:
+  - --lockator-linux-pre-shared-ref: ''
+CPALockator lightweight:
+  description: Lightweight CPAchecker for checking races
+  inherit: CPALockator races
+  add options:
+  - --lockator-linux-lightweight: ''
+CPALockator thread-modular:
+  description: CPAchecker for checking races with powerful theory
+  inherit: CPALockator races
+  add options:
+  - --lockator-threadmodular-linux: ''
+CPALockator rcu:
+  description: CPAchecker for checking races over rcu pointers
+  inherit: CPALockator races
+  add options:
+  - --rcucpa: ''
