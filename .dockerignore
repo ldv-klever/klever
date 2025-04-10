@@ -1,3 +1,6 @@
 *
 !.git
 !build bases
+!klever
+!bridge
+!setup.py

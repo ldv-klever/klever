@@ -71,6 +71,14 @@ def local_scheduler_checks(conf):
         time.sleep(5)
 
 
+def set_scheduler_status(conf):
+    status = {
+        "VerifierCloud": "DISCONNECTED",
+        "Klever": "HEALTHY"
+    }
+    set_status(logging, status, conf)
+
+
 def schedulers_checks(conf):
     # Sign in
     consul_client = consul.Session()

@@ -1,12 +1,12 @@
 Klever Bridge:
   name: localhost:8998
-  password: password
-  user: user
+  password: service
+  user: service
 Klever jobs and tasks queue:
   host: localhost
   name: Klever jobs and tasks
-  password: password
-  username: user
+  password: service
+  username: service
 common:
   keep working directory: false
   logging:
@@ -73,3 +73,10 @@ scheduler:
   try less memory: 0.5
   type: native
   wait controller initialization: true
+node configuration:
+  available CPU number: 1.0
+  available RAM memory: 1.0
+  available disk memory: 1.0
+  available for jobs: true
+  available for tasks: true
+  bind address: 0.0.0.0

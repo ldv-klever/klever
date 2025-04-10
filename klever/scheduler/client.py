@@ -248,7 +248,8 @@ def prepare_task_arguments(logger, conf):
 
     # BenchExec arguments
     benchexec_bin = os.path.join(os.path.dirname(sys.executable), 'benchexec')
-    args = [benchexec_bin]
+    # See comment for Runexec below
+    args = [benchexec_bin] if os.path.isfile(benchexec_bin) else ['benchexec']
 
     if "CPU cores" in conf["resource limits"] and conf["resource limits"]["CPU cores"]:
         args.extend(["--limitCores", str(conf["resource limits"]["number of CPU cores"])])
@@ -307,7 +308,9 @@ def add_extra_paths(logger, conf):
 def prepare_job_arguments(logger, conf):
     # RunExec arguments
     runexec_bin = os.path.join(os.path.dirname(sys.executable), 'runexec')
-    args = [runexec_bin]
+    # If Runexec is installed in venv/bin it is near python bin
+    # If Runexec is installed in /usr/local/bin then python is in /usr/bin (Docker case)
+    args = [runexec_bin] if os.path.isfile(runexec_bin) else ['runexec']
 
     if "CPU cores" in conf["resource limits"] and conf["resource limits"]["CPU cores"]:
         args.append("--cores")
@@ -334,7 +337,9 @@ def prepare_job_arguments(logger, conf):
     if "Klever Core path" in conf["client"]:
         cmd = conf["client"]["Klever Core path"]
     else:
-        cmd = os.path.join(os.path.dirname(sys.executable), "klever-core")
+        klever_core_bin = os.path.join(os.path.dirname(sys.executable), 'klever-core')
+        # See comment for runexec above
+        cmd = klever_core_bin if os.path.isfile(klever_core_bin) else "klever-core"
 
     # Add CIF path
     pythonpaths = conf["client"].setdefault("addon python packages", [])

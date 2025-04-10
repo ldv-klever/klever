@@ -1,7 +1,7 @@
 Klever Bridge:
   name: localhost:8998
-  password: password
-  user: user
+  password: service
+  user: service
 client-controller:
   consul: /abs/path/to/consul
   consul additional configuration:

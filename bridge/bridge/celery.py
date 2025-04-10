@@ -17,9 +17,12 @@
 
 import os
 from celery import Celery
+from bridge import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bridge.settings')
 
+# config for celery in docker
+# app = Celery('bridge', broker='amqp://service:service@rabbitmq:5672')
 app = Celery('bridge')
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
+app.config_from_object('django.conf:settings')
+app.autodiscover_tasks(settings.INSTALLED_APPS)

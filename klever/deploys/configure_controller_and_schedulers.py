@@ -61,11 +61,6 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
 
     controller_conf['common']['working directory'] = os.path.join(deploy_dir_abs, 'klever-work/controller')
 
-    controller_conf['Klever Bridge'].update({
-        'user': 'service',
-        'password': 'service'
-    })
-
     controller_conf['client-controller']['consul'] = get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'Consul')
 
     with open(os.path.join(deploy_dir, 'klever-conf/controller.yml'), 'w') as fp:
@@ -79,16 +74,6 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
                                                                         'klever-work/native-scheduler')
     if development:
         native_scheduler_conf['common']['keep working directory'] = True
-
-    native_scheduler_conf['Klever Bridge'].update({
-        'user': 'service',
-        'password': 'service'
-    })
-
-    native_scheduler_conf['Klever jobs and tasks queue'].update({
-        'username': 'service',
-        'password': 'service'
-    })
 
     native_scheduler_conf['scheduler'].update({
         'disable CPU cores account': True,
@@ -126,16 +111,6 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
 
         verifiercloud_scheduler_conf['common']['working directory'] = \
             os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
-
-        verifiercloud_scheduler_conf['Klever Bridge'].update({
-            'user': 'service',
-            'password': 'service'
-        })
-
-        verifiercloud_scheduler_conf['Klever jobs and tasks queue'].update({
-            'username': 'service',
-            'password': 'service'
-        })
 
         verifiercloud_scheduler_conf['scheduler']['web client location'] =\
             get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'VerifierCloud Client')

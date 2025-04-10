@@ -1,0 +1,110 @@
+version: '3'
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./Klever-bridge.docker
+    restart: on-failure
+    healthcheck:
+      test: curl --fail http://localhost:8998 || exit 1
+      interval: 10s
+      retries: 5
+      start_period: 20s
+      timeout: 5s
+    command:
+      - bash
+      - -c
+      - |
+        python3 bridge/manage.py migrate
+        python3 bridge/manage.py createuser --username admin --password admin --staff --superuser
+        python3 bridge/manage.py createuser --username manager --password manager --role 2
+        python3 bridge/manage.py createuser --username service --password service --role 4
+        python3 bridge/manage.py populate --all
+
+        python3 bridge/manage.py runserver 0.0.0.0:8998
+#    volumes:
+#      - .:/usr/src/app
+    ports:
+      - 8998:8998
+    depends_on:
+      postgres:
+        condition: service_started
+      # celery:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: ./Klever-native-scheduler.docker
+    restart: on-failure
+    privileged: true
+    volumes:
+     - /sys/fs/cgroup:/sys/fs/cgroup:rw
+     - /opt/bin/build-bases/linux:/klever/build bases/linux
+    depends_on:
+      django:
+        condition: service_healthy
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 5G
+
+  # controller:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Klever-controller.docker
+  #   restart: on-failure
+  #   container_name: controller
+  #   depends_on:
+  #     django:
+  #       condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=service
+      - RABBITMQ_DEFAULT_PASS=service
+        #      - RABBITMQ_DEFAULT_VHOST=localhost
+    healthcheck:
+        test: rabbitmq-diagnostics -q ping
+        interval: 5s
+        timeout: 5s
+        retries: 20
+
+  # celery:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Klever-celery.docker
+  #   restart: always
+  #   container_name: celery
+  #   # command: [celery, worker, --app=bridge, --loglevel=INFO]
+  #   environment:
+  #   - CELERY_BROKER_URL=amqp://service:service@rabbitmq:5672
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+    # volumes:
+    #   - ./bridge:/bridge
+    # healthcheck:
+    #     test: rabbitmq-diagnostics -q ping
+    #     interval: 5s
+    #     timeout: 5s
+    #     retries: 20
+
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=klever
+      - POSTGRES_USER=klever
+      - POSTGRES_PASSWORD=klever
+    # volumes:
+    #   - pgdbdata:/var/lib/postgresql/data/
+
+volumes:
+  pgdbdata: null

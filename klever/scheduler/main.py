@@ -20,7 +20,7 @@ from klever.scheduler.schedulers import verifiercloud
 from klever.scheduler import utils
 
 from klever.scheduler.schedulers import Scheduler
-from klever.scheduler.controller.checks import local_scheduler_checks
+from klever.scheduler.controller.checks import local_scheduler_checks, set_scheduler_status
 
 
 def client_controller():
@@ -53,6 +53,14 @@ def debug_scheduler():
 
 def native_scheduler():
     conf, logger = utils.common_initialization("Klever scheduler")
+    scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
+    scheduler_impl.launch()
+
+
+# An experimental scheduler for Docker, which do not have a controller
+def docker_scheduler():
+    conf, logger = utils.common_initialization("Klever scheduler")
+    set_scheduler_status(conf['Klever Bridge'])
     scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
     scheduler_impl.launch()
 

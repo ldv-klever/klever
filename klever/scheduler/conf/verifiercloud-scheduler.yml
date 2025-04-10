@@ -1,12 +1,12 @@
 Klever Bridge:
   name: localhost:8998
-  password: password
-  user: user
+  password: service
+  user: service
 Klever jobs and tasks queue:
   host: localhost
   name: Klever jobs and tasks
-  password: password
-  username: user
+  password: service
+  username: service
 common:
   keep working directory: false
   logging:
