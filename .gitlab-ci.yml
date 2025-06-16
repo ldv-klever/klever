@@ -25,10 +25,19 @@ pylint:
   - venv/bin/python3 -m pip install pylint
   - venv/bin/pylint $(git ls-files 'klever/*.py')
 
-.option-check: &option-check
+.klever-tests: &klever-tests
   <<: *deps
-  stage: product-lines
   interruptible: true
+  artifacts:
+    expire_in: 7d
+    paths:
+      - "job-versions-solution-results.json"
+      - "job_archive.zip"
+    when: on_failure
+
+.option-check: &option-check
+  <<: *klever-tests
+  stage: product-lines
   script:
   - venv/bin/python3 ci-option-inject.py --config ci-config/options-injection-config.yml --name $OPTION_NAME
   - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
@@ -41,18 +50,13 @@ consul-option:
     OPTION_NAME: consul
 
 .integration-tests: &integration-tests
-  <<: *deps
+  <<: *klever-tests
   stage: tests
-  interruptible: true
   script:
   # build bases are very large and should be prepared separately
   - sudo venv/bin/klever-deploy-local --source-directory . --deployment-directory /opt/bin --data-directory /opt/build-bases --log-level DEBUG update testing
   - sleep 10s # TODO: Bridge somehow can not be initialized after deployment, need to wait a bit
   - venv/bin/python3 ci-test-run.py --job_file=$JOB_FILE
-  artifacts:
-    paths:
-    - "job-versions-solution-results.json"
-    when: on_failure
 
 .integration-tests-nightly: &integration-tests-nightly
   <<: *integration-tests

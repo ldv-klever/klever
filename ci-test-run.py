@@ -77,6 +77,8 @@ def run_job(job, logger):
     if not results:
         error(logger, 'No results found for {}'.format(job['name']))
 
+    cli.download_job(job_uuid, "job_archive.zip")
+
     return results
 
 
