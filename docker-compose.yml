@@ -1,28 +1,17 @@
 version: '3'
 
 services:
-  django:
+  bridge:
     build:
       context: .
       dockerfile: ./Klever-bridge.docker
-    restart: on-failure
+    restart: always
     healthcheck:
       test: curl --fail http://localhost:8998 || exit 1
       interval: 10s
       retries: 5
       start_period: 20s
       timeout: 5s
-    command:
-      - bash
-      - -c
-      - |
-        python3 bridge/manage.py migrate
-        python3 bridge/manage.py createuser --username admin --password admin --staff --superuser
-        python3 bridge/manage.py createuser --username manager --password manager --role 2
-        python3 bridge/manage.py createuser --username service --password service --role 4
-        python3 bridge/manage.py populate --all
-
-        python3 bridge/manage.py runserver 0.0.0.0:8998
 #    volumes:
 #      - .:/usr/src/app
     ports:
@@ -35,17 +24,36 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  scheduler:
+  task_worker:
     build:
       context: .
+      target: klever-task-worker
       dockerfile: ./Klever-native-scheduler.docker
-    restart: on-failure
-    privileged: true
+    deploy:
+      mode: replicated
+      replicas: 4
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 8G
+    restart: always
+    volumes:
+     - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    depends_on:
+      bridge:
+        condition: service_healthy
+
+  job_worker:
+    build:
+      context: .
+      target: klever-job-worker
+      dockerfile: ./Klever-native-scheduler.docker
+    restart: always
     volumes:
      - /sys/fs/cgroup:/sys/fs/cgroup:rw
      - /opt/bin/build-bases/linux:/klever/build bases/linux
     depends_on:
-      django:
+      bridge:
         condition: service_healthy
     # deploy:
     #   resources:
@@ -105,6 +113,6 @@ services:
       - POSTGRES_PASSWORD=klever
     # volumes:
     #   - pgdbdata:/var/lib/postgresql/data/
-
-volumes:
-  pgdbdata: null
+#
+#volumes:
+#  pgdbdata: null

@@ -88,7 +88,7 @@ class ResourceManager:
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":
                 if self.__system_status[node]["available for jobs"] and not node_status["available for jobs"]:
                     self.__logger.warning("Cancel jobs: {}".
-                                         format(str(self.__system_status[node]["running verification jobs"])))
+                                          format(str(self.__system_status[node]["running verification jobs"])))
                     cancel_jobs.extend(self.__system_status[node]["running verification jobs"])
                 self.__system_status[node]["available for jobs"] = node_status["available for jobs"]
 
@@ -102,7 +102,7 @@ class ResourceManager:
                     verdict, data = self.__check_invariant()
                     if not verdict:
                         self.__logger.warning("Deadlock can happen after amount of resources available at {!r} reduced"
-                                             ", cancelling running tasks and jobs there".format(node))
+                                              ", cancelling running tasks and jobs there".format(node))
                         # Remove jobs
                         self.__logger.warning("Cancel jobs: {}".format(str(data)))
                         cancel_jobs.extend(data)
@@ -121,10 +121,10 @@ class ResourceManager:
         # Check disconnected nodes
         for missing in (n for n in self.__system_status if n not in nodes):
             self.__logger.warning("Seems that node {!r} is disconnected, cancel all running tasks and jobs there"
-                                 .format(missing))
+                                  .format(missing))
             self.__logger.warning('Node {!r} is disconnected. Cancel tasks and jobs: {} and {}'.
-                                 format(missing, str(self.__system_status[missing]["running verification jobs"]),
-                                        str(self.__system_status[missing]["running verification tasks"])))
+                                  format(missing, str(self.__system_status[missing]["running verification jobs"]),
+                                         str(self.__system_status[missing]["running verification tasks"])))
             cancel_jobs.extend(self.__system_status[missing]["running verification jobs"])
             cancel_tasks.extend(self.__system_status[missing]["running verification tasks"])
             self.__system_status[missing]["status"] = "DISCONNECTED"
@@ -159,6 +159,7 @@ class ResourceManager:
         :param server: {'node name': {node status}} - the system status.
         :return: True if status has been submitted to Bridge and False if nothing to sent.
         """
+
         def equal(name1, name2, parameter):
             """Compare nodes parameters"""
             return self.__system_status[name1][parameter] == self.__system_status[name2][parameter]
@@ -218,6 +219,7 @@ class ResourceManager:
         :param pending_jobs: A list of dictionaries with configuration for pending jobs sorted increasing the priority.
         :return: [{task desc}, "node name"], [{job desc}, "node name"] - lists of runnable pending tasks and jobs.
         """
+
         def schedule_jobs(jobs):
             while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) < self.__max_running_jobs:
                 candidate = jobs.pop()
@@ -560,6 +562,7 @@ class ResourceManager:
                  False [job identifiers to cancel] - the invariant is not preserved (job is not given).
                  False, None - the invariant is not preserved (job is given).
         """
+
         def yield_max_task(given_model, jbs):
             # Get all tasks restrictions
             restrictions = [j[1]['configuration']['task resource limits'] for j in jbs
@@ -798,6 +801,7 @@ class ResourceManager:
         :param conf: A node configuration.
         :return: [available CPU cores number, available RAM memory, available disk space].
         """
+
         def f(x):
             return x if x > 0 else 0
 
@@ -854,3 +858,20 @@ class ConsulResourceManager(ResourceManager):
             nodes = self.__request(url)
 
         return nodes
+
+
+class DockerResourceManager(ResourceManager):
+    # Dummy manager, which does nothing, as docker tracks resources itself
+
+    def check_resources(self, conf, job=False):
+        return
+
+    def claim_resources(self, identifier, conf, node, job=False):
+        return
+
+    def release_resources(self, identifier, node, job=False, keep_disk=0):
+        return
+
+    def schedule(self, pending_tasks, pending_jobs):
+        # should not be called
+        raise NotImplementedError

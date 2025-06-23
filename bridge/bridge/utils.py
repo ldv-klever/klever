@@ -339,6 +339,7 @@ class RMQConnect:
         self._connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=settings.RABBIT_MQ['host'], credentials=self._credentials
         ))
+        self._connection.channel().queue_declare(queue=settings.RABBIT_MQ_QUEUE, durable=True)
         return self._connection.channel()
 
     def __exit__(self, exc_type, exc_val, exc_tb):

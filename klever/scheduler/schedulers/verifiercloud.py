@@ -310,12 +310,12 @@ class VerifierCloud(runners.Runner):
         """
         raise NotImplementedError('VerifierCloud cannot start jobs.')
 
-    def _process_task_result(self, identifier, future, description):
+    def _process_task_result(self, identifier, result, description):
         """
         Process result and send results to the server.
 
         :param identifier: Task identifier string.
-        :param future: Future object.
+        :param result: exit code.
         :return: status of the task after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
         """
@@ -325,12 +325,6 @@ class VerifierCloud(runners.Runner):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
         self.logger.debug("Save solution to the disk as {}".format(solution_file))
-        try:
-            result = future.result()
-        except Exception as err:
-            error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
-            self.logger.warning(error_msg)
-            raise schedulers.SchedulerException(error_msg)
 
         # Save result
         with open(solution_file, 'wb') as sa:
@@ -389,40 +383,38 @@ class VerifierCloud(runners.Runner):
         self.logger.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def _process_job_result(self, identifier, future):
+    def _process_job_result(self, identifier, result):
         """
         Process future object status and send results to the server.
 
         :param identifier: Job identifier string.
-        :param future: Future object.
+        :param result: exit code.
         :return: status of the job after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
         """
         raise NotImplementedError('There cannot be any running jobs in VerifierCloud')
 
-    def _cancel_job(self, identifier, future):
+    def _cancel_job(self, process, identifier):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
-        :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occurred in future task.
         """
         raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
 
-    def _cancel_task(self, identifier, future):
+    def _cancel_task(self, process, identifier):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
-        :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occurred in future task.
         """
         self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super()._cancel_task(identifier, future)
+        super()._cancel_task(process, identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
         self.__drop_task(identifier)

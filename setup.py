@@ -61,6 +61,8 @@ setuptools.setup(
             "klever-debug-scheduler=klever.scheduler.main:debug_scheduler",
             "klever-native-scheduler=klever.scheduler.main:native_scheduler",
             "klever-docker-scheduler=klever.scheduler.main:docker_scheduler",
+            "klever-job-worker=klever.scheduler.main:docker_job_worker",
+            "klever-task-worker=klever.scheduler.main:docker_task_worker",
             "klever-verifiercloud-scheduler=klever.scheduler.main:verifiercloud_scheduler",
             "klever-check=klever.scheduler.controller.checks:main",
             "klever-build=klever.cli.build.__main__:main",

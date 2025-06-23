@@ -46,7 +46,7 @@ class Debug(klever.scheduler.schedulers.native.Native):
             self._process_starter = original_executor
         self.logger.warning('You should start Klever Core yourself (most likely in the debug mode)')
 
-    def _postprocess_solution(self, identifier, future, mode, fault_tolerant=False):
+    def _postprocess_solution(self, identifier, result, mode, fault_tolerant=False):
         """
         Mark resources as released, clean the working directory.
 
@@ -60,8 +60,6 @@ class Debug(klever.scheduler.schedulers.native.Native):
         else:
             subdir = 'jobs'
             del self._job_processes[identifier]
-        # Mark resources as released
-        del self._reserved[subdir][identifier]
 
         # Include logs into total scheduler logs
         work_dir = os.path.join(self.work_dir, subdir, identifier)
@@ -74,16 +72,14 @@ class Debug(klever.scheduler.schedulers.native.Native):
 
         self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
-            if future:
-                self._manager.release_resources(identifier, self._node_name, mode == 'job',
-                                                reserved_space)
-                result = future.result()
-                if result != 0:
-                    msg = "Work has been interrupted"
-                    self.logger.warning(msg)
-                    raise schedulers.SchedulerException(msg)
-            else:
-                self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
+            self._manager.release_resources(identifier, self._node_name, mode == 'job',
+                                            reserved_space)
+            if result != 0:
+                msg = "Work has been interrupted"
+                self.logger.warning(msg)
+                raise schedulers.SchedulerException(msg)
+
+            self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
             self.logger.warning(error_msg)

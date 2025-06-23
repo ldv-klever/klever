@@ -1,0 +1,126 @@
+# This is a Docker image for running the tests.
+# and will be used by CI as declared in .gitlab-ci.yml.
+#
+# Commands for updating the image:
+# docker build --pull -t gitlab.ispras.ru:4567/verification/klever - < ./gitlab-ci.Dockerfile.base
+# docker push gitlab.ispras.ru:4567/verification/klever
+
+FROM ubuntu:22.04 AS klever-worker
+
+RUN apt update && apt install -y --no-install-recommends \
+  curl \
+  git \
+  xz-utils \
+  gcc \
+  g++
+
+# Some problem with ca-certificates
+# RUN apt install -y ca-certificates --reinstall
+
+RUN apt update && apt install -y --fix-missing  \
+    python3 python3-dev python3-pip python-is-python3 unzip \
+    libxml2 libbz2-dev lzma   \
+    liblzma-dev liblz-dev \
+    rabbitmq-server bc gettext 
+
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y --no-install-recommends tzdata
+
+WORKDIR /klever
+
+RUN git clone https://github.com/ldv-klever/klever.git klever-src/
+
+WORKDIR /klever/klever-src/
+
+RUN python3 -m pip install --upgrade pip setuptools setuptools_scm wheel
+
+COPY ./klever/scheduler/conf/controller.yml klever/scheduler/conf/controller.yml
+COPY ./klever/scheduler/conf/native-scheduler.yml klever/scheduler/conf/native-scheduler.yml
+COPY ./setup.py setup.py
+
+RUN sed -i 's/localhost:8998/bridge:8998/g' ./klever/scheduler/conf/native-scheduler.yml
+RUN sed -i 's/host: localhost/host: rabbitmq/g' ./klever/scheduler/conf/native-scheduler.yml
+
+RUN sed -i 's|/abs/path/to/job-client.yml|/klever/klever-src/klever/scheduler/conf/job-client.yml|g' ./klever/scheduler/conf/native-scheduler.yml
+RUN sed -i 's|/abs/path/to/task-client.yml|/klever/klever-src/klever/scheduler/conf/task-client.yml|g' ./klever/scheduler/conf/native-scheduler.yml
+RUN sed -i 's/"keep working directory": false/"keep working directory": true/g' ./klever/scheduler/conf/native-scheduler.yml
+
+RUN sed -i 's/trunk:23430/smg-master:d3436b02e6/g' ./klever/scheduler/conf/task-client.yml
+RUN sed -i 's|path to scripts/|/klever/klever-addons/verification-backends/CPAchecker/scripts|g' ./klever/scheduler/conf/task-client.yml
+
+RUN sed -i 's|/abs/path/to/benchexec/bin|/klever/klever-addons/CIF/bin|g' ./klever/scheduler/conf/job-client.yml
+RUN sed -i 's|/abs/path/to/clade/bin|/klever/klever-addons/CIL|g' ./klever/scheduler/conf/job-client.yml
+RUN sed -i 's|/abs/path/to/cil-1.5.1/obj/x86_LINUX|/klever/klever-addons/MEA/scripts|g' ./klever/scheduler/conf/job-client.yml
+
+RUN sed -i 's/localhost:8998/bridge:8998/g' ./klever/scheduler/conf/controller.yml
+
+# Debug
+COPY ./klever/scheduler/server.py klever/scheduler/server.py
+
+COPY ./klever/scheduler/main.py klever/scheduler/main.py
+COPY ./klever/scheduler/schedulers/docker_worker.py klever/scheduler/schedulers/docker_worker.py
+COPY ./klever/scheduler/schedulers/docker_runner.py klever/scheduler/schedulers/docker_runner.py
+COPY ./klever/scheduler/schedulers/runners.py klever/scheduler/schedulers/runners.py
+COPY ./klever/scheduler/schedulers/native.py klever/scheduler/schedulers/native.py
+COPY ./klever/scheduler/schedulers/resource_scheduler.py klever/scheduler/schedulers/resource_scheduler.py
+
+ENV KLEVER_DATA_DIR /klever/
+
+# Task worker part
+FROM klever-worker as klever-task-worker
+
+RUN apt update && apt install -y --no-install-recommends --fix-missing  \
+    openjdk-17-jre
+
+WORKDIR /klever/klever-addons/
+RUN curl -L https://forge.ispras.ru/attachments/download/12975/CPAchecker-d3436b02e6.tar.xz -o CPAchecker-d3436b02e6.tar.xz
+RUN mkdir verification-backends
+RUN mkdir verification-backends/CPAchecker
+RUN tar -xaf CPAchecker-d3436b02e6.tar.xz -C verification-backends/CPAchecker && rm -rf CPAchecker-d3436b02e6.tar.xz
+
+RUN curl -L https://forge.ispras.ru/attachments/download/12905/CPALockator-05ba0c5.tar.xz -o CPALockator-05ba0c5.tar.xz
+RUN mkdir verification-backends/CPALockator
+RUN tar -xaf CPALockator-05ba0c5.tar.xz -C verification-backends/CPALockator && rm -rf CPALockator-05ba0c5.tar.xz
+
+WORKDIR /klever/klever-src/
+RUN python3 -m pip install --upgrade -r requirements.txt .
+
+ENTRYPOINT ["klever-task-worker", "./klever/scheduler/conf/native-scheduler.yml"]
+
+# Job worker part
+FROM klever-worker as klever-job-worker
+
+RUN apt update && apt install -y --no-install-recommends --fix-missing  \
+    libssl-dev graphviz
+
+WORKDIR /klever/klever-addons/
+
+# Cannot use ADD as we need to extract directly to the directory
+RUN curl -L https://forge.ispras.ru/attachments/download/10604/cif-568cd92.tar.xz -o cif-568cd92.tar.xz
+RUN mkdir CIF
+RUN tar -xaf cif-568cd92.tar.xz -C CIF && rm -rf cif-568cd92.tar.xz
+
+RUN curl -L https://forge.ispras.ru/attachments/download/10603/arm-unknown-eabi-cif-568cd92.tar.xz -o arm-unknown-eabi-cif-568cd92.tar.xz
+RUN mkdir CIF-ARM
+RUN tar -xaf arm-unknown-eabi-cif-568cd92.tar.xz -C CIF-ARM && rm -rf arm-unknown-eabi-cif-568cd92.tar.xz
+
+RUN curl -L https://forge.ispras.ru/attachments/download/10602/aarch64_be-unknown-linux-gnu-cif-568cd92.tar.xz -o aarch64_be-unknown-linux-gnu-cif-568cd92.tar.xz
+RUN mkdir CIF-ARM64
+RUN tar -xaf aarch64_be-unknown-linux-gnu-cif-568cd92.tar.xz -C CIF-ARM64 && rm -rf aarch64_be-unknown-linux-gnu-cif-568cd92.tar.xz
+
+RUN curl -L https://forge.ispras.ru/attachments/download/9905/frama-c-cil-c012809.tar.xz -o frama-c-cil-c012809.tar.xz
+RUN mkdir CIL
+RUN tar -xaf frama-c-cil-c012809.tar.xz -C CIL && rm -rf frama-c-cil-c012809.tar.xz
+
+RUN curl -L https://github.com/ispras/cv/releases/download/MEA-1.1/mea.tar.xz -o mea.tar.xz
+RUN mkdir MEA
+RUN tar -xaf mea.tar.xz -C MEA && rm -rf mea.tar.xz
+
+RUN curl -L https://forge.ispras.ru/attachments/download/12975/CPAchecker-d3436b02e6.tar.xz -o CPAchecker-d3436b02e6.tar.xz
+RUN mkdir verification-backends
+RUN mkdir verification-backends/CPAchecker
+RUN tar -xaf CPAchecker-d3436b02e6.tar.xz -C verification-backends/CPAchecker && rm -rf CPAchecker-d3436b02e6.tar.xz
+
+WORKDIR /klever/klever-src/
+RUN python3 -m pip install --upgrade -r requirements.txt .
+
+ENTRYPOINT ["klever-job-worker", "./klever/scheduler/conf/native-scheduler.yml"]

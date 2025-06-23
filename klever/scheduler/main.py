@@ -21,6 +21,7 @@ from klever.scheduler import utils
 
 from klever.scheduler.schedulers import Scheduler
 from klever.scheduler.controller.checks import local_scheduler_checks, set_scheduler_status
+from klever.scheduler.schedulers.docker_worker import JobWorker, TaskWorker
 
 
 def client_controller():
@@ -62,6 +63,20 @@ def docker_scheduler():
     conf, logger = utils.common_initialization("Klever scheduler")
     set_scheduler_status(conf['Klever Bridge'])
     scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
+    scheduler_impl.launch()
+
+
+def docker_job_worker():
+    conf, logger = utils.common_initialization("Klever scheduler")
+    set_scheduler_status(conf['Klever Bridge'])
+    scheduler_impl = JobWorker(conf, logger, "scheduler/")
+    scheduler_impl.launch()
+
+
+def docker_task_worker():
+    conf, logger = utils.common_initialization("Klever scheduler")
+    set_scheduler_status(conf['Klever Bridge'])
+    scheduler_impl = TaskWorker(conf, logger, "scheduler/")
     scheduler_impl.launch()
 
 

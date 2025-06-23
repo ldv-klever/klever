@@ -20,9 +20,9 @@ RUN apt update && apt install -y --no-install-recommends \
 RUN apt install -y --no-install-recommends --fix-missing  \
     make python3 python3-dev python3-pip python-is-python3 unzip wget  \
     libelf-dev libssl-dev graphviz bc bison  \
-    flex rabbitmq-server 
+    flex rabbitmq-server netcat
 
-RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y --no-install-recommends tzdata
+RUN apt update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y --no-install-recommends tzdata
 
 RUN apt install -y --no-install-recommends --fix-missing     \
     gettext nginx libbz2-dev lzma   \
@@ -38,16 +38,18 @@ RUN python3 -m pip install --upgrade pip setuptools setuptools_scm wheel
 RUN python3 -m pip install --upgrade -r requirements.txt
 
 RUN sed -i 's/localhost/rabbitmq/g' ./bridge/bridge/common.py
-RUN sed -i 's/127.0.0.1/pgdb/g' ./bridge/bridge/common.py
+RUN sed -i 's/127.0.0.1/postgres/g' ./bridge/bridge/common.py
 
 # celery disable
 RUN sed -i 's/\.delay//g' ./bridge/jobs/Download.py
 RUN sed -i 's/\.delay//g' ./bridge/reports/UploadReport.py
 RUN sed -i 's/\.delay//g' ./bridge/tools/utils.py
 
-# COPY ./bridge/bridge/celery.py bridge/bridge/celery.py
-COPY ./bridge/jobs/Download.py bridge/jobs/Download.py
-COPY ./bridge/tools/utils.py bridge/tools/utils.py
-COPY ./bridge/reports/UploadReport.py bridge/reports/UploadReport.py
+COPY ./bridge/bridge/urls.py bridge/bridge/urls.py
+COPY ./bridge/bridge/utils.py bridge/bridge/utils.py
+
+COPY ./run_bridge.sh run_bridge.sh
 
 RUN python3 ./bridge/manage.py compilemessages
+
+ENTRYPOINT ["./run_bridge.sh"]

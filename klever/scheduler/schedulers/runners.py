@@ -14,10 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import math
-import sys
-
 from klever.scheduler.schedulers import SchedulerException
 
 
@@ -231,6 +228,16 @@ class Runner:
         """Start solution explicitly of all recently submitted tasks."""
         return
 
+    def _is_done(self, item):
+        """
+        Checks if the job or task done
+
+        :param item: verification dictionary.
+        :return: bool result and exit code.
+        """
+        # Runners must implement the method
+        raise NotImplementedError
+
     def process_task_result(self, identifier, item):
         """
         Process result and send results to the server.
@@ -239,10 +246,11 @@ class Runner:
         :param item: Verification task description dictionary.
         :return: Bool if status of the job has changed.
         """
-        if item["future"].done():
+        done, result = self._is_done(item)
+        if done:
             try:
                 item.pop('error', None)
-                item["status"], item['solution'] = self._process_task_result(identifier, item["future"], item["description"])
+                item["status"], item['solution'] = self._process_task_result(identifier, result, item["description"])
                 self.logger.debug("Task {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
@@ -255,12 +263,12 @@ class Runner:
 
         return False
 
-    def _process_task_result(self, identifier, future, description):
+    def _process_task_result(self, identifier, result, description):
         """
         Process result and send results to the server.
 
         :param identifier: Task identifier string.
-        :param future: Future object.
+        :param result: exit code.
         :param description: Verification task description dictionary.
         :return: status of the task after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
@@ -277,10 +285,11 @@ class Runner:
         :param task_items: Verification tasks description to cancel them if necessary.
         :return: Bool if status of the job has changed.
         """
-        if item.get("future") and item["future"].done():
+        done, result = self._is_done(item)
+        if done:
             try:
                 item.pop('error', None)
-                item["status"] = self._process_job_result(identifier, item["future"])
+                item["status"] = self._process_job_result(identifier, result)
                 self.logger.debug("Job {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
@@ -297,16 +306,40 @@ class Runner:
 
         return False
 
-    def _process_job_result(self, identifier, future):
+    def _process_job_result(self, identifier, result):
         """
         Process future object status and send results to the server.
 
         :param identifier: Job identifier string.
-        :param future: Future object.
+        :param result: exit code.
         :return: status of the job after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
         """
         # Runners must implement the method
+        raise NotImplementedError
+
+    def _cancel_solution(self, process, identifier, mode='task'):
+        """
+        Stop the solution.
+
+        :param process: process object.
+        :param identifier: Verification job ID.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occurred in future task.
+        """
+        # Runners must implement the method or cancel_job/task directly
+        raise NotImplementedError
+
+    def _is_cancelable(self, identifier, item, mode='task'):
+        """
+        Checks if the solution can be canceled
+
+        :param item: Verification job description dictionary.
+        :param identifier: Verification job ID.
+        :return: process object if cancelable or None
+        :raise SchedulerException: In case of exception occurred in future task.
+        """
+        # Runners must implement the method or cancel_job/task directly
         raise NotImplementedError
 
     def cancel_job(self, identifier, item, task_items):
@@ -318,8 +351,9 @@ class Runner:
         :param task_items: Verification tasks description to cancel them if necessary.
         """
         try:
-            if item.get("future") and not item["future"].cancel():
-                item["status"] = self._cancel_job(identifier, item["future"])
+            process = self._is_cancelable(identifier, item, 'job')
+            if process:
+                item["status"] = self._cancel_job(process, identifier)
                 assert item["status"] in ["FINISHED", "ERROR"]
             else:
                 item["status"] = "ERROR"
@@ -336,17 +370,16 @@ class Runner:
             if "future" in item:
                 del item["future"]
 
-    def _cancel_job(self, identifier, future):
+    def _cancel_job(self, process, identifier):
         """
         Stop the job solution.
 
+        :param process: job process.
         :param identifier: Verification job ID.
-        :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occurred in future task.
         """
-        # Runners must implement the method
-        raise NotImplementedError
+        return self._cancel_solution(process, identifier, mode='job')
 
     def cancel_task(self, identifier, item):
         """
@@ -356,8 +389,9 @@ class Runner:
         :param item: Task description.
         """
         try:
-            if item.get("future") and not item["future"].cancel():
-                item["status"], _ = self._cancel_task(identifier, item["future"])
+            process = self._is_cancelable(identifier, item, 'task')
+            if process:
+                item["status"], _ = self._cancel_task(process, identifier)
                 self.logger.debug("Cancelled task {} finished with status: {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             else:
@@ -372,17 +406,16 @@ class Runner:
             if "future" in item:
                 del item["future"]
 
-    def _cancel_task(self, identifier, future):
+    def _cancel_task(self, process, identifier):
         """
         Stop the task solution.
 
+        :param process: task process.
         :param identifier: Verification task ID.
-        :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occurred in future task.
         """
-        # Runners must implement the method
-        raise NotImplementedError
+        return self._cancel_solution(process, identifier, mode='job')
 
     def add_job_progress(self, identifier, item, progress):  # pylint:disable=unused-argument
         """
@@ -410,68 +443,3 @@ class Runner:
     def update_tools(self):
         """Generate a dictionary with available verification tools and push it to the server."""
         return
-
-
-class TryLessMemoryRunner(Runner):
-    """This runner tries to run task with reduced memory for better parallelism."""
-
-    DEFAULT_REDUCED_MEMORY_LIMIT = 0.5
-
-    def __init__(self, conf, logger, work_dir, server):
-        super().__init__(conf, logger, work_dir, server)
-        self.__reduced_memory_limit = self.conf["scheduler"].\
-            get("try less memory", TryLessMemoryRunner.DEFAULT_REDUCED_MEMORY_LIMIT)
-        if self.__reduced_memory_limit <= 0 or self.__reduced_memory_limit > 1.0:
-            sys.exit("Configuration argument 'try less memory' is incorrect. It should be between 0.0 and 1.0")
-
-    def solve_task(self, identifier, item):
-        """
-        Reduce memory limit if it was not done before.
-
-        :param identifier: Verification task identifier.
-        :param item: Verification task description dictionary.
-        :return: true on success.
-        """
-        if self.__reduced_memory_limit < 1.0:
-            if not item["description"].get('speculative', False):
-                limits = item["description"]["resource limits"]
-                mem_limit = limits['memory size']
-                new_mem_limit = int(mem_limit * self.__reduced_memory_limit)
-                self.logger.debug(f"Set mem limit to {new_mem_limit} instead of {mem_limit}")
-                limits['memory size'] = new_mem_limit
-                item["description"]["speculative"] = True
-        return super().solve_task(identifier, item)
-
-    def process_task_result(self, identifier, item):
-        """
-        If task was not solved with adjusted memory limit, then reschedule its default value.
-
-        :param identifier: Task identifier string.
-        :param item: Verification task description dictionary.
-        :return: true if task was finished.
-        """
-        # Get solution in advance before it is cleaned
-        if item["future"].done():
-            status = super().process_task_result(identifier, item)
-            assert status is True
-            if 'solution' in item:
-                termination_reason = item['solution'].get("status")
-                if termination_reason in ('OUT OF MEMORY', 'OUT OF JAVA MEMORY', 'TIMEOUT (OUT OF JAVA MEMORY)') and \
-                        item["description"].get('speculative', False):
-                    limits = item["description"]["resource limits"]
-                    mem_limit = limits['memory size']
-                    new_mem_limit = int(mem_limit / self.__reduced_memory_limit)
-                    self.logger.info(
-                        f"Reschedule task {identifier} since it exceeded the given memory limitation "
-                        f"({mem_limit}B), new value is {new_mem_limit}B"
-                    )
-
-                    limits['memory size'] = new_mem_limit
-                    self.prepare_task(identifier, item)
-                    item["status"] = "PENDING"
-                    item["rescheduled"] = True
-            else:
-                self.logger.warning("Cannot get a solution for task {}".format(identifier))
-
-            return True
-        return False
