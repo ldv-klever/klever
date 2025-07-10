@@ -67,9 +67,13 @@ def main():
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
 
     if get_cgroup_version() != "v1":
-        logger.error('It appears that you are using cgroup v2, which is not supported by Klever')
-        logger.error('To revert the systemd configuration to use cgroup v1 run the following command and reboot:')
+        logger.error('It appears that you are using cgroup v2, which is not supported by Klever.')
+        logger.error('To revert the systemd configuration to use cgroup v1,')
+        logger.error('A. run the following command and reboot:')
         logger.error('\tsudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"')
+        logger.error('or B. manually add systemd.unified_cgroup_hierarchy=0 to the GRUB_CMDLINE_LINUX_DEFAULT')
+        logger.error('in /etc/default/grub and run update-grubby or `sudo grub-mkconfig -o /boot/grub/grub.cfg`')
+        logger.error('(this may vary for your system).')
         sys.exit(-1)
 
     # Returns either mode of previous deployment or unchanged value of args.mode

@@ -84,3 +84,7 @@ If something went wrong during installation, you need to uninstall Klever comple
 install it.
 In case of ambiguous issues in the development mode you should try to remove the virtual environment and to create it
 from scratch.
+
+On Astra Linux, it is necessary to set the parameter ``zero_if_notfound: yes`` in the file
+:file:`etc/parsec/mswitch.conf`, otherwise there will be an error connecting to the database like
+``error obtaining MAC configuration for user ...``.
