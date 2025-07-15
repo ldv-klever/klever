@@ -209,7 +209,7 @@ def extract_system_information():
     system_conf["CPU number"] = len(extract_cpu_cores_info().keys())
     system_conf["RAM memory"] = \
         int(get_output('cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'))
-    system_conf["disk memory"] = 1024 * int(get_output('df ./ | grep / | awk \'{ print $4 }\''))
+    system_conf["disk memory"] = shutil.disk_usage("./").free
     system_conf["Linux kernel version"] = get_output('uname -r')
     system_conf["arch"] = get_output('uname -m')
     return system_conf
