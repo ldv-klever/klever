@@ -34,7 +34,7 @@ import klever.core.utils
 from klever.core.coverage import LCOV
 from klever.core.vrp.et import import_error_trace, ErrorTraceParser
 
-MEA_LIB = os.path.join("MEA", "scripts")
+MEA_LIB = os.path.join("MEA", "cv")
 
 
 class VRP(klever.core.components.Component):

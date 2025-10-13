@@ -26,9 +26,9 @@
       "executable path": "consul"
     },
     "MEA": {
-      "version": "1.1",
-      "path": "https://github.com/ispras/cv/releases/download/MEA-1.1/mea.tar.xz",
-      "executable path": "scripts"
+      "version": "1.2",
+      "path": "https://github.com/ispras/cv/releases/download/MEA-1.2/mea.tar.xz",
+      "executable path": "cv"
     },
     "JRE": {
       "version": "17.0.11",
