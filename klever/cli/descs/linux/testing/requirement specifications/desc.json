@@ -13,6 +13,15 @@
         ]
     },
     {
+        "build base": "linux/testing/requirement specifications/rcu_with_memsafety",
+        "name": "Linux",
+        "git repository version": "v5.10",
+        "external modules": "tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/rcu_with_memsafety"
+        ]
+    },
+    {
         "build base": "linux/testing/requirement specifications/1de383",
         "name": "Linux",
         "external modules": "tests",

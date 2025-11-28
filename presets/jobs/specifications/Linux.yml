@@ -537,10 +537,37 @@ requirement specifications:
   - identifier: memory safety
     description: Linux memory safety
     template: memory safety for loadable kernel modules and kernel subsystems
+  - identifier: rcu memory safety
+    description: Linux memory safety with RCU support
+    template: memory safety for loadable kernel modules and kernel subsystems
+    plugins:
+    - name: RSG
+      options:
+        memory safety: true
+        models:
+        - common/list.c
+        - linux/alloc/common.c
+        - linux/drivers/usb/core/usb/message.c
+        - linux/memory safety/memory.c
+        - linux/kernel/rcu/rcu_with_memsafety.c
   - identifier: memory safety with mea
     description: Linux memory safety
     template: memory safety for loadable kernel modules and kernel subsystems with
       mea
+  - identifier: rcu memory safety with mea
+    description: Linux memory safety with RCU support
+    template: memory safety for loadable kernel modules and kernel subsystems with
+      mea
+    plugins:
+    - name: RSG
+      options:
+        memory safety: true
+        models:
+        - common/list.c
+        - linux/alloc/common.c
+        - linux/drivers/usb/core/usb/message.c
+        - linux/memory safety/memory.c
+        - linux/kernel/rcu/rcu_with_memsafety.c
   - identifier: net
     children:
     - identifier: core

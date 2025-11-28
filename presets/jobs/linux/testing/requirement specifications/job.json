@@ -142,6 +142,11 @@
       "requirement specifications": ["concurrency safety rcu"]
     },
     {
+      "build base": "linux/testing/requirement specifications/rcu_with_memsafety",
+      "targets": ["ext-modules/linux/rcu_with_memsafety"],
+      "requirement specifications": ["rcu memory safety"]
+    },
+    {
       "targets": ["ext-modules/linux/drivers/base/class"],
       "requirement specifications": ["drivers:base:class"]
     },

@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2025 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file("$this")
+{
+	extern void ldv_call_rcu(struct rcu_head *head, rcu_callback_t func);
+	extern void ldv_kvfree_call_rcu(struct rcu_head *head, rcu_callback_t func);
+	extern void ldv_rcu_read_lock(void);
+	extern void ldv_rcu_read_unlock(void);
+	extern int ldv_register_pernet_device(struct pernet_operations *ops);
+	extern void ldv_unregister_pernet_device(struct pernet_operations *ops);
+}
+
+around: call(void call_rcu(..))
+{
+	ldv_call_rcu($arg1, $arg2);
+}
+
+around: call(void kvfree_call_rcu(..))
+{
+	ldv_kvfree_call_rcu($arg1, $arg2);
+}
+
+around: call(static inline void rcu_read_lock(void))
+{
+	ldv_rcu_read_lock();
+}
+
+around: call(static inline void rcu_read_unlock(void))
+{
+	ldv_rcu_read_unlock();
+}
+
+around: call(static inline void rcu_read_lock_bh(void))
+{
+	ldv_rcu_read_lock();
+}
+
+around: call(static inline void rcu_read_unlock_bh(void))
+{
+	ldv_rcu_read_unlock();
+}
+
+around: call(static inline void rcu_read_lock_sched(void))
+{
+	ldv_rcu_read_lock();
+}
+
+around: call(static inline void rcu_read_unlock_sched(void))
+{
+	ldv_rcu_read_unlock();
+}
+
+around: call(void unregister_pernet_device(struct pernet_operations *ops))
+{
+	ldv_unregister_pernet_device(ops);
+}
+
+around: call(int register_pernet_device(struct pernet_operations *ops))
+{
+    return ldv_register_pernet_device(ops);
+}
