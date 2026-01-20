@@ -8,6 +8,7 @@ KERNEL_CONFIG="allmodconfig"
 VERSION=
 KERNEL_DIR=
 SKIP_MAKE_COMMAND="none"
+DISABLES=
 
 usage()
 {
@@ -23,6 +24,7 @@ usage()
     echo "       --arch <name> - architecture (by default, $ARCH)"
     echo "       --jobs <number> - number of parallel jobs (by default, $CORES)"
     echo "       --kernel-config <name> - make command (by default, $KERNEL_CONFIG). Use '$SKIP_MAKE_COMMAND' to skip it"
+    echo "       --disable <list of options> - disable kernel options"
     exit 1
 }
 
@@ -37,6 +39,11 @@ while [[ "$1" != "" ]]; do
         --tar )           TAR=1 ;;
         --force )         FORCE_REMOVE=1 ;;
         --kernel-config ) shift; KERNEL_CONFIG="$1" ;;
+        --disable)
+            shift
+            [[ -n "${1:-}" ]] || { echo "ERROR: --disable requires options"; exit 2; }
+            DISABLES+=("$1")
+            ;;
         -h | --help )     usage ;;
         * )               usage ;;
     esac
@@ -132,6 +139,14 @@ fi
 if [ ! "$KERNEL_CONFIG" == "$SKIP_MAKE_COMMAND" ]; then
   echo "Generate kernel config: make $KERNEL_CONFIG"
   make "$KERNEL_CONFIG" || { echo "Cannot execute make $KERNEL_CONFIG" ; exit 1; }
+  if ((${#DISABLES[@]})); then
+    args=()
+    for sym in "${DISABLES[@]}"; do
+        args+=(--disable "$sym")
+    done
+    scripts/config "${args[@]}"
+    make oldconfig
+  fi
 fi
 
 if [ "$FORCE_REMOVE" -ne 0 ]; then
