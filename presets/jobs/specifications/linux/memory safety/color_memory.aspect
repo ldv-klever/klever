@@ -1,0 +1,209 @@
+/*
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file("$this")
+{
+#include <ldv/linux/device.h>
+#include <ldv/linux/list.h>
+#include <ldv/verifier/color_memory.h>
+}
+
+around: call(void *devm_kmalloc(struct device *dev, size_t size, gfp_t flags))
+{
+	return ldv_devm_kmalloc(dev, size, flags);
+}
+
+around: call(static inline void *devm_kzalloc(struct device *dev, size_t size, gfp_t flags))
+{
+	return ldv_devm_kzalloc(dev, size, flags);
+}
+
+around: call(static inline void *devm_kmalloc_array(struct device *dev, size_t n, size_t size, gfp_t flags))
+{
+	return ldv_devm_kmalloc(dev, n * size, flags);
+}
+
+around: call(static inline void *devm_kcalloc(struct device *dev, size_t n, size_t size, gfp_t flags))
+{
+	return ldv_devm_kmalloc(dev, n * size, flags);
+}
+
+around: call(void devm_kfree(struct device *dev, const void *p))
+{
+	ldv_devm_kfree(dev, p);
+}
+
+
+around: call(void *drmm_kmalloc(struct drm_device *dev, size_t size, gfp_t gfp))
+{
+	return ldv_drmm_kmalloc(dev, size, gfp);
+}
+
+around: call(static inline void *drmm_kzalloc(struct drm_device *dev, size_t size, gfp_t gfp))
+{
+	return ldv_drmm_kzalloc(dev, size, gfp);
+}
+
+around: call(void drm_managed_release(struct drm_device *dev))
+{
+	ldv_drm_managed_release(dev);
+}
+
+around: call(void drmm_add_final_kfree(struct drm_device *dev, void *container))
+{
+	ldv_drmm_add_final_kfree(dev, container);
+}
+
+around: call(int __drmm_add_action(struct drm_device *dev,
+		      drmres_release_t action,
+		      void *data, const char *name))
+{
+	return __ldv_drmm_add_action(dev, action, data);
+}
+
+around: call(int __drmm_add_action_or_reset(struct drm_device *dev,
+			       drmres_release_t action,
+			       void *data, const char *name))
+{
+	return __ldv_drmm_add_action_or_reset(dev, action, data);
+}
+
+around: call(void drmm_kfree(struct drm_device *dev, void *data))
+{
+	ldv_drmm_kfree(dev, data);
+}
+
+
+
+around: call(static inline void kref_init(struct kref *kref))
+{
+	ldv_kref_init(kref);
+}
+
+around: call(struct device *get_device(struct device *dev))
+{
+	return ldv_get_device(dev);
+}
+
+around: call(static void put_device(struct device *dev))
+{
+	ldv_put_device(dev);
+}
+
+around: call(static void drm_dev_init_release(struct drm_device *dev, void *res))
+{
+	ldv_drm_dev_init_release(dev, res);
+}
+
+around: call(static int drm_dev_init(struct drm_device *dev,
+			const struct drm_driver *driver,
+			struct device *parent))
+{
+	return ldv_drm_dev_init(dev, driver, parent);
+}
+
+around: call(struct drm_device *drm_dev_alloc(struct drm_driver *driver,
+				 struct device *parent))
+{
+	return ldv_drm_dev_alloc(driver, parent);
+}
+
+around: call(static void drm_dev_release(struct kref *ref))
+{
+	ldv_drm_dev_release(ref);
+}
+
+around: call(static inline int kref_put(struct kref *kref, void (*release)(struct kref *kref)))
+{
+	return ldv_kref_put(kref, release);
+}
+
+around: call(void drm_dev_put(struct drm_device *dev))
+{
+	ldv_drm_dev_put(dev);
+}
+
+around: call(void *__devm_drm_dev_alloc(struct device *parent, struct drm_driver *driver, size_t size, size_t offset))
+{
+	return __ldv_devm_drm_dev_alloc(parent, driver, size, offset);
+}
+
+around: call(static inline void dev_set_drvdata(struct device *dev, void *data))
+{
+	ldv_devres_dev_set_drvdata(dev, data);
+}
+
+
+
+around: call(int drmm_mode_config_init(struct drm_device *dev))
+{
+	return ldv_drmm_mode_config_init(dev);
+}
+
+around: call(void drm_mode_config_cleanup(struct drm_device *dev))
+{
+	ldv_drm_mode_config_cleanup(dev);
+}
+
+around: call(void drm_crtc_cleanup(struct drm_crtc *crtc))
+{
+	ldv_drm_crtc_cleanup(crtc);
+}
+
+around: call(int drm_crtc_init_with_planes(struct drm_device *dev, struct drm_crtc *crtc,
+			      struct drm_plane *primary,
+			      struct drm_plane *cursor,
+			      const struct drm_crtc_funcs *funcs,
+			      const char *name, ...))
+{
+	return ldv_drm_crtc_init_with_planes(dev, crtc, funcs);
+}
+
+around: call(void drm_plane_cleanup(struct drm_plane *plane))
+{
+	ldv_drm_plane_cleanup(plane);
+}
+
+around: call(int drm_universal_plane_init(struct drm_device *dev, struct drm_plane *plane,
+			     uint32_t possible_crtcs,
+			     const struct drm_plane_funcs *funcs,
+			     const uint32_t *formats, unsigned int format_count,
+			     const uint64_t *format_modifiers,
+			     enum drm_plane_type type,
+			     const char *name, ...))
+{
+	return ldv_drm_universal_plane_init(dev, plane, funcs);
+}
+
+around: call(void drm_encoder_cleanup(struct drm_encoder *encoder))
+{
+	ldv_drm_encoder_cleanup(encoder);
+}
+
+around: call(int drm_encoder_init(struct drm_device *dev,
+		     struct drm_encoder *encoder,
+		     const struct drm_encoder_funcs *funcs,
+		     int encoder_type, const char *name, ...))
+{
+	return ldv_drm_encoder_init(dev, encoder, funcs);
+}
+
+around: call(int drm_simple_encoder_init(struct drm_device *dev,
+			    struct drm_encoder *encoder))
+{
+	return ldv_drm_simple_encoder_init(dev, encoder);
+}

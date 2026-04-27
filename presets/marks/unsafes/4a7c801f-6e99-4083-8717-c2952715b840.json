@@ -1,0 +1,64 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/memory-safety/color_memory/unsafe-ldev.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "color memory safety"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'malloc'": [
+                    {
+                      "LDV model 'reference_malloc'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'drm_dev_alloc'": [
+                    {
+                      "LDV model 'drm_dev_alloc'": [
+                        {
+                          "LDV model 'color_drm_kmalloc_wrapper'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'color_devm_kmalloc_wrapper'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

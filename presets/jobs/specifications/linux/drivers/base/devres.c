@@ -22,7 +22,7 @@
 #include <ldv/linux/slab.h>
 #include <ldv/verifier/memory.h>
 
-void *ldv_devm_kmalloc(size_t size, gfp_t flags)
+void *ldv_devm_kmalloc(struct device *dev, size_t size, gfp_t flags)
 {
 	void *res;
 
@@ -33,7 +33,7 @@ void *ldv_devm_kmalloc(size_t size, gfp_t flags)
 	return res;
 }
 
-void *ldv_devm_kzalloc(size_t size, gfp_t flags)
+void *ldv_devm_kzalloc(struct device *dev, size_t size, gfp_t flags)
 {
 	void *res;
 
@@ -44,7 +44,7 @@ void *ldv_devm_kzalloc(size_t size, gfp_t flags)
 	return res;
 }
 
-void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t flags)
+void *ldv_devm_kmalloc_array(struct device *dev, size_t n, size_t size, gfp_t flags)
 {
 	void *res;
 
@@ -55,7 +55,7 @@ void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t flags)
 	return res;
 }
 
-void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t flags)
+void *ldv_devm_kcalloc(struct device *dev, size_t n, size_t size, gfp_t flags)
 {
 	void *res;
 

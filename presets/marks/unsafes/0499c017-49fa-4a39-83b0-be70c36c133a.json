@@ -1,0 +1,101 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/memory-safety/color_memory/unsafe-crtc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "color memory safety"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'malloc'": [
+                    {
+                      "LDV model 'reference_malloc'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'drm_dev_alloc'": [
+                    {
+                      "LDV model 'drm_dev_alloc'": [
+                        {
+                          "LDV model 'color_drm_kmalloc_wrapper'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'drmm_mode_config_init'": [
+                    {
+                      "LDV model 'drmm_mode_config_init'": [
+                        {
+                          "Instrumented function 'INIT_LIST_HEAD'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'color_devm_kmalloc_wrapper'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'drmm_kzalloc'": [
+                    {
+                      "LDV model 'drmm_kzalloc'": [
+                        {
+                          "LDV model 'drmm_alloc_dr'": [
+                            {
+                              "LDV model 'color_drm_kmalloc_wrapper'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'drm_crtc_init_with_planes'": [
+                    {
+                      "LDV model 'drm_crtc_init_with_planes'": [
+                        {
+                          "LDV model 'list_add'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

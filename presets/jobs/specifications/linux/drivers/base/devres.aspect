@@ -22,20 +22,20 @@ before: file("$this")
 
 around: call(void *devm_kmalloc(struct device *dev, size_t size, gfp_t flags))
 {
-	return ldv_devm_kmalloc(size, flags);
+	return ldv_devm_kmalloc(dev, size, flags);
 }
 
 around: call(static inline void *devm_kzalloc(struct device *dev, size_t size, gfp_t flags))
 {
-	return ldv_devm_kzalloc(size, flags);
+	return ldv_devm_kzalloc(dev, size, flags);
 }
 
 around: call(static inline void *devm_kmalloc_array(struct device *dev, size_t n, size_t size, gfp_t flags))
 {
-	return ldv_devm_kmalloc_array(n, size, flags);
+	return ldv_devm_kmalloc_array(dev, n, size, flags);
 }
 
 around: call(static inline void *devm_kcalloc(struct device *dev, size_t n, size_t size, gfp_t flags))
 {
-	return ldv_devm_kcalloc(n, size, flags);
+	return ldv_devm_kcalloc(dev, n, size, flags);
 }

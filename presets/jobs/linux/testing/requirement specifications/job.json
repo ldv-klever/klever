@@ -147,6 +147,11 @@
       "requirement specifications": ["rcu memory safety"]
     },
     {
+      "build base": "linux/testing/requirement specifications/memory-safety/color_memory",
+      "targets": ["ext-modules/linux/memory-safety/color_memory"],
+      "requirement specifications": ["color memory safety"]
+    },
+    {
       "targets": ["ext-modules/linux/drivers/base/class"],
       "requirement specifications": ["drivers:base:class"]
     },

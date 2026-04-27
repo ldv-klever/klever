@@ -1,6 +1,6 @@
 CPAchecker common:
   name: CPAchecker
-  version: smg-master:d3436b02e6
+  version: smg-master:702bc1a36f
   description: Common options for the CPAchecker tool
   add options:
   - --option: cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function
@@ -97,6 +97,16 @@ CPAchecker SMG memory checking:
   - --option: parser.readLineDirectives=false
   - --option: cpa.smg.memcpyFunctions=__VERIFIER_memcpy
   - --option: cpa.smg.memsetFunctions=__VERIFIER_memset
+CPAchecker SMG color memory checking:
+  description: CPAchecker with SMG for color memory errors checking
+  inherit: CPAchecker SMG memory checking
+  add options:
+  - --option: cpa.smg.memoryAllocationFunctions=malloc,__kmalloc,kmalloc,kzalloc,kzalloc_node,ldv_zalloc,ldv_malloc,ldv_color_devm_kmalloc,ldv_color_drm_kmalloc
+  - --option: cpa.smg.deallocationFunctions=free,kfree,kfree_const,ldv_color_devm_kfree,ldv_color_drm_kfree,ldv_color_drm_dev_kfree
+  - --option: cpa.smg.checkColorCompatibility=true
+  - --option: cpa.smg.checkColoredMemleak=false
+  - --option: cpa.smg.redMemoryFunctions=ldv_color_devm_kmalloc,ldv_color_devm_kfree
+  - --option: cpa.smg.greenMemoryFunctions=ldv_color_drm_kmalloc,ldv_color_drm_kfree,ldv_color_drm_dev_kfree
 CPAchecker SMG memory checking with mea:
   description: CPAchecker with SMG for memory errors checking
   inherit: CPAchecker SMG memory checking

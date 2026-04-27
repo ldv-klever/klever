@@ -24,6 +24,8 @@ typedef unsigned long size_t;
 typedef unsigned int size_t;
 #endif
 
+struct device;
+struct drm_device;
 /* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
@@ -87,5 +89,9 @@ extern void *ldv_xmalloc_unknown_size(void);
 extern void *ldv_reference_xmalloc_unknown_size(void);
 
 extern void *external_allocated_data(void);
+
+extern int ldv_devres_release_all(struct device *dev);
+extern void ldv_drm_dev_put(struct drm_device *dev);
+extern void *ldv_devres_dev_get_drvdata(const struct device *dev);
 
 #endif /* __LDV_VERIFIER_MEMORY_H */

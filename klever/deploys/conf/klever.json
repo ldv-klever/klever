@@ -38,8 +38,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "smg-master:d3436b02e6",
-        "path": "https://forge.ispras.ru/attachments/download/12975/CPAchecker-d3436b02e6.tar.xz",
+        "version": "smg-master:702bc1a36f",
+        "path": "https://forge.ispras.ru/attachments/download/13213/CPAchecker-702bc1a36f.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {

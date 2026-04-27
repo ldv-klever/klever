@@ -126,6 +126,80 @@ templates:
     - name: FVTP
       options:
         verifier profile: CPAchecker SMG memory checking with mea
+  color memory safety for loadable kernel modules and kernel subsystems:
+    plugins:
+      - name: EMG
+        options:
+          generators options:
+            - linuxModule: { }
+            - linuxInsmod: { }
+            - genericManual: { }
+          translation options:
+            allocate external: true
+      - name: RSG
+        options:
+          common sets model: counter
+          model compiler input file: scripts/mod/empty.c
+          common models:
+            - common/inline_asm.c
+            - linux/arch/asm/bitops.c
+            - linux/arch/asm/current.c
+            - linux/arch/asm/atomic.c
+            - linux/common.c
+            - linux/drivers/base/core.c
+            - model: linux/drivers/base/dd.c
+              options:
+                weave in aspects:
+                  - linux/lib/string.aspect
+            - model: linux/drivers/base/firmware_loader.c
+              options:
+                weave in aspects:
+                  - linux/lib/string.aspect
+            - linux/drivers/i2c/i2c-core.c
+            - model: linux/drivers/i2c/i2c-core-smbus.c
+              options:
+                weave in aspects:
+                  - linux/lib/string.aspect
+            - linux/drivers/input/ff-memless.c
+            - linux/drivers/media/v4l2-core/v4l2-device.c
+            - linux/drivers/media/v4l2-core/v4l2-i2c.c
+            - model: linux/drivers/video/fbdev/core/fbsysfs.c
+              options:
+                weave in aspects:
+                  - linux/lib/string.aspect
+            - model: linux/drivers/spi.c
+              options:
+                weave in aspects:
+                  - linux/lib/string.aspect
+            - linux/err.c
+            - linux/kernel/panic.c
+            - linux/lib/bitmap.c
+            - linux/lib/dynamic_debug.c
+            - linux/lib/find_bit.common.c
+            - linux/lib/list.c
+            - linux/lib/string.c
+            - linux/mm/slab.c
+            - linux/mm/util.c
+            - linux/mm/vmalloc.c
+            - linux/verifier/memory.c
+            - verifier/gcc.c
+            - verifier/nondet.c
+          memory safety: true
+          models:
+            - common/list.c
+            - linux/alloc/common.c
+            - linux/drivers/usb/core/usb/message.c
+            - linux/memory safety/memory.c
+            - linux/memory safety/color_memory.c
+      - name: Weaver
+        options:
+          common headers:
+            - ldv/common/inline_asm.h
+            - ldv/verifier/memory.h
+      - name: FVTP
+        options:
+          merge source files: true
+          verifier profile: CPAchecker SMG color memory checking
   concurrency safety for loadable kernel modules and kernel subsystems:
     template: loadable kernel modules and kernel subsystems
     plugins:
@@ -568,6 +642,9 @@ requirement specifications:
         - linux/drivers/usb/core/usb/message.c
         - linux/memory safety/memory.c
         - linux/kernel/rcu/rcu_with_memsafety.c
+  - identifier: color memory safety
+    description: Linux drm/devm memory safety
+    template: color memory safety for loadable kernel modules and kernel subsystems
   - identifier: net
     children:
     - identifier: core
